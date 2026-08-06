@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <title>Nohora Ramirez Beauty Studio</title>
+  <!--
+    A marca reduzida a 16px.
+
+    A coroa botânica do monograma tem folha de 0.9 de traço: some por completo
+    num favicon. O que sobrevive nesse tamanho é a geometria por baixo dela — o
+    anel aberto e o swash que sai pela abertura. É o mesmo gesto do selo de
+    confirmação, só que engordado para aguentar a redução.
+
+    Sem "NR": texto em SVG de favicon depende de fonte do sistema, e a Bodoni
+    não está lá. Melhor a forma certa sem letra do que a letra errada.
+
+    O swash nasce perto do centro, não na borda oposta. Atravessando o anel de
+    ponta a ponta ele vira símbolo de proibido — que é exatamente o que não se
+    quer na aba de um salão de beleza. Saindo de dentro para fora pela abertura,
+    lê como floreio: é a mesma direção do original, com metade do comprimento.
+
+    Placa de tinta em vez de fundo transparente — cor da marca é quase preta,
+    e sobre a aba clara do navegador um traço creme solto ficaria invisível.
+  -->
+  <rect width="200" height="200" rx="44" fill="#16110f" />
+  <g fill="none" stroke-linecap="round">
+    <path d="M 157.5 76.8 A 62 62 0 1 0 151.4 134.7" stroke="#f5f0ea" stroke-width="7" />
+    <path d="M 84 76 C 108 96 132 114 172 136" stroke="#c9ac86" stroke-width="7.5" />
+  </g>
+</svg>

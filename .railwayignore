@@ -1,0 +1,28 @@
+# O que não sobe no `railway up`.
+# O projeto não é um repositório git, então não dá para contar com o .gitignore
+# ser lido: esta lista é explícita. Sem ela o upload leva node_modules inteiro e
+# o .next da máquina local — que o builder ia sobrescrever de qualquer jeito.
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist/
+build/
+out/
+coverage/
+
+.env
+.env.local
+.env.*.local
+
+# fotos enviadas pelo admin nesta máquina: são dados locais, não código
+.uploads/
+
+*.log
+*.tsbuildinfo
+.turbo/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.git/

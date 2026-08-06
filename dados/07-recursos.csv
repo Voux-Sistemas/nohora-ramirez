@@ -1,0 +1,9 @@
+unidade;codigo;nome;tipo;quantidade;servicos_que_usam;observacao
+centro;lavatorio;Lavatorio;lavatorio;2;corte-fem,escova,coloracao,mechas,progressiva,hidratacao;
+centro;cadeira;Cadeira de corte;cadeira;4;corte-fem,escova,coloracao,mechas,progressiva;
+centro;cabine;Cabine de estetica;cabine;1;limpeza-pele,cilios;
+zona-sul;lavatorio;Lavatorio;lavatorio;2;corte-fem,escova,coloracao,mechas,hidratacao;
+zona-sul;cadeira;Cadeira de corte;cadeira;3;corte-fem,escova,coloracao,mechas;
+zona-sul;mesa-manicure;Mesa de manicure;mesa;2;manicure,pedicure;
+shopping;lavatorio;Lavatorio;lavatorio;1;corte-fem,escova,hidratacao;
+shopping;cabine;Cabine de estetica;cabine;2;limpeza-pele,cilios,sobrancelha;

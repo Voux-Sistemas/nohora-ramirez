@@ -1,0 +1,482 @@
+@import 'tailwindcss';
+
+/*
+  ─────────────────────────────────────────────────────────────────────────────
+  NOHORA RAMIREZ — Beauty Studio
+  Sistema visual.
+
+  A CENA QUE DECIDE TUDO
+  Camila abre o celular às 22h40 de domingo, no escuro do quarto, para ver se
+  consegue a Juliana no sábado. Doze horas depois a mesma interface está num
+  tablet no balcão, sob LED de salão batendo em espelho e mármore, com uma
+  cliente de pé esperando.
+
+  A segunda cena manda. Claro não é o padrão seguro aqui — é a única leitura que
+  sobrevive ao reflexo do balcão. Mas é um claro de pedra quente, não de papel
+  branco: às 22h40 no escuro, branco puro machuca. O tema escuro existe e é um
+  segundo vestido de verdade (carvão quente), não a inversão do claro.
+
+  ESTRATÉGIA DE COR: comprometida.
+  A tinta quase preta carrega superfície de verdade — a capa, a ação principal, a
+  barra de rodapé. Não é neutro-com-um-toque-de-cor. A paleta sai do material do
+  salão de alto padrão: travertino, tinta, bronze escovado. Bronze é acento e
+  detalhe; nunca é o botão.
+
+  O preto vem da própria logo: o monograma NR é monocromático. A marca não
+  herdou cor nenhuma, então a tinta é a cor da marca.
+
+  WHITE-LABEL
+  Tudo que é identidade mora em variável. Trocar de salão é trocar os valores em
+  `:root`, nunca editar componente.
+  ─────────────────────────────────────────────────────────────────────────────
+*/
+
+@theme {
+  /* ── pedra ─ travertino quente. O chão do produto. ───────────────────── */
+  --color-stone-50: oklch(0.988 0.005 84);
+  --color-stone-100: oklch(0.958 0.01 76);
+  --color-stone-200: oklch(0.925 0.014 74);
+  --color-stone-300: oklch(0.885 0.014 74);
+  --color-stone-400: oklch(0.8 0.015 72);
+  --color-stone-500: oklch(0.66 0.014 66);
+  /* 0.50 e não 0.545: em 0.545 o texto secundário lê 3.98:1 sobre o fundo
+     rebaixado. Cinza claro "por elegância" é justamente o que não sobrevive à
+     luz do balcão. */
+  --color-stone-600: oklch(0.5 0.013 58);
+  --color-stone-700: oklch(0.44 0.014 54);
+  --color-stone-800: oklch(0.315 0.013 52);
+  --color-stone-900: oklch(0.235 0.012 50);
+  --color-stone-950: oklch(0.185 0.01 50);
+
+  /* ── tinta ─ a cor da marca, tirada do monograma. ────────────────────── */
+  --color-ink-50: oklch(0.955 0.006 62);
+  --color-ink-100: oklch(0.87 0.008 58);
+  --color-ink-400: oklch(0.45 0.014 52);
+  --color-ink-600: oklch(0.3 0.014 50);
+  --color-ink-800: oklch(0.235 0.014 50);
+  --color-ink-900: oklch(0.19 0.014 48);
+  --color-ink-950: oklch(0.145 0.012 46);
+
+  /* ── bronze ─ metal escovado. Detalhe, régua, selo. Nunca ação. ──────── */
+  --color-bronze-100: oklch(0.93 0.028 78);
+  --color-bronze-200: oklch(0.86 0.045 78);
+  --color-bronze-300: oklch(0.76 0.062 74);
+  --color-bronze-400: oklch(0.68 0.072 70);
+  --color-bronze-500: oklch(0.585 0.078 66);
+  --color-bronze-600: oklch(0.5 0.072 62);
+  --color-bronze-700: oklch(0.42 0.062 60);
+
+  /* ── estado ─ o mínimo, e só onde estado é fato do produto.
+     Escurecidos até passarem 4.5:1 sobre o fundo rebaixado, que é o pior caso
+     em que aparecem (selo dentro de linha de tabela). */
+  --color-signal-good: oklch(0.485 0.09 155);
+  --color-signal-warn: oklch(0.5 0.11 68);
+  --color-signal-bad: oklch(0.5 0.14 27);
+
+  /* ── tipografia ───────────────────────────────────────────────────────
+     Display: Bodoni Moda. Escolhida porque É a letra da logo — didone de
+     altíssimo contraste, com eixo de tamanho óptico. Aproximar o monograma com
+     outra serifa seria erro; esta é a mesma família de desenho.
+     Texto/UI: Archivo. Grotesca de notícia, numeral tabular bom, larga o
+     suficiente para aguentar tablet. Par por eixo de contraste (didone +
+     grotesca), que é o par de editorial de moda desde sempre.
+     Regra dura: Bodoni só ≥ 28px. Hairline de didone em 14px não se lê. */
+  --font-display: var(--font-bodoni), 'Didot', 'Bodoni MT', Georgia, serif;
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* ── forma ────────────────────────────────────────────────────────────
+     Uma escala só. Placa e controle compartilham o raio pequeno; pílula é
+     reservada ao que é genuinamente pílula (chip, selo, avatar). */
+  --radius-plate: 4px;
+  --radius-lg: 6px;
+  --radius-card: 4px; /* legado — mesmo valor, para telas ainda não migradas */
+
+  /* ── movimento ────────────────────────────────────────────────────────
+     Saída exponencial. Sem bounce: o produto marca hora e cobra dinheiro. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── camada ─ escala nomeada, sem 9999 ──────────────────────────────── */
+  --z-sticky: 20;
+  --z-dropdown: 30;
+  --z-scrim: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /*
+    Aqui havia uma ponte para a paleta antiga — `wine-*`, `gold-*`, `cream-*`
+    apontando para os tokens novos, para as telas migrarem uma de cada vez sem
+    quebrar. Migraram todas. A ponte sai junto: alias de cor que sobrevive à
+    migração vira porta dos fundos para a paleta velha voltar sem ninguém notar.
+  */
+}
+
+/*
+  Papéis semânticos. Componente nunca chama cor bruta — chama papel. É o que faz
+  o white-label funcionar sem tocar em componente.
+*/
+:root {
+  color-scheme: light;
+
+  --surface: var(--color-stone-100);
+  --surface-raised: var(--color-stone-50);
+  --surface-sunken: var(--color-stone-200);
+
+  /*
+    Tinta é a cor da marca — cabeçalho, selo do agendamento, placa sem foto.
+    Não é "o contrário do fundo": continua tinta com a luz baixa, só desce um
+    degrau para se separar da pedra escura. No claro, tinta e inverso são a
+    mesma cor; é no escuro que a diferença aparece, e é lá que confundir as
+    duas pintava o selo de branco.
+  */
+  --surface-ink: var(--color-ink-900);
+  --on-ink: var(--color-stone-50);
+  --on-ink-muted: oklch(0.74 0.012 62);
+  /* bronze legível SOBRE a superfície de tinta — não é o mesmo bronze do
+     acento, que foi escurecido para sobreviver à pedra clara */
+  --on-ink-accent: var(--color-bronze-300);
+
+  /*
+    Inverso é papel, não marca: a superfície que contrasta com o fundo para
+    carregar ação principal e seleção. Vira pedra clara no escuro, senão o
+    botão primário some dentro da própria página.
+  */
+  --surface-invert: var(--color-ink-900);
+  --surface-invert-hover: var(--color-ink-950);
+  --on-invert: var(--color-stone-50);
+  --on-invert-muted: oklch(0.74 0.012 62);
+
+  --border-subtle: var(--color-stone-300);
+  --border-strong: var(--color-stone-400);
+  --border-on-ink: oklch(0.32 0.012 50);
+
+  --text-strong: var(--color-ink-900);
+  --text-body: var(--color-stone-700);
+  --text-muted: var(--color-stone-600);
+
+  --accent: var(--color-bronze-500);
+  --accent-ink: var(--color-bronze-700);
+  --accent-wash: var(--color-bronze-100);
+
+  --focus: var(--color-ink-900);
+
+  /* Sombra tingida do próprio chão, nunca preta. Elevação é rara: barra fixa,
+     diálogo, menu. Placa de conteúdo usa fio, não sombra. */
+  --shadow-raise: 0 1px 2px oklch(0.44 0.014 54 / 0.06), 0 2px 8px oklch(0.44 0.014 54 / 0.05);
+  --shadow-lift: 0 2px 4px oklch(0.44 0.014 54 / 0.07), 0 12px 28px oklch(0.44 0.014 54 / 0.1);
+  --shadow-modal: 0 24px 64px oklch(0.28 0.014 52 / 0.24);
+}
+
+/*
+  Escuro. Carvão quente com a mesma temperatura da pedra — o mesmo salão com a
+  luz baixa, não o negativo do claro. A tinta some como superfície (já é o
+  fundo), então quem carrega a ação principal aqui é a pedra clara.
+*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --surface: var(--color-stone-950);
+    --surface-raised: var(--color-stone-900);
+    --surface-sunken: oklch(0.15 0.009 48);
+
+    /* Tinta continua tinta: um degrau ABAIXO da pedra escura (L 0.145 contra
+       0.185), para o cabeçalho e o selo lerem como faixa própria em vez de
+       sumirem no fundo. `--on-ink*` e `--border-on-ink` não são redeclarados
+       de propósito — a superfície não virou clara, então o que vai sobre ela
+       não muda. */
+    --surface-ink: var(--color-ink-950);
+
+    --surface-invert: var(--color-stone-50);
+    --surface-invert-hover: #ffffff;
+    --on-invert: var(--color-ink-950);
+    --on-invert-muted: oklch(0.42 0.012 52);
+
+    --border-subtle: oklch(0.29 0.011 50);
+    --border-strong: oklch(0.38 0.012 52);
+
+    --text-strong: oklch(0.955 0.006 80);
+    --text-body: oklch(0.8 0.008 70);
+    --text-muted: oklch(0.68 0.01 68);
+
+    --accent: var(--color-bronze-400);
+    --accent-ink: var(--color-bronze-300);
+    --accent-wash: oklch(0.3 0.03 70);
+
+    --focus: var(--color-bronze-300);
+
+    --shadow-raise: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.3);
+    --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.4), 0 12px 28px oklch(0 0 0 / 0.45);
+    --shadow-modal: 0 24px 64px oklch(0 0 0 / 0.6);
+  }
+}
+
+/* o seletor explícito precisa vencer a preferência do sistema nos dois sentidos */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: var(--color-stone-950);
+  --surface-raised: var(--color-stone-900);
+  --surface-sunken: oklch(0.15 0.009 48);
+
+  --surface-ink: var(--color-ink-950);
+
+  --surface-invert: var(--color-stone-50);
+  --surface-invert-hover: #ffffff;
+  --on-invert: var(--color-ink-950);
+  --on-invert-muted: oklch(0.42 0.012 52);
+
+  --border-subtle: oklch(0.29 0.011 50);
+  --border-strong: oklch(0.38 0.012 52);
+
+  --text-strong: oklch(0.955 0.006 80);
+  --text-body: oklch(0.8 0.008 70);
+  --text-muted: oklch(0.68 0.01 68);
+
+  --accent: var(--color-bronze-400);
+  --accent-ink: var(--color-bronze-300);
+  --accent-wash: oklch(0.3 0.03 70);
+
+  --focus: var(--color-bronze-300);
+
+  --shadow-raise: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.3);
+  --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.4), 0 12px 28px oklch(0 0 0 / 0.45);
+  --shadow-modal: 0 24px 64px oklch(0 0 0 / 0.6);
+}
+
+@layer base {
+  body {
+    background-color: var(--surface);
+    color: var(--text-strong);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* nada de foco invisível: a recepção navega no teclado o dia inteiro */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  ::selection {
+    background-color: var(--color-bronze-200);
+    color: var(--color-ink-950);
+  }
+
+  /* Bodoni tem descendente longo e itálico que invade a linha de baixo.
+     Piso de leading no display evita corte de `g`, `y`, `j`. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
+
+@layer components {
+  /*
+    Voz de display. Só aqui a Bodoni aparece, e nunca abaixo de 28px.
+    Tracking negativo pequeno: didone já é apertada de desenho; apertar mais
+    encosta as hairlines umas nas outras.
+  */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    font-optical-sizing: auto;
+  }
+
+  .display-xl {
+    font-size: clamp(2.5rem, 7vw, 4.75rem);
+  }
+
+  .display-lg {
+    font-size: clamp(2rem, 5.2vw, 3.25rem);
+  }
+
+  .display-md {
+    font-size: clamp(1.75rem, 3.6vw, 2.25rem);
+  }
+
+  /* Legenda em versalete largo. Não é eyebrow de seção: é rótulo de dado
+     (nome da unidade num cartão, "a partir de" num preço). Aparece onde há
+     um valor logo em seguida, nunca solto acima de um título. */
+  .label-caps {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Placa: o objeto de conteúdo. Fio, não sombra. */
+  .plate {
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-plate);
+  }
+
+  /*
+    ── O SELO ──────────────────────────────────────────────────────────────
+    O único momento autoral do produto, e ele acontece uma vez só: quando o
+    horário fica marcado. A coroa se desenha, as folhas abrem atrás dela e o
+    swash atravessa por último — a mesma ordem em que a mão desenharia. Não é
+    entrada genérica aplicada a tudo; é o gesto da marca no único instante do
+    fluxo que merece um gesto.
+  */
+  .seal-stem {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: seal-draw 1400ms var(--ease-out-quint) 120ms forwards;
+  }
+
+  .seal-leaves {
+    opacity: 0;
+    animation: seal-fade 900ms var(--ease-out-quint) 620ms forwards;
+  }
+
+  .seal-swash {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    animation: seal-draw 900ms var(--ease-out-expo) 900ms forwards;
+  }
+
+  .seal-letters {
+    opacity: 0;
+    animation: seal-rise 800ms var(--ease-out-quint) 380ms forwards;
+  }
+
+  @keyframes seal-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes seal-fade {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes seal-rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.14em);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Quem pediu para desligar movimento recebe o selo pronto, não vazio: o
+     conteúdo é o padrão e a animação é o enfeite, nunca o contrário. */
+  @media (prefers-reduced-motion: reduce) {
+    .seal-stem,
+    .seal-swash {
+      stroke-dashoffset: 0;
+    }
+    .seal-leaves,
+    .seal-letters {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Régua de bronze — a assinatura gráfica do sistema. Vem da coroa botânica
+     da logo: um fio fino que fecha um bloco. */
+  .rule-bronze {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      var(--accent) 0%,
+      var(--accent) 28%,
+      color-mix(in oklab, var(--accent) 20%, transparent) 100%
+    );
+  }
+}
+
+@layer utilities {
+  .surface {
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  .text-body {
+    color: var(--text-body);
+  }
+
+  /* números de horário e dinheiro alinhados em coluna */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* campo de formulário — 16px evita o zoom automático do iOS */
+  .field {
+    width: 100%;
+    border-radius: var(--radius-plate);
+    border: 1px solid var(--border-strong);
+    background-color: var(--surface-raised);
+    padding: 0.6875rem 0.875rem;
+    font-size: 1rem;
+    color: var(--text-strong);
+    outline: none;
+    transition: border-color 160ms var(--ease-out-quint);
+  }
+
+  .field::placeholder {
+    color: var(--text-muted);
+  }
+
+  .field:focus-visible {
+    border-color: var(--focus);
+  }
+
+  /* Véu sobre fotografia. Duas paradas com curva, não linear: linear deixa a
+     banda cinza no meio que denuncia gradiente de gerador. */
+  .scrim-photo {
+    background: linear-gradient(
+      to top,
+      oklch(0.16 0.012 48 / 0.88) 0%,
+      oklch(0.16 0.012 48 / 0.66) 26%,
+      oklch(0.16 0.012 48 / 0.24) 58%,
+      oklch(0.16 0.012 48 / 0.06) 100%
+    );
+  }
+
+  .measure {
+    max-width: 68ch;
+  }
+}
+
+/*
+  Movimento é opcional para quem pediu para desligar. Toda animação daqui tem
+  alternativa: some a distância, fica a troca de opacidade.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

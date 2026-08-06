@@ -1,0 +1,33 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+*.tsbuildinfo
+.turbo/
+
+# fotos que o salão sobe pelo admin (driver "local" de IMAGE_STORE).
+# São dados do cliente, não código: cada máquina tem as suas.
+.uploads/
+
+# ferramental local de design (skills instaladas na máquina) e cache de hook.
+# Não é código do produto e não é nosso para redistribuir.
+.claude/skills/
+.impeccable/

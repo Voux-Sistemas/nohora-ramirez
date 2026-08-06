@@ -1,0 +1,8 @@
+profissional;servico;categoria;percentual;valor_fixo;desconta_produto;observacao
+ana;;Quimica;40;;sim;Desconta o custo da tinta antes de comissionar
+ana;;;35;;nao;Regra geral da Ana para os demais servicos
+bia;;;30;;nao;
+carla;;;50;;nao;
+duda;cilios;;;80,00;nao;Valor fixo por aplicacao em vez de percentual
+duda;;;40;;nao;
+elis;;;45;;sim;

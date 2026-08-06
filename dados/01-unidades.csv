@@ -1,0 +1,4 @@
+codigo;nome;telefone;endereco;bairro;cidade;estado;cep
+centro;Estúdio Centro;(11) 3000-0000;Rua Exemplo, 100;Centro;São Paulo;SP;01000-000
+zona-sul;Estúdio Zona Sul;(11) 3000-0001;Av. Exemplo, 200;Moema;São Paulo;SP;04000-000
+shopping;Estúdio Shopping;(11) 3000-0002;Shopping Exemplo, Loja 55;Morumbi;São Paulo;SP;05000-000

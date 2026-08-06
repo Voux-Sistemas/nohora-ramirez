@@ -1,0 +1,123 @@
+-- ════════════════════════════════════════════════════════════════════════════
+-- Trava anti-overbooking
+--
+-- Esta é a única garantia real contra dois clientes marcarem o mesmo horário.
+-- Checagem na aplicação não resolve: entre "consultei e estava livre" e
+-- "gravei" existe uma janela, e sob concorrência ela é atingida.
+--
+-- Aplicar SEMPRE depois de `npm run db:migrate`:
+--     npm run db:constraints --workspace=@studio/db
+-- ════════════════════════════════════════════════════════════════════════════
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- ─── profissional ───────────────────────────────────────────────────────────
+-- Um serviço com processamento gera DOIS blocos para o mesmo profissional.
+-- O intervalo entre eles fica livre de propósito: é o gap booking.
+
+ALTER TABLE appointment_staff_blocks
+  DROP CONSTRAINT IF EXISTS appointment_staff_blocks_not_empty;
+ALTER TABLE appointment_staff_blocks
+  ADD CONSTRAINT appointment_staff_blocks_not_empty
+  CHECK (NOT isempty(block));
+
+ALTER TABLE appointment_staff_blocks
+  DROP CONSTRAINT IF EXISTS appointment_staff_blocks_no_overlap;
+ALTER TABLE appointment_staff_blocks
+  ADD CONSTRAINT appointment_staff_blocks_no_overlap
+  EXCLUDE USING gist (staff_id WITH =, block WITH &&);
+
+-- ─── recurso físico ─────────────────────────────────────────────────────────
+-- Cabine, lavatório e equipamento ficam presos o serviço inteiro, inclusive
+-- durante o processamento — o cliente continua ocupando a cadeira.
+
+ALTER TABLE appointment_resource_blocks
+  DROP CONSTRAINT IF EXISTS appointment_resource_blocks_not_empty;
+ALTER TABLE appointment_resource_blocks
+  ADD CONSTRAINT appointment_resource_blocks_not_empty
+  CHECK (NOT isempty(block));
+
+ALTER TABLE appointment_resource_blocks
+  DROP CONSTRAINT IF EXISTS appointment_resource_blocks_no_overlap;
+ALTER TABLE appointment_resource_blocks
+  ADD CONSTRAINT appointment_resource_blocks_no_overlap
+  EXCLUDE USING gist (resource_id WITH =, block WITH &&);
+
+-- ─── coerência de horário ───────────────────────────────────────────────────
+
+ALTER TABLE appointments
+  DROP CONSTRAINT IF EXISTS appointments_end_after_start;
+ALTER TABLE appointments
+  ADD CONSTRAINT appointments_end_after_start CHECK (ends_at > starts_at);
+
+ALTER TABLE appointment_items
+  DROP CONSTRAINT IF EXISTS appointment_items_end_after_start;
+ALTER TABLE appointment_items
+  ADD CONSTRAINT appointment_items_end_after_start CHECK (ends_at > starts_at);
+
+ALTER TABLE unit_hours
+  DROP CONSTRAINT IF EXISTS unit_hours_close_after_open;
+ALTER TABLE unit_hours
+  ADD CONSTRAINT unit_hours_close_after_open CHECK (closes_at > opens_at);
+
+ALTER TABLE unit_hours
+  DROP CONSTRAINT IF EXISTS unit_hours_weekday_range;
+ALTER TABLE unit_hours
+  ADD CONSTRAINT unit_hours_weekday_range CHECK (weekday BETWEEN 0 AND 6);
+
+ALTER TABLE staff_schedules
+  DROP CONSTRAINT IF EXISTS staff_schedules_end_after_start;
+ALTER TABLE staff_schedules
+  ADD CONSTRAINT staff_schedules_end_after_start CHECK (ends_at > starts_at);
+
+ALTER TABLE staff_schedules
+  DROP CONSTRAINT IF EXISTS staff_schedules_weekday_range;
+ALTER TABLE staff_schedules
+  ADD CONSTRAINT staff_schedules_weekday_range CHECK (weekday BETWEEN 0 AND 6);
+
+ALTER TABLE staff_time_off
+  DROP CONSTRAINT IF EXISTS staff_time_off_end_after_start;
+ALTER TABLE staff_time_off
+  ADD CONSTRAINT staff_time_off_end_after_start CHECK (ends_at > starts_at);
+
+-- ─── dinheiro e duração ─────────────────────────────────────────────────────
+-- Valores em centavos, sempre inteiros e nunca negativos.
+
+ALTER TABLE services
+  DROP CONSTRAINT IF EXISTS services_price_non_negative;
+ALTER TABLE services
+  ADD CONSTRAINT services_price_non_negative CHECK (base_price >= 0);
+
+ALTER TABLE services
+  DROP CONSTRAINT IF EXISTS services_duration_positive;
+ALTER TABLE services
+  ADD CONSTRAINT services_duration_positive
+  CHECK (setup_min + processing_min + finish_min > 0
+         AND setup_min >= 0 AND processing_min >= 0 AND finish_min >= 0
+         AND buffer_before_min >= 0 AND buffer_after_min >= 0);
+
+ALTER TABLE service_pricing
+  DROP CONSTRAINT IF EXISTS service_pricing_price_non_negative;
+ALTER TABLE service_pricing
+  ADD CONSTRAINT service_pricing_price_non_negative CHECK (price >= 0);
+
+-- Exceção de preço precisa mirar em alguma coisa: unidade, profissional ou os dois.
+ALTER TABLE service_pricing
+  DROP CONSTRAINT IF EXISTS service_pricing_has_target;
+ALTER TABLE service_pricing
+  ADD CONSTRAINT service_pricing_has_target
+  CHECK (unit_id IS NOT NULL OR staff_id IS NOT NULL);
+
+-- ─── unicidade com coluna anulável ──────────────────────────────────────────
+-- Por padrão o Postgres trata NULL como sempre distinto, o que deixaria passar
+-- duas exceções de preço para o mesmo (serviço, profissional) sem unidade — e
+-- dois papéis iguais de escopo rede para o mesmo usuário. NULLS NOT DISTINCT
+-- (Postgres 15+) corrige isso.
+
+DROP INDEX IF EXISTS service_pricing_uq;
+CREATE UNIQUE INDEX service_pricing_uq
+  ON service_pricing (service_id, unit_id, staff_id) NULLS NOT DISTINCT;
+
+DROP INDEX IF EXISTS user_roles_user_unit_role_uq;
+CREATE UNIQUE INDEX user_roles_user_unit_role_uq
+  ON user_roles (user_id, unit_id, role) NULLS NOT DISTINCT;

@@ -1,0 +1,79 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { setStaffPassword } from '@/server/auth/password'
+import {
+  createStaff,
+  replaceSchedule,
+  updateStaff,
+  type ScheduleInput,
+  type StaffInput,
+} from '@/server/admin/staff'
+
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const
+
+function parseStaff(formData: FormData): StaffInput {
+  return {
+    name: String(formData.get('name') ?? '').trim(),
+    phone: String(formData.get('phone') ?? '').trim(),
+    email: String(formData.get('email') ?? '').trim() || undefined,
+    bio: String(formData.get('bio') ?? '').trim() || undefined,
+    color: String(formData.get('color') ?? '#95663a'),
+    acceptsOnlineBooking: formData.get('acceptsOnlineBooking') === 'on',
+    active: formData.get('active') === 'on',
+    unitIds: formData.getAll('unitIds').map(String),
+    serviceIds: formData.getAll('serviceIds').map(String),
+  }
+}
+
+export async function salvarProfissional(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '')
+  const input = parseStaff(formData)
+  if (!input.name || !input.phone) return
+
+  const staffId = id === 'novo' ? await createStaff(input) : id
+  if (id !== 'novo') await updateStaff(id, input)
+
+  revalidatePath('/admin/equipe')
+  redirect(`/admin/equipe/${staffId}` as never)
+}
+
+/** Uma linha por unidade+dia com um único turno — cobre a escala comum. */
+function parseSchedule(formData: FormData): ScheduleInput[] {
+  const rows: ScheduleInput[] = []
+  for (const weekday of WEEKDAYS) {
+    const unitId = String(formData.get(`sc${weekday}_unit`) ?? '').trim()
+    const startsAt = String(formData.get(`sc${weekday}_start`) ?? '').trim()
+    const endsAt = String(formData.get(`sc${weekday}_end`) ?? '').trim()
+    if (unitId && startsAt && endsAt) rows.push({ unitId, weekday, startsAt, endsAt })
+  }
+  return rows
+}
+
+export async function salvarEscala(formData: FormData): Promise<void> {
+  const staffId = String(formData.get('staffId') ?? '')
+  if (!staffId) return
+  const today = new Date().toISOString().slice(0, 10)
+  await replaceSchedule(staffId, today, parseSchedule(formData))
+  revalidatePath(`/admin/equipe/${staffId}`)
+}
+
+export interface PasswordState {
+  error?: string
+  success?: boolean
+}
+
+export async function salvarSenha(_state: PasswordState, formData: FormData): Promise<PasswordState> {
+  const userId = String(formData.get('userId') ?? '')
+  const staffId = String(formData.get('staffId') ?? '')
+  const senha = String(formData.get('senha') ?? '')
+  const confirmar = String(formData.get('confirmar') ?? '')
+  if (!userId) return { error: 'Profissional inválido.' }
+  if (senha.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' }
+  if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
+
+  await setStaffPassword(userId, senha)
+  revalidatePath(`/admin/equipe/${staffId}`)
+  return { success: true }
+}

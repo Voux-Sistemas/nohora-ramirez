@@ -1,0 +1,6 @@
+codigo;nome;celular;email;especialidade;unidade_principal;outras_unidades;aceita_agendamento_online
+ana;Ana Souza;(11) 99999-0001;ana@exemplo.com;Coloração e mechas;centro;zona-sul;sim
+bia;Beatriz Lima;(11) 99999-0002;;Corte e escova;centro;;sim
+carla;Carla Dias;(11) 99999-0003;;Manicure e pedicure;zona-sul;;sim
+duda;Eduarda Reis;(11) 99999-0004;;Sobrancelha e cílios;shopping;centro;sim
+elis;Elis Prado;(11) 99999-0005;;Estética facial;shopping;;nao

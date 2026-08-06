@@ -29,6 +29,7 @@ eu preciso dos dados para construir:
 | 7 | `07-recursos.csv` | Evita duas clientes na mesma cabine |
 | 8 | `08-precos-excecoes.csv` | Só se preço varia por profissional/unidade |
 | 9 | `09-comissoes.csv` | Fase 2, mas melhor coletar junto |
+| 10 | `10-clientes.csv` | Sua carteira de clientes — veja abaixo |
 
 ## O campo que mais gera dúvida: duração do serviço
 
@@ -85,6 +86,25 @@ com `profissional=ana` e `unidade` vazio.
 É Fase 2, mas coletar agora evita uma segunda rodada de perguntas. Preencha
 **ou** `percentual` **ou** `valor_fixo`, nunca os dois na mesma linha. Deixar
 `servico` e `categoria` vazios significa "regra geral desta profissional".
+
+### Sobre `10-clientes.csv`
+
+É o único arquivo que **entra sozinho no sistema**, pela tela *Clientes →
+Importar*. Os outros eu cadastro na mão junto com você.
+
+Só duas colunas são obrigatórias: `nome` e `telefone`. `email` pode ficar em
+branco à vontade.
+
+O telefone pode vir do jeito que estiver na sua agenda — `(11) 98888-0001`,
+`11988880001`, `+55 11 98888-0001`. O sistema arruma. Só precisa ter DDD.
+
+**Quem já existe não vira cópia.** A conferência é pelo telefone: se a cliente
+já está cadastrada, a linha não cria uma segunda — no máximo preenche o e-mail
+que estava faltando. Então pode reenviar o arquivo depois de completar, sem
+medo de duplicar ninguém.
+
+Essa é a lista que faz as rotinas de WhatsApp terem para quem falar no primeiro
+dia. Sem ela, o sistema só conhece quem marcar do zero.
 
 ## Depois de preencher
 

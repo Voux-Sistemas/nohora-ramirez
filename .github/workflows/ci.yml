@@ -1,13 +1,27 @@
 name: CI
 
-# Roda no push de qualquer branch e em todo pull request para a main.
-# O objetivo é simples: nada entra na main sem typecheck, teste e build de
-# produção passando — porque o deploy da Railway sai daqui.
+# Por enquanto só dispara na mão (aba Actions → Run workflow, ou `gh workflow run CI`).
+#
+# O gatilho automático está desligado de propósito. O GitHub não aloca máquina
+# para repositório privado de organização sem forma de pagamento cadastrada:
+# ele aceita o push, enfileira o job e nunca dá início. O job morre no
+# timeout-minutes com zero passos executados e manda e-mail de falha a cada
+# envio — ruído sobre um problema que não é do código.
+#
+# Para religar: cadastrar cartão em Settings → Billing da organização (o plano
+# gratuito já inclui 2.000 min/mês e isto gasta ~4 min por execução) e trocar
+# este bloco por:
+#
+#   on:
+#     push:
+#       branches: ['**']
+#     pull_request:
+#       branches: [main]
+#
+# Até lá, a verificação é feita na mão antes de cada envio: os mesmos três
+# passos abaixo, na mesma ordem.
 on:
-  push:
-    branches: ['**']
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   # Push novo na mesma branch cancela a execução anterior: o resultado velho

@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { toE164 } from '@/lib/format'
 import { loginTestClient, requestOtp } from '@/server/auth/otp'
+import { RULES, hit } from '@/server/security/rate-limit'
+import { clientIp } from '@/server/security/request'
 
 export interface PhoneState {
   error?: string
@@ -15,6 +17,16 @@ const TEST_ALIASES: Record<string, string> = {
 const TEST_PASSWORD = 'cliente123'
 
 export async function pedirCodigo(_state: PhoneState, formData: FormData): Promise<PhoneState> {
+  /*
+    `requestOtp` já tem cooldown de um minuto por telefone. Ele não cobre quem
+    varre uma lista de números para descobrir quem é cliente da casa — cada
+    número é o "primeiro pedido" dele. O freio por IP cobre.
+  */
+  const ip = await clientIp()
+  if (!hit(`otp:${ip}`, RULES.codigoOtp).ok) {
+    return { error: 'Muitas tentativas. Espere alguns minutos e tente de novo.' }
+  }
+
   const raw = String(formData.get('telefone') ?? '').trim().toLowerCase()
   const aliasPhone = TEST_ALIASES[raw]
 

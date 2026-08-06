@@ -22,6 +22,7 @@ import { cn, href } from '@/lib/utils'
 const SECOES = [
   { path: '/', label: 'Hoje' },
   { path: '/agenda', label: 'Agenda' },
+  { path: '/avisos', label: 'Avisos' },
   { path: '/caixa', label: 'Caixa' },
   { path: '/clientes', label: 'Clientes' },
   { path: '/admin/unidades', label: 'Cadastros' },
@@ -56,7 +57,7 @@ export function OperateTopbar({
         </Link>
 
         {/*
-          Rolagem horizontal em vez de menu escondido: são cinco destinos fixos e
+          Rolagem horizontal em vez de menu escondido: são seis destinos fixos e
           curtos. Esconder atrás de um botão custaria um toque a cada troca, que
           é a ação mais repetida do turno.
         */}

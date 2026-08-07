@@ -14,6 +14,35 @@ import postgres from 'postgres'
 
 const sqlDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'sql')
 
+/**
+ * Grava em `deployment_env` que banco é este, a partir do AMBIENTE do processo
+ * que está rodando o deploy. Assim a marca nasce junto com o banco, sem
+ * ninguém precisar lembrar de rodar um SQL à mão no dia do go-live — e sem
+ * expor o Postgres de produção para fora da rede da Railway só para isso.
+ *
+ * Nunca rebaixa produção para teste. Um `AMBIENTE=teste` apontado por engano
+ * para o banco do salão desarmaria a trava do seed, que é exatamente o
+ * acidente que ela existe para impedir. Promover é automático; rebaixar exige
+ * editar a linha na mão.
+ */
+async function marcarAmbiente(client: postgres.Sql): Promise<void> {
+  const declarado = process.env.AMBIENTE
+  if (declarado !== 'producao' && declarado !== 'teste') return
+
+  const [atual] = await client<{ kind: string }[]>`select kind from deployment_env limit 1`
+  if (atual?.kind === 'producao' && declarado === 'teste') {
+    console.log('→ ambiente: banco marcado como produção, AMBIENTE=teste ignorado')
+    return
+  }
+  if (atual?.kind === declarado) return
+
+  await client`
+    insert into deployment_env (kind) values (${declarado})
+    on conflict (singleton) do update set kind = excluded.kind, marked_at = now()
+  `
+  console.log(`→ ambiente: banco marcado como ${declarado}`)
+}
+
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL
   if (!url) {
@@ -36,6 +65,7 @@ async function main(): Promise<void> {
       await client.unsafe(statements)
       console.log('ok')
     }
+    await marcarAmbiente(client)
     console.log('\nConstraints aplicadas.')
   } catch (error) {
     console.error('\nFalhou:', error instanceof Error ? error.message : error)

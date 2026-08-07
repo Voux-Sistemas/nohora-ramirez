@@ -17,10 +17,16 @@ const schema = z.object({
   profissional: z.string().optional(),
   nome: z.string().trim().min(2, 'Diga seu nome completo.'),
   telefone: z.string().trim().min(10, 'Telefone incompleto.'),
-  // Campo opcional que chega vazio como string vazia, não como ausente. Sem o
-  // `.or(z.literal(''))` o formulário inteiro seria recusado por um campo que a
-  // cliente tinha o direito de não preencher.
-  email: z.string().trim().toLowerCase().email('E-mail inválido.').optional().or(z.literal('')),
+  // Campo opcional chega como string vazia, não como ausente — então "vazio" é
+  // um valor válido aqui, e não uma exceção. Validar direto com `.email()`
+  // recusaria o formulário inteiro por causa de um campo que a cliente tinha o
+  // direito de não preencher (inclusive se ela só encostou na barra de espaço).
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .refine((v) => v === '' || z.string().email().safeParse(v).success, 'E-mail inválido.')
+    .optional(),
   observacao: z.string().trim().max(400).optional(),
 })
 

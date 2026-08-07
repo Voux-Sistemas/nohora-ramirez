@@ -1,0 +1,5 @@
+# Scripts de shell rodam dentro de container Linux. Com final de linha CRLF o
+# kernel lê "#!/bin/sh\r" e responde "no such file or directory" — erro que não
+# fala nada sobre o motivo real. Trava em LF, independente do Windows.
+*.sh text eol=lf
+Dockerfile* text eol=lf

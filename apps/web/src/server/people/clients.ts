@@ -30,6 +30,12 @@ export async function findOrCreateClient(input: {
   /** E.164. */
   phone: string
   name: string
+  /**
+   * Opcional. Só preenche quem ainda não tem — nunca sobrescreve. Um e-mail
+   * digitado errado no agendamento não pode apagar o endereço bom que a
+   * recepção cadastrou na ficha.
+   */
+  email?: string
   preferredUnitId?: string
 }): Promise<ClientIdentity> {
   const existing = await db
@@ -45,8 +51,10 @@ export async function findOrCreateClient(input: {
     .limit(1)
 
   const found = existing[0]
+  const email = input.email?.trim() || undefined
 
   if (found?.clientId) {
+    if (email) await fillEmailIfMissing(db, found.userId, email)
     return {
       clientId: found.clientId,
       userId: found.userId,
@@ -63,9 +71,11 @@ export async function findOrCreateClient(input: {
       (
         await tx
           .insert(users)
-          .values({ phone: input.phone, name: input.name })
+          .values({ phone: input.phone, name: input.name, ...(email ? { email } : {}) })
           .returning({ id: users.id })
       )[0]!.id
+
+    if (found?.userId && email) await fillEmailIfMissing(tx, userId, email)
 
     const [profile] = await tx
       .insert(clientProfiles)
@@ -88,6 +98,21 @@ export async function findOrCreateClient(input: {
       returning: found !== undefined,
     }
   })
+}
+
+/** Vale para `db` e para a transação — a regra é a mesma nos dois. */
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+/**
+ * O `is null` no WHERE é a regra inteira, e ela vive no banco de propósito: sem
+ * ele, duas chamadas concorrentes decidiriam pelo que leram antes e a última a
+ * gravar venceria.
+ */
+async function fillEmailIfMissing(exec: Executor, userId: string, email: string): Promise<void> {
+  await exec
+    .update(users)
+    .set({ email })
+    .where(and(eq(users.id, userId), sql`${users.email} is null`))
 }
 
 export interface ImportRow {
@@ -118,18 +143,11 @@ export async function importClients(rows: ImportRow[]): Promise<ImportResult> {
       continue
     }
 
-    const client = await findOrCreateClient({ phone, name })
+    const client = await findOrCreateClient({ phone, name, ...(row.email ? { email: row.email } : {}) })
     if (client.returning) {
       result.updated++
     } else {
       result.created++
-    }
-
-    if (row.email?.trim()) {
-      await db
-        .update(users)
-        .set({ email: row.email.trim() })
-        .where(and(eq(users.id, client.userId), sql`${users.email} is null`))
     }
   }
 

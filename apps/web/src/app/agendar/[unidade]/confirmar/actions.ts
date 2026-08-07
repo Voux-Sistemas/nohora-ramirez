@@ -17,6 +17,10 @@ const schema = z.object({
   profissional: z.string().optional(),
   nome: z.string().trim().min(2, 'Diga seu nome completo.'),
   telefone: z.string().trim().min(10, 'Telefone incompleto.'),
+  // Campo opcional que chega vazio como string vazia, não como ausente. Sem o
+  // `.or(z.literal(''))` o formulário inteiro seria recusado por um campo que a
+  // cliente tinha o direito de não preencher.
+  email: z.string().trim().toLowerCase().email('E-mail inválido.').optional().or(z.literal('')),
   observacao: z.string().trim().max(400).optional(),
 })
 
@@ -63,6 +67,7 @@ export async function confirmarAgendamento(
   const client = await findOrCreateClient({
     phone,
     name: data.nome,
+    ...(data.email ? { email: data.email } : {}),
     preferredUnitId: unit.id,
   })
 

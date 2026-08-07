@@ -48,3 +48,25 @@ aws s3 ls "s3://$BUCKET/" --endpoint-url "$ENDPOINT" \
     done
 
 echo "BACKUP OK: $ARQUIVO ($(du -h "/tmp/$ARQUIVO" | cut -f1))"
+
+# A prova do restore. Semanal por padrão: diário dobraria o trabalho sem dobrar
+# a informação, e nunca é como backup apodrece em silêncio. `sempre` serve para
+# conferir na hora, sem esperar domingo.
+VERIFICAR="${VERIFICAR:-semanal}"
+case "$VERIFICAR" in
+  sempre)
+    /bin/sh /usr/local/bin/verificar.sh "$ARQUIVO"
+    ;;
+  semanal)
+    # `if`, não `teste && comando`: com set -e um teste falso na última linha
+    # derrubaria o script inteiro, e "hoje não é domingo" viraria backup falhado.
+    if [ "$(date -u +%u)" = "7" ]; then
+      /bin/sh /usr/local/bin/verificar.sh "$ARQUIVO"
+    fi
+    ;;
+  nunca) ;;
+  *)
+    echo "VERIFICAR inválido: $VERIFICAR (use sempre, semanal ou nunca)" >&2
+    exit 1
+    ;;
+esac

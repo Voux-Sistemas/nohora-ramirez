@@ -6,8 +6,14 @@ import { Button } from '@/components/ui/button'
 import { confirmarAgendamento, type ConfirmState } from '@/app/agendar/[unidade]/confirmar/actions'
 
 /**
- * Os três campos que faltam. Nome e WhatsApp porque o salão precisa avisar; a
- * observação porque alergia e horário apertado mudam o atendimento.
+ * Os campos que faltam. Nome e WhatsApp porque o salão precisa avisar; a
+ * observação porque alergia e horário apertado mudam o atendimento; o e-mail
+ * porque é por ele que a cliente vai entrar na própria área depois — e pedir
+ * agora, quando ela já está digitando, custa menos do que caçar o endereço
+ * cliente por cliente no dia em que o login existir.
+ *
+ * Opcional de verdade: quem não quiser deixar agenda igual. Um agendamento
+ * perdido por causa de um campo a mais é caro; um e-mail a menos, não.
  *
  * Rótulo acima do campo, sempre — placeholder-como-rótulo some no instante em
  * que a cliente começa a digitar, que é justamente quando ela mais precisa
@@ -57,6 +63,27 @@ export function ConfirmForm({
         />
         <p id="telefone-ajuda" className="text-muted mt-1.5 text-xs">
           É por aqui que a confirmação e o lembrete chegam.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="email" className="mb-2 block text-sm font-medium">
+          E-mail <span className="text-muted font-normal">(opcional)</span>
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="off"
+          spellCheck={false}
+          placeholder="voce@exemplo.com"
+          aria-describedby="email-ajuda"
+          className="field"
+        />
+        <p id="email-ajuda" className="text-muted mt-1.5 text-xs">
+          Para você acompanhar seus horários pelo site. Não mandamos propaganda.
         </p>
       </div>
 

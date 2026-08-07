@@ -28,6 +28,23 @@ Retenção de 30 arquivos, controlada pela variável `RETENCAO`. O nome do
 arquivo é ISO, então ordem alfabética é ordem cronológica e a poda é só
 descartar o fim da lista.
 
+## A prova do restore
+
+Todo domingo, logo depois do dump, o `verificar.sh` baixa o arquivo **do
+bucket**, restaura num banco descartável (`restore_check`, criado e derrubado
+na mesma execução) e conta o que voltou. Se vierem menos de 30 tabelas ou
+menos de 2 travas de exclusão, ele falha — as duas travas são as
+anti-overbooking, e um restore sem elas passaria por bom aceitando dois
+clientes no mesmo horário.
+
+Baixa do bucket em vez de reusar o arquivo local de propósito: a prova precisa
+cobrir o upload e a leitura de volta, não só o `pg_dump`.
+
+O nome do banco de rascunho é constante no código, não variável de ambiente.
+Nada configurável decide onde esse script escreve.
+
+Para conferir na hora, sem esperar domingo: `VERIFICAR=sempre`.
+
 ## Variáveis
 
 Todas por referência, nenhuma escrita à mão:
@@ -38,6 +55,7 @@ Todas por referência, nenhuma escrita à mão:
 | `BUCKET` `ENDPOINT` | `${{backups.BUCKET}}` `${{backups.ENDPOINT}}` |
 | `AWS_ACCESS_KEY_ID` `AWS_SECRET_ACCESS_KEY` `AWS_DEFAULT_REGION` | bucket `backups` |
 | `RETENCAO` | quantos arquivos guardar (30) |
+| `VERIFICAR` | `semanal` (padrão), `sempre` ou `nunca` |
 
 ## Restaurar
 

@@ -11,6 +11,7 @@ import 'server-only'
 
 import { authOtps, users } from '@studio/db'
 import { and, desc, eq, gt, isNull } from 'drizzle-orm'
+import { ehTeste } from '@/lib/ambiente'
 import { db } from '@/lib/db'
 import { hashSecret, randomOtpCode, verifySecret } from './crypto'
 import { createSession } from './session'
@@ -54,7 +55,7 @@ export async function requestOtp(phone: string): Promise<RequestOtpResult> {
   await db.insert(authOtps).values({ phone, codeHash, expiresAt })
   deliverOtpCode(phone, code)
 
-  return { ok: true, devCode: process.env.NODE_ENV === 'production' ? undefined : code }
+  return { ok: true, devCode: ehTeste() ? code : undefined }
 }
 
 export interface VerifyOtpResult {

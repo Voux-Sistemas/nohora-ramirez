@@ -16,6 +16,7 @@ import '../env'
 import { isoDateInZone, type PriceOverride } from '@studio/core'
 import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
+import { assertNotProduction } from '../guard'
 import { closeDb, getDb } from '../index'
 import {
   appointmentItems,
@@ -69,6 +70,7 @@ const DAYS_AHEAD = 35
 
 async function main(): Promise<void> {
   const db = getDb({ max: 1 })
+  await assertNotProduction(db, 'seed')
   const rng = new Rng()
   const tz = ORGANIZATION.timezone
   const now = new Date()
@@ -563,10 +565,15 @@ function shiftIsoDate(isoDate: string, days: number): string {
 /**
  * Limpa tudo. Descobre as tabelas em vez de listá-las: lista escrita à mão
  * envelhece e o seed passa a deixar lixo de tabela nova para trás.
+ *
+ * `deployment_env` fica de fora de propósito. Ela é a marca que faz o próximo
+ * seed se recusar a rodar — apagá-la aqui desarmaria o freio justamente no
+ * banco onde ele mais importa.
  */
 async function wipe(db: ReturnType<typeof getDb>): Promise<void> {
   const rows = await db.execute<{ tablename: string }>(sql`
-    select tablename from pg_tables where schemaname = 'public'
+    select tablename from pg_tables
+    where schemaname = 'public' and tablename <> 'deployment_env'
   `)
   const names = [...rows].map((r) => `"${r.tablename}"`)
   if (names.length === 0) {

@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { ehTeste } from '@/lib/ambiente'
 import { toE164 } from '@/lib/format'
 import { loginTestClient, requestOtp } from '@/server/auth/otp'
 import { RULES, hit } from '@/server/security/rate-limit'
@@ -10,13 +11,27 @@ export interface PhoneState {
   error?: string
 }
 
-/** Atalho de teste: "cliente" + senha fixa entra direto, sem esperar código. */
+/**
+ * Atalho de demonstração: "cliente" + senha fixa entra direto, sem esperar
+ * código. Só existe no ambiente de teste — em produção seria credencial fixa
+ * publicada no código-fonte, com acesso ao histórico de uma pessoa real.
+ */
 const TEST_ALIASES: Record<string, string> = {
   cliente: '+5511970000001',
 }
 const TEST_PASSWORD = 'cliente123'
 
 export async function pedirCodigo(_state: PhoneState, formData: FormData): Promise<PhoneState> {
+  /*
+    Em produção não há canal de envio: `deliverOtpCode` só escreve no log do
+    servidor. Deixar o formulário responder "código enviado" seria mentira, e a
+    cliente ficaria esperando uma mensagem que não sai. Enquanto o envio não
+    existir, a porta fica fechada e a tela diz o que fazer no lugar.
+  */
+  if (!ehTeste()) {
+    return { error: 'A área da cliente ainda não está disponível. Fale com o salão para ver ou remarcar seus horários.' }
+  }
+
   /*
     `requestOtp` já tem cooldown de um minuto por telefone. Ele não cobre quem
     varre uma lista de números para descobrir quem é cliente da casa — cada

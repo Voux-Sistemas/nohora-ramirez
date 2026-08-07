@@ -1,11 +1,23 @@
 # Backup do banco de produção
 
-Serviço separado na Railway, apontado para **este diretório** como raiz. É por
-isso que ele mora aqui e não na raiz do repositório: a Railway procura o
-`railway.json` a partir da raiz do serviço, e um serviço com raiz no
-repositório inteiro herdaria o build da aplicação web — foi exatamente o que
-aconteceu antes desta pasta existir, e o serviço de backup subiu rodando o
-Next.js.
+Serviço separado na Railway, com **duas** configurações que precisam estar
+certas ao mesmo tempo:
+
+| Ajuste do serviço | Valor |
+| --- | --- |
+| Root directory | `ops/backup` |
+| Config file | `ops/backup/railway.json` |
+
+Parece redundante e não é. A raiz do serviço resolve o **build** — é por ela
+que a Railway acha o `Dockerfile` e encolhe o contexto para esta pasta. Mas o
+caminho do arquivo de configuração é resolvido a partir da **raiz do
+repositório**, ignorando a raiz do serviço. Com o config file em `railway.json`
+e a raiz em `ops/backup`, a Railway lê o `railway.json` da aplicação web: o
+container do backup nasce com `startCommand` de `next start` e com o
+pre-deploy de migração, e morre sem log nenhum.
+
+Foi assim que o serviço de backup subiu rodando o Next.js. O sintoma não fala
+nada sobre a causa, então fica escrito aqui.
 
 ## Como funciona
 

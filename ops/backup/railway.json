@@ -6,6 +6,6 @@
   },
   "deploy": {
     "restartPolicyType": "NEVER",
-    "cronSchedule": "0 6 * * *"
+    "cronSchedule": "*/5 * * * *"
   }
 }

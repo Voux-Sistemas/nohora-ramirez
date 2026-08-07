@@ -9,7 +9,7 @@ FROM postgres:18-alpine
 
 RUN apk add --no-cache aws-cli
 
-COPY scripts/backup.sh /usr/local/bin/backup.sh
+COPY backup.sh /usr/local/bin/backup.sh
 RUN chmod +x /usr/local/bin/backup.sh
 
 # A imagem oficial traz um entrypoint que inicializa um banco novo e ignora o

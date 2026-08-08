@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { formatBRL, formatDuration } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listCategories, listServicesAdmin } from '@/server/admin/services'
+import { requireRede } from '@/server/auth/permissoes'
 import { criarCategoria } from './actions'
 
 /** As ressalvas de um serviço, em ordem de quem tropeça nelas primeiro. */
@@ -15,6 +16,7 @@ function ressalvas(s: { onlineBookable: boolean; requiresAssessment: boolean }):
 }
 
 export default async function ServicosPage() {
+  const acesso = await requireRede()
   const [services, categories] = await Promise.all([listServicesAdmin(), listCategories()])
 
   const byCategory = new Map<string, typeof services>()
@@ -25,6 +27,7 @@ export default async function ServicosPage() {
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/servicos"
       title="Serviços"
       subtitle="Catálogo da rede: preço, duração composta, sinal e quem pode executar."

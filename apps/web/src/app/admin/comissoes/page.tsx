@@ -3,10 +3,14 @@ import { Button } from '@/components/ui/button'
 import { formatBRL } from '@/lib/format'
 import { listServicesAdmin } from '@/server/admin/services'
 import { listStaffAdmin } from '@/server/admin/staff'
+import { requireRede } from '@/server/auth/permissoes'
 import { commissionSummaryByStaff, listCommissionRules } from '@/server/finance/commissions'
 import { excluirRegra, pagarComissoes, salvarRegra } from './actions'
 
 export default async function ComissoesPage() {
+  /* Quanto cada profissional ganha é combinado da dona com ela. Um gerente
+     lendo a régua de comissão da rede saberia o salário dos colegas. */
+  const acesso = await requireRede()
   const [rules, summary, staff, services] = await Promise.all([
     listCommissionRules(),
     commissionSummaryByStaff(),
@@ -16,6 +20,7 @@ export default async function ComissoesPage() {
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/comissoes"
       title="Comissões"
       subtitle="Regras por profissional e/ou serviço, e o que está pendente de pagamento."

@@ -11,6 +11,12 @@ import { cn, href } from '@/lib/utils'
  * Só mostra a ação que faz sentido no estado atual: quem já está em atendimento
  * não pode "fazer check-in", e ninguém cancela o que já foi concluído. É de
  * propósito — na recepção o erro caro é o toque errado com a cliente na frente.
+ *
+ * `gerir` corta o painel em dois. A profissional toca no andamento do próprio
+ * atendimento — chegou, comecei, terminei — porque é ela quem sabe. Remarcar,
+ * cancelar e fechar comanda saem: mover cliente exige ver a agenda das colegas,
+ * e comanda é caixa. A ficha da cliente também sai, porque a carteira inteira
+ * não é dela; o nome e o telefone de quem está na cadeira continuam aqui.
  */
 
 export const STATUS_LABEL: Record<string, string> = {
@@ -47,11 +53,14 @@ export function AppointmentPanel({
   timezone,
   closeHref,
   unitSlug,
+  gerir = true,
 }: {
   appointment: AppointmentView
   timezone: string
   closeHref: string
   unitSlug: string
+  /** Falso para quem só cuida do próprio atendimento. */
+  gerir?: boolean
 }) {
   const steps = NEXT_STEP[appointment.status] ?? []
   const open = !CLOSED.has(appointment.status)
@@ -68,9 +77,13 @@ export function AppointmentPanel({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">
-            <Link href={href(`/clientes/${appointment.clientId}`)} className="hover:underline">
-              {appointment.clientName}
-            </Link>
+            {gerir ? (
+              <Link href={href(`/clientes/${appointment.clientId}`)} className="hover:underline">
+                {appointment.clientName}
+              </Link>
+            ) : (
+              appointment.clientName
+            )}
           </h2>
           <p className="text-muted text-sm">
             <a
@@ -134,7 +147,7 @@ export function AppointmentPanel({
         <p className="text-muted mt-4 text-sm">Motivo: {appointment.cancellationReason}</p>
       ) : null}
 
-      {appointment.status === 'completed' ? (
+      {gerir && appointment.status === 'completed' ? (
         <div className="mt-5">
           <Link
             href={href(`/agenda/${unitSlug}/comanda/${appointment.id}`)}
@@ -155,36 +168,46 @@ export function AppointmentPanel({
                 <button className={cn(buttonVariants({ size: 'sm' }))}>{step.label}</button>
               </form>
             ))}
-            <Link
-              href={`/agenda/${unitSlug}/remarcar/${appointment.id}`}
-              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-            >
-              Remarcar
-            </Link>
+            {gerir ? (
+              <Link
+                href={`/agenda/${unitSlug}/remarcar/${appointment.id}`}
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+              >
+                Remarcar
+              </Link>
+            ) : null}
           </div>
 
-          <form action={cancelarAgendamento} className="flex flex-wrap items-center gap-2">
-            <input type="hidden" name="id" value={appointment.id} />
-            <input
-              name="motivo"
-              placeholder="motivo (opcional)"
-              className="h-9 min-w-40 flex-1 rounded-lg border border-(--border-subtle) bg-(--surface-raised) px-3 text-sm"
-            />
-            <button
-              name="para"
-              value="cancelled_by_client"
-              className={cn(buttonVariants({ variant: 'danger', size: 'sm' }))}
-            >
-              Cancelar
-            </button>
-            <button
-              name="para"
-              value="no_show"
-              className={cn(buttonVariants({ variant: 'danger', size: 'sm' }))}
-            >
-              Não veio
-            </button>
-          </form>
+          {/*
+            A regra é uma frase: quem atende empurra o próprio atendimento para
+            frente; desfazer é da gerência. Cancelar e marcar falta mudam o que
+            a loja cobra e o que ela avisa para a cliente — e quem responde por
+            isso é quem responde pela loja.
+          */}
+          {gerir ? (
+            <form action={cancelarAgendamento} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="id" value={appointment.id} />
+              <input
+                name="motivo"
+                placeholder="motivo (opcional)"
+                className="h-9 min-w-40 flex-1 rounded-lg border border-(--border-subtle) bg-(--surface-raised) px-3 text-sm"
+              />
+              <button
+                name="para"
+                value="cancelled_by_client"
+                className={cn(buttonVariants({ variant: 'danger', size: 'sm' }))}
+              >
+                Cancelar
+              </button>
+              <button
+                name="para"
+                value="no_show"
+                className={cn(buttonVariants({ variant: 'danger', size: 'sm' }))}
+              >
+                Não veio
+              </button>
+            </form>
+          ) : null}
         </div>
       ) : null}
     </aside>

@@ -101,13 +101,13 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
-/** Redireciona para o login da equipe se não houver sessão com algum papel de equipe. */
-export async function requireStaffSession(): Promise<SessionUser> {
-  const session = await getSession()
-  const isStaff = session?.roles.some((r) => r.role !== 'client') ?? false
-  if (!session || !isStaff) redirect('/entrar')
-  return session
-}
+/*
+  Aqui existia um `requireStaffSession`: "tem papel diferente de cliente, entra".
+  Era o degrau único do começo, e ficou perigoso quando os papéis passaram a
+  significar coisas diferentes — bastava ser equipe para abrir o caixa da rede.
+  Quem manda hoje é `server/auth/permissoes.ts`, que pergunta também *o quê* e
+  *onde*. Foi apagado de propósito, para ninguém voltar a chamá-lo por engano.
+*/
 
 /** Redireciona para o login da cliente se não houver sessão com papel de cliente. */
 export async function requireClientSession(): Promise<SessionUser> {

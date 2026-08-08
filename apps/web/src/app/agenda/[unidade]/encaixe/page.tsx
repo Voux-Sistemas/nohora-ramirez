@@ -6,6 +6,7 @@ import { ServicePicker, type PickableService } from '@/components/booking/servic
 import { buttonVariants } from '@/components/ui/button'
 import { formatBRL, formatDateLong, formatDuration, formatPhone, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
+import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { searchClients } from '@/server/people/clients'
 import { findSlots, planAt, todayInUnit } from '@/server/scheduling/availability'
 import {
@@ -28,6 +29,10 @@ export const dynamic = 'force-dynamic'
  * Aqui NÃO vale `onlineOnly` nem antecedência mínima: quem está na frente da
  * cliente marca o que precisar, na hora que precisar. Quem decide isso é o
  * canal `reception` lá em `book.ts`.
+ *
+ * E é justamente por isso que a tela é da gestão: encaixar é furar a fila e a
+ * regra. Quem atende empurra o próprio atendimento; quem responde pela loja
+ * decide que a cliente entra fora do horário.
  */
 export default async function EncaixePage({
   params,
@@ -47,8 +52,10 @@ export default async function EncaixePage({
   const { unidade } = await params
   const query = await searchParams
 
+  const acesso = await requireGestao()
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
+  requireUnidade(acesso, unit.id)
 
   const date = isValidDate(query.d) ? query.d : todayInUnit(unit)
   const serviceIds = (query.s ?? '').split(',').filter(Boolean)

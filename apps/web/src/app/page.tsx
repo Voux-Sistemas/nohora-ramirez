@@ -7,7 +7,7 @@ import { Photo } from '@/components/ui/photo'
 import { db } from '@/lib/db'
 import { formatBRL } from '@/lib/format'
 import { href } from '@/lib/utils'
-import { requireStaffSession } from '@/server/auth/session'
+import { requireGestao, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +24,11 @@ interface UnitToday {
   previsto: number
 }
 
-async function loadToday(): Promise<UnitToday[]> {
-  const rows = await db.select().from(units).where(eq(units.active, true)).orderBy(asc(units.name))
+async function loadToday(acesso: Acesso): Promise<UnitToday[]> {
+  const todas = await db.select().from(units).where(eq(units.active, true)).orderBy(asc(units.name))
+  /* O recorte vem antes das contagens, não depois: somar o dia de uma loja para
+     esconder o número na tela ainda é ler o caixa de quem não é seu. */
+  const rows = unidadesVisiveis(acesso, todas)
 
   const result: UnitToday[] = []
   for (const unit of rows) {
@@ -87,10 +90,11 @@ async function loadToday(): Promise<UnitToday[]> {
  * sala. É a mesma fotografia que a cliente vê grande no agendamento.
  */
 export default async function HomePage() {
-  /* A página mostra faturamento de todas as unidades. Antes era pública:
-     qualquer um com o endereço lia o caixa da rede. */
-  const session = await requireStaffSession()
-  const today = await loadToday()
+  /* A página mostra faturamento das lojas. Antes era pública: qualquer um com o
+     endereço lia o caixa da rede. Hoje ela é da dona e do gerente — quem atende
+     é levado para a própria agenda, que é o "hoje" dela. */
+  const acesso = await requireGestao()
+  const today = await loadToday(acesso)
 
   const total = today.reduce(
     (acc, unit) => ({
@@ -110,7 +114,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <OperateTopbar session={session} active="/" />
+      <OperateTopbar acesso={acesso} active="hoje" />
 
       {/*
         A pauta é mais estreita que a barra de propósito. Numa tela de 1440 a
@@ -121,8 +125,10 @@ export default async function HomePage() {
       <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div>
+            {/* "na rede" só é verdade para quem tem a rede. Para o gerente de
+                uma loja o título seria uma promessa que a pauta não cumpre. */}
             <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">
-              Hoje na rede
+              {acesso.papel === 'dona' ? 'Hoje na rede' : 'Hoje'}
             </h1>
             <p className="text-muted mt-1 text-sm first-letter:uppercase">{agora}</p>
           </div>
@@ -154,11 +160,22 @@ export default async function HomePage() {
           ))}
           {today.length === 0 ? (
             <p className="text-muted border-b border-(--border-subtle) px-1 py-8 text-sm">
-              Nenhuma unidade ativa. Cadastre a primeira em{' '}
-              <Link href="/admin/unidades" className="text-(--text-strong) underline underline-offset-4">
-                Cadastros
-              </Link>
-              .
+              {acesso.papel === 'dona' ? (
+                <>
+                  Nenhuma unidade ativa. Cadastre a primeira em{' '}
+                  <Link
+                    href="/admin/unidades"
+                    className="text-(--text-strong) underline underline-offset-4"
+                  >
+                    Cadastros
+                  </Link>
+                  .
+                </>
+              ) : (
+                /* Mandar o gerente para uma tela que ele não abre seria pior do
+                   que não dizer nada. Quem cadastra unidade é a dona. */
+                'Nenhuma loja atribuída a você ainda. Fale com a administração.'
+              )}
             </p>
           ) : null}
         </div>

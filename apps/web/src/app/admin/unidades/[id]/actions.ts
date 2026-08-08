@@ -13,7 +13,14 @@ import {
   type HoursInput,
   type UnitInput,
 } from '@/server/admin/units'
+import { assertRede } from '@/server/auth/permissoes'
 import { resolveImageField } from '@/server/storage/form'
+
+/*
+  Unidade é da rede: nome, endereço, horário de funcionamento e as regras que a
+  agenda da loja inteira obedece. Só a dona. As três ações conferem por conta
+  própria porque nenhuma tela protege um endereço HTTP.
+*/
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const
 
@@ -58,6 +65,7 @@ export async function salvarUnidade(formData: FormData): Promise<void> {
   const input = parseUnit(formData)
   const hours = parseHours(formData)
   if (!input.name || !input.slug) return
+  await assertRede()
 
   const unitId = id === 'nova' ? await createUnit(input) : id
   if (id !== 'nova') await updateUnit(id, input)
@@ -80,6 +88,7 @@ export async function adicionarExcecao(formData: FormData): Promise<void> {
   const date = String(formData.get('date') ?? '')
   const closed = formData.get('closed') === 'on'
   if (!unitId || !date) return
+  await assertRede()
 
   await addUnitException(unitId, {
     date,
@@ -95,6 +104,7 @@ export async function removerExcecao(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '')
   const unitId = String(formData.get('unitId') ?? '')
   if (!id) return
+  await assertRede()
   await removeUnitException(id)
   revalidatePath(`/admin/unidades/${unitId}`)
 }

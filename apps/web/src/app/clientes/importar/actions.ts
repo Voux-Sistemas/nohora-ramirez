@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { parseCsv } from '@/lib/csv'
+import { assertGestao } from '@/server/auth/permissoes'
 import { importClients, type ImportResult } from '@/server/people/clients'
 
 export interface ImportState {
@@ -20,6 +21,10 @@ const COLUMN_ALIASES: Record<string, 'name' | 'phone' | 'email'> = {
 }
 
 export async function importarCsv(_state: ImportState, formData: FormData): Promise<ImportState> {
+  /* Importação cria conta de gente: sem porteiro, um arquivo enviado de fora
+     encheria a carteira da rede com cadastro que ninguém pediu. */
+  await assertGestao()
+
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) {
     return { error: 'Selecione um arquivo CSV.' }

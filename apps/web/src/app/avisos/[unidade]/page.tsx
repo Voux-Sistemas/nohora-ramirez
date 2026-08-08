@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { NoticeQueue } from '@/components/notifications/notice-queue'
 import { buttonVariants } from '@/components/ui/button'
 import { cn, href } from '@/lib/utils'
-import { requireStaffSession } from '@/server/auth/session'
+import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { countNotices, expireStaleNotices, listNotices } from '@/server/notifications/queue'
 import { ROUTINES, ROUTINE_BY_KEY, type RoutineKey } from '@/server/notifications/templates'
 import { getUnitBySlug } from '@/server/scheduling/context'
@@ -19,12 +19,13 @@ export default async function AvisosDaUnidadePage({
   params: Promise<{ unidade: string }>
   searchParams: Promise<{ r?: string }>
 }) {
-  await requireStaffSession()
+  const acesso = await requireGestao()
   const { unidade } = await params
   const { r } = await searchParams
 
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
+  requireUnidade(acesso, unit.id)
 
   // Fecha as janelas que passaram antes de contar — senão o lembrete de ontem
   // aparece como pendente e a fila vira um cemitério de tarefa vencida.
@@ -42,9 +43,13 @@ export default async function AvisosDaUnidadePage({
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <header className="mb-5">
-        <Link href={href('/avisos')} className="text-muted text-sm hover:underline">
-          ← unidades
-        </Link>
+        {/* Sem volta para uma lista de uma loja só: o link levaria a um
+            redirecionamento de volta para esta mesma tela. */}
+        {acesso.unidadeIds !== null && acesso.unidadeIds.length <= 1 ? null : (
+          <Link href={href('/avisos')} className="text-muted text-sm hover:underline">
+            ← unidades
+          </Link>
+        )}
         <h1 className="display mt-1 text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
           Avisos · {unit.name}
         </h1>

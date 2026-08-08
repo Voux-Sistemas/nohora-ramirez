@@ -3,12 +3,15 @@ import { AdminShell } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
 import { href } from '@/lib/utils'
 import { listUnitsAdmin } from '@/server/admin/units'
+import { requireRede } from '@/server/auth/permissoes'
 
 export default async function UnidadesPage() {
+  const acesso = await requireRede()
   const units = await listUnitsAdmin()
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/unidades"
       title="Unidades"
       subtitle="Endereço, horário de funcionamento e regras de agendamento de cada loja."

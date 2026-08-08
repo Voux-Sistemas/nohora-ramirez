@@ -9,6 +9,7 @@ import {
   updateService,
   type ServiceInput,
 } from '@/server/admin/services'
+import { assertRede } from '@/server/auth/permissoes'
 import { resolveImageField } from '@/server/storage/form'
 
 function parseService(formData: FormData): ServiceInput {
@@ -44,6 +45,8 @@ export async function salvarServico(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '')
   const input = parseService(formData)
   if (!input.name || input.setupMin < 0) return
+  /* Preço e duração valem nas três lojas de uma vez: é decisão da rede. */
+  await assertRede()
 
   const serviceId = id === 'novo' ? await createService(input) : id
   if (id !== 'novo') await updateService(id, input)

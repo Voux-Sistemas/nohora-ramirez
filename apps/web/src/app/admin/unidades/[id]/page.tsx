@@ -4,6 +4,7 @@ import { AdminShell, Section, backTo } from '@/components/admin/shell'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
 import { getUnitAdmin, type HoursRow, type UnitRow } from '@/server/admin/units'
+import { requireRede } from '@/server/auth/permissoes'
 import { adicionarExcecao, removerExcecao, salvarUnidade } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -38,6 +39,7 @@ function slotsFor(weekday: number, hours: readonly HoursRow[]) {
 
 export default async function UnidadeFormPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const acesso = await requireRede()
   const isNew = id === 'nova'
 
   const data = isNew ? null : await getUnitAdmin(id)
@@ -49,6 +51,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/unidades"
       title={isNew ? 'Nova unidade' : unit.name}
       subtitle={isNew ? undefined : `/${unit.slug}`}

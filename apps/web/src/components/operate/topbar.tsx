@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/mark'
 import { sair } from '@/server/auth/actions'
-import type { SessionUser } from '@/server/auth/session'
+import type { Acesso } from '@/server/auth/permissoes'
 import { cn, href } from '@/lib/utils'
 
 /**
@@ -17,26 +17,57 @@ import { cn, href } from '@/lib/utils'
  * A marca do trecho ativo é a régua de bronze — a mesma assinatura gráfica que
  * fecha um bloco no resto do sistema. Não é sublinhado de link nem pílula: é o
  * fio da coroa, aparecendo no único lugar da barra que precisa de ênfase.
+ *
+ * A barra é o rosto da permissão. Um destino que a pessoa não pode abrir não
+ * aparece aqui — esconder é cortesia, não segurança: o porteiro de verdade está
+ * em cada tela. Mas uma barra que oferece o que vai dar em redirecionamento é
+ * uma barra que mente, e quem trabalha nela aprende a desconfiar dos seis
+ * botões por causa de um.
  */
 
-const SECOES = [
-  { path: '/', label: 'Hoje' },
-  { path: '/agenda', label: 'Agenda' },
-  { path: '/avisos', label: 'Avisos' },
-  { path: '/caixa', label: 'Caixa' },
-  { path: '/clientes', label: 'Clientes' },
-  { path: '/admin/unidades', label: 'Cadastros' },
-] as const
+export type SecaoOperacao = 'hoje' | 'agenda' | 'avisos' | 'caixa' | 'clientes' | 'cadastros'
 
-export type SecaoOperacao = (typeof SECOES)[number]['path']
+interface Secao {
+  id: SecaoOperacao
+  path: string
+  label: string
+}
+
+/**
+ * O que cada degrau vê na barra.
+ *
+ * A profissional tem um destino só, e ele leva o nome do que é: a agenda dela.
+ * "Cadastros" muda de porta conforme quem abre — a dona começa pelas unidades,
+ * o gerente pela equipe, porque unidade ele não cadastra.
+ */
+function secoesDe(acesso: Acesso): Secao[] {
+  if (acesso.papel === 'profissional') {
+    return [{ id: 'agenda', path: '/agenda', label: 'Minha agenda' }]
+  }
+
+  return [
+    { id: 'hoje', path: '/', label: 'Hoje' },
+    { id: 'agenda', path: '/agenda', label: 'Agenda' },
+    { id: 'avisos', path: '/avisos', label: 'Avisos' },
+    { id: 'caixa', path: '/caixa', label: 'Caixa' },
+    { id: 'clientes', path: '/clientes', label: 'Clientes' },
+    {
+      id: 'cadastros',
+      path: acesso.papel === 'dona' ? '/admin/unidades' : '/admin/equipe',
+      label: 'Cadastros',
+    },
+  ]
+}
 
 export function OperateTopbar({
-  session,
+  acesso,
   active,
 }: {
-  session: SessionUser
+  acesso: Acesso
   active?: SecaoOperacao
 }) {
+  const secoes = secoesDe(acesso)
+
   return (
     /*
       `--focus` global é tinta, que sobre esta faixa seria um anel invisível.
@@ -52,24 +83,28 @@ export function OperateTopbar({
           32px de altura vira uma mancha; o selo é para tamanho grande, e o
           logotipo é o que aguenta ser pequeno.
         */}
-        <Link href="/" className="rounded-plate shrink-0 py-3" aria-label="Nohora Ramirez — início">
+        <Link
+          href={href(secoes[0]!.path)}
+          className="rounded-plate shrink-0 py-3"
+          aria-label="Nohora Ramirez — início"
+        >
           <Wordmark size="sm" align="left" />
         </Link>
 
         {/*
-          Rolagem horizontal em vez de menu escondido: são seis destinos fixos e
-          curtos. Esconder atrás de um botão custaria um toque a cada troca, que
-          é a ação mais repetida do turno.
+          Rolagem horizontal em vez de menu escondido: são no máximo seis
+          destinos fixos e curtos. Esconder atrás de um botão custaria um toque a
+          cada troca, que é a ação mais repetida do turno.
         */}
         <nav
           aria-label="Seções"
           className="-mb-px flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto"
         >
-          {SECOES.map((secao) => {
-            const atual = active === secao.path
+          {secoes.map((secao) => {
+            const atual = active === secao.id
             return (
               <Link
-                key={secao.path}
+                key={secao.id}
                 href={href(secao.path)}
                 aria-current={atual ? 'page' : undefined}
                 className={cn(
@@ -95,7 +130,7 @@ export function OperateTopbar({
 
         <div className="flex shrink-0 items-center gap-3 text-sm">
           <span className="text-(--on-ink-muted) hidden max-w-40 truncate md:inline">
-            {session.name}
+            {acesso.session.name}
           </span>
           <form action={sair}>
             <button

@@ -1,17 +1,26 @@
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
 import { listResourceAssignables, listResourcesAdmin, listResourceTypes } from '@/server/admin/resources'
+import { podeRede, requireGestao } from '@/server/auth/permissoes'
 import { alternarRecurso, criarRecurso, criarTipoRecurso } from './actions'
 
+/**
+ * Recursos: o gerente cuida das cabines da loja dele; o tipo de cabine é da
+ * rede. Por isso a tela abre para os dois degraus de gestão, mas o cadastro de
+ * tipo — que muda o vocabulário das três lojas — fica com a dona.
+ */
 export default async function RecursosPage() {
+  const acesso = await requireGestao()
+  const rede = podeRede(acesso)
   const [types, resources, assignables] = await Promise.all([
     listResourceTypes(),
-    listResourcesAdmin(),
-    listResourceAssignables(),
+    listResourcesAdmin(acesso.unidadeIds),
+    listResourceAssignables(acesso.unidadeIds),
   ])
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/recursos"
       title="Recursos"
       subtitle="Cabines, lavatórios, macas e equipamentos que a agenda reserva junto com o profissional."
@@ -25,12 +34,18 @@ export default async function RecursosPage() {
           ))}
           {types.length === 0 ? <li className="text-muted text-sm">Nenhum tipo cadastrado ainda.</li> : null}
         </ul>
-        <form action={criarTipoRecurso} className="flex gap-2">
-          <input className="field max-w-xs" name="name" placeholder="Ex.: Cabine, Lavatório" required />
-          <Button type="submit" variant="outline" size="sm">
-            + adicionar tipo
-          </Button>
-        </form>
+        {rede ? (
+          <form action={criarTipoRecurso} className="flex gap-2">
+            <input className="field max-w-xs" name="name" placeholder="Ex.: Cabine, Lavatório" required />
+            <Button type="submit" variant="outline" size="sm">
+              + adicionar tipo
+            </Button>
+          </form>
+        ) : (
+          <p className="text-muted text-sm">
+            Criar um tipo novo muda as três lojas — fale com a administração.
+          </p>
+        )}
       </Section>
 
       <Section title="Instâncias" hint="Cada linha é um recurso físico de verdade — duas cabines são duas linhas.">

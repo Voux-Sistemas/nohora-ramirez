@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn, href } from '@/lib/utils'
+import { podeRede, type Acesso } from '@/server/auth/permissoes'
 
 /**
  * Casca dos cadastros.
@@ -7,29 +8,40 @@ import { cn, href } from '@/lib/utils'
  * O admin é a tela que a dona abre uma vez por mês — então ela é larga, densa e
  * sem gracinha. Nada de assistente de várias etapas: uma lista, um formulário,
  * salvar.
+ *
+ * As abas dependem de quem entrou. Unidades, catálogo e comissões mudam as três
+ * lojas de uma vez: são da dona. Equipe e recursos são o que "gerenciar a
+ * unidade" quer dizer na prática, então o gerente vê essas duas — recortadas
+ * para as lojas dele.
  */
 
 const TABS = [
-  { path: '/admin/unidades', label: 'Unidades' },
-  { path: '/admin/servicos', label: 'Serviços' },
-  { path: '/admin/equipe', label: 'Equipe' },
-  { path: '/admin/recursos', label: 'Recursos' },
-  { path: '/admin/comissoes', label: 'Comissões' },
+  { path: '/admin/unidades', label: 'Unidades', rede: true },
+  { path: '/admin/servicos', label: 'Serviços', rede: true },
+  { path: '/admin/equipe', label: 'Equipe', rede: false },
+  { path: '/admin/recursos', label: 'Recursos', rede: false },
+  { path: '/admin/comissoes', label: 'Comissões', rede: true },
 ] as const
 
+export type AbaAdmin = (typeof TABS)[number]['path']
+
 export function AdminShell({
+  acesso,
   active,
   title,
   subtitle,
   actions,
   children,
 }: {
-  active?: (typeof TABS)[number]['path']
+  acesso: Acesso
+  active?: AbaAdmin
   title: string
   subtitle?: string
   actions?: React.ReactNode
   children: React.ReactNode
 }) {
+  const tabs = podeRede(acesso) ? TABS : TABS.filter((tab) => !tab.rede)
+
   return (
     /*
       Coluna de 896px, não de 1152. Nenhuma tela daqui é larga de verdade —
@@ -49,7 +61,7 @@ export function AdminShell({
         2px de uma paleta que a marca não usa mais.
       */}
       <nav className="mb-8 flex flex-wrap gap-1 border-b border-(--border-subtle)">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <Link
             key={tab.path}
             href={href(tab.path)}

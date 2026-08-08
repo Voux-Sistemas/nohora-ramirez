@@ -14,7 +14,8 @@
 import { notificationLogs } from '@studio/db'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { requireStaffSession } from '@/server/auth/session'
+import { assertUnidade } from '@/server/auth/permissoes'
+import { getAppointment } from '@/server/scheduling/queries'
 import type { RoutineKey } from '@/server/notifications/templates'
 
 /*
@@ -31,7 +32,7 @@ export async function marcarComoAvisado(
   routine: RoutineKey,
   destino: string,
 ): Promise<void> {
-  await requireStaffSession()
+  await autorizar(appointmentId)
 
   await db.insert(notificationLogs).values({
     channel: 'whatsapp',
@@ -52,7 +53,7 @@ export async function desfazerAviso(
   appointmentId: string,
   routine: RoutineKey,
 ): Promise<void> {
-  await requireStaffSession()
+  await autorizar(appointmentId)
 
   await db
     .delete(notificationLogs)
@@ -63,4 +64,16 @@ export async function desfazerAviso(
         eq(notificationLogs.templateKey, routine),
       ),
     )
+}
+
+/**
+ * Avisar é falar com a cliente em nome da loja, e a fila traz o telefone dela
+ * junto — por isso é gestão, e sempre da unidade do atendimento. Antes as duas
+ * ações se contentavam com "entrou como equipe", o que deixava a profissional
+ * de uma loja apagar o registro de aviso de outra.
+ */
+async function autorizar(appointmentId: string): Promise<void> {
+  const appointment = await getAppointment(appointmentId)
+  if (!appointment) throw new Error('atendimento não encontrado')
+  await assertUnidade(appointment.unitId)
 }

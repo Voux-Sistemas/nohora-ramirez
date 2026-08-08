@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { buttonVariants } from '@/components/ui/button'
 import { formatDateLong, formatDuration, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
+import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { findSlots } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext, staffForCart } from '@/server/scheduling/context'
 import { getAppointment } from '@/server/scheduling/queries'
@@ -15,6 +16,9 @@ export const dynamic = 'force-dynamic'
  * Remarcação. O contexto é carregado ignorando a ocupação DESTE atendimento
  * (`excludeAppointmentId`) — sem isso a cliente não conseguiria nem adiantar
  * quinze minutos, porque ela mesma estaria bloqueando o horário vizinho.
+ *
+ * Tela de gestão: a lista de horários livres é a agenda da equipe inteira lida
+ * de outro jeito. Quem só enxerga a própria coluna não passa por aqui.
  */
 export default async function RemarcarPage({
   params,
@@ -26,8 +30,10 @@ export default async function RemarcarPage({
   const { unidade, id } = await params
   const { d, p, erro } = await searchParams
 
+  const acesso = await requireGestao()
   const [unit, appointment] = await Promise.all([getUnitBySlug(unidade), getAppointment(id)])
   if (!unit || !appointment || appointment.unitId !== unit.id) notFound()
+  requireUnidade(acesso, unit.id)
 
   const originalDate = isoDateInZone(appointment.start, unit.timezone)
   const date = isValidDate(d) ? d : originalDate

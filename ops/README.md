@@ -54,14 +54,35 @@ volta a abrir sozinha.
 
 ## Papéis
 
-Hoje o sistema tem um degrau só: ou a pessoa é cliente, ou é equipe. Quem é
-equipe vê tudo — agenda, caixa, cadastro e faturamento das unidades. `/admin`,
-`/caixa` e o painel da home checam apenas "tem papel diferente de `client`".
+São três degraus de equipe, e quem decide o que é
+`apps/web/src/server/auth/permissoes.ts`. Todo porteiro do sistema sai de lá.
 
-Os papéis granulares (`receptionist`, `unit_manager`, `finance`) existem no banco
-e ainda não separam nada na aplicação. Para um salão onde a dona e as
-profissionais trabalham lado a lado isso não incomoda; num salão com recepção
-rotativa, incomoda. Está escrito aqui para ser uma decisão, não uma surpresa.
+| Papel | `user_roles` | Enxerga | Decide |
+| --- | --- | --- | --- |
+| Dona | `owner` (sem unidade) | a rede | tudo: unidades, catálogo, comissões, equipe |
+| Gerente | `unit_manager`, uma linha por unidade | as lojas dela | operação e equipe dessas lojas |
+| Profissional | `professional` | a própria agenda | o próprio atendimento |
+
+Duas coisas que não são óbvias e mordem se esquecidas:
+
+- **O alcance da profissional não vem de `user_roles`.** A linha dela é gravada
+  sem unidade; onde ela atende é `staff_units`, a mesma tabela que monta as
+  colunas da agenda. Ler de outro lugar abriria a porta de uma loja em que ela
+  não trabalha.
+- **O padrão é fechado.** `receptionist` e `finance` existem no enum do banco
+  desde o começo e **não abrem porta nenhuma** — quem tiver só um desses papéis
+  cai no login. Não é esquecimento: reconhecer por engano daria acesso de gestão
+  a quem ninguém decidiu dar. Quando esses papéis existirem de verdade, o caminho
+  é entrar na tabela `DEGRAUS` de propósito.
+
+Quem nomeia gerente é só a dona, em `/admin/equipe`. O formulário grava uma linha
+de `unit_manager` por unidade marcada; `owner` nunca é escrito por ali.
+
+As telas de rede (`/admin/unidades`, `/admin/servicos`, `/admin/comissoes`) somem
+da navegação do gerente e recusam a ação no servidor. As ações de operação
+(caixa, comanda, encaixe, remarcar, avisos) descobrem a unidade **lendo a linha
+do banco**, nunca o campo escondido do formulário — é o que impede um id trocado
+de virar um lançamento no caixa da loja vizinha.
 
 ## Variáveis do serviço `web`
 

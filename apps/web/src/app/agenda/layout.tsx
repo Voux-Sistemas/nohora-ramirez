@@ -1,11 +1,13 @@
 import { OperateTopbar } from '@/components/operate/topbar'
-import { requireStaffSession } from '@/server/auth/session'
+import { requireAcesso } from '@/server/auth/permissoes'
 
+/* A agenda é a única seção que os três degraus abrem. O que muda é o que cada
+   um enxerga dentro dela, e isso é decidido tela a tela. */
 export default async function AgendaLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireStaffSession()
+  const acesso = await requireAcesso()
   return (
     <>
-      <OperateTopbar session={session} active="/agenda" />
+      <OperateTopbar acesso={acesso} active="agenda" />
       {children}
     </>
   )

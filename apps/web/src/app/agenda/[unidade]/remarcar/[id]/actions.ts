@@ -2,12 +2,20 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { assertUnidade } from '@/server/auth/permissoes'
 import { rescheduleAppointment } from '@/server/scheduling/book'
+import { getUnitBySlug } from '@/server/scheduling/context'
+import { getAppointment } from '@/server/scheduling/queries'
 
 /**
  * Remarcar é liberar e reservar na MESMA transação (ver `book.ts`). Se o novo
  * horário for tomado no meio do caminho, a cliente continua com o antigo — em
  * nenhum instante ela fica sem horário.
+ *
+ * Mover cliente é da gestão: exige enxergar a agenda das colegas para saber
+ * para onde mover. E a permissão pergunta pela unidade DO ATENDIMENTO, não pela
+ * que veio no formulário — quem forja o campo escolheria a loja onde tem acesso
+ * para mexer no atendimento de outra.
  */
 export async function remarcar(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '')
@@ -18,6 +26,15 @@ export async function remarcar(formData: FormData): Promise<void> {
   const profissional = String(formData.get('profissional') ?? '')
   const clientId = String(formData.get('cliente') ?? '')
   if (!id || !unidade || !inicio || !servicos || !clientId) return
+
+  const appointment = await getAppointment(id)
+  if (!appointment) throw new Error('atendimento não encontrado')
+  await assertUnidade(appointment.unitId)
+
+  /* Remarcação muda a hora, não o endereço. Um destino diferente da unidade de
+     origem não é caso de uso — é campo adulterado. */
+  const destino = await getUnitBySlug(unidade)
+  if (!destino || destino.id !== appointment.unitId) throw new Error('unidade inválida')
 
   const result = await rescheduleAppointment(id, {
     unitSlug: unidade,

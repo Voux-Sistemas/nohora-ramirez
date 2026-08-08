@@ -6,6 +6,7 @@ import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-
 import { buttonVariants } from '@/components/ui/button'
 import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
+import { podeGerir, requireAcesso, requireUnidade } from '@/server/auth/permissoes'
 import { todayInUnit } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext } from '@/server/scheduling/context'
 import { countDay, listDayAppointments, type AppointmentView } from '@/server/scheduling/queries'
@@ -25,21 +26,35 @@ export default async function AgendaDoDiaPage({
   const { unidade } = await params
   const { d, sel } = await searchParams
 
+  const acesso = await requireAcesso()
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
+  requireUnidade(acesso, unit.id)
+
+  const gerir = podeGerir(acesso)
 
   const today = todayInUnit(unit)
   const date = isValidDate(d) ? d : today
-  const [ctx, appointments] = await Promise.all([
+  const [ctx, todos] = await Promise.all([
     loadBookingContext({ unit, fromDate: date, toDate: date }),
     listDayAppointments(unit, date),
   ])
+
+  /*
+    A prancheta da profissional é a dela e mais nada.
+    O recorte é por atendimento, não por coluna: a cliente que fez escova com
+    uma e coloração com outra aparece inteira para as duas — é o mesmo horário,
+    e esconder metade dele faria a agenda mentir sobre quando ela sai. O que a
+    profissional não vê é quem mais está escalado, e por isso não sabe quem tem
+    buraco na tarde. Mover cliente entre colunas é da gerência.
+  */
+  const appointments = gerir ? todos : soDaProfissional(todos, acesso.staffId)
 
   const live = appointments.filter((item) => !CANCELLED.has(item.status))
   const cancelled = appointments.filter((item) => CANCELLED.has(item.status))
   const counters = countDay(appointments)
 
-  const columns = buildColumns(ctx, live)
+  const columns = buildColumns(ctx, live, gerir ? null : acesso.staffId)
   const openRanges = ctx.openRangesByDate.get(date) ?? []
   const { from, to } = drawWindow(openRanges, live, date, unit.timezone)
 
@@ -59,9 +74,13 @@ export default async function AgendaDoDiaPage({
       */}
       <header className="mb-5" style={{ maxWidth: `${3.5 + 18 * Math.max(columns.length, 2)}rem` }}>
         <div>
-          <Link href="/agenda" className="text-muted text-sm hover:underline">
-            ← unidades
-          </Link>
+          {/* Quem trabalha numa loja só não tem para onde voltar: `/agenda` a
+              devolveria para cá. Link que dá em si mesmo é ruído. */}
+          {acesso.unidadeIds !== null && acesso.unidadeIds.length <= 1 ? null : (
+            <Link href="/agenda" className="text-muted text-sm hover:underline">
+              ← unidades
+            </Link>
+          )}
           <h1 className="display mt-1 text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
             {unit.name}
           </h1>
@@ -87,12 +106,18 @@ export default async function AgendaDoDiaPage({
                 <Num>{counters.cancelled}</Num> cancelado{counters.cancelled === 1 ? '' : 's'}
               </>
             ) : null}
-            {' · '}
-            <Num>{formatBRL(counters.revenue)}</Num> no caixa
-            {counters.expected > counters.revenue ? (
+            {/* O caixa do dia é da loja, não da cadeira: some para quem atende.
+                O que ela ganha é comissão, e comissão tem tela própria. */}
+            {gerir ? (
               <>
-                {' de '}
-                <span className="tnum">{formatBRL(counters.expected)}</span> previstos
+                {' · '}
+                <Num>{formatBRL(counters.revenue)}</Num> no caixa
+                {counters.expected > counters.revenue ? (
+                  <>
+                    {' de '}
+                    <span className="tnum">{formatBRL(counters.expected)}</span> previstos
+                  </>
+                ) : null}
               </>
             ) : null}
           </p>
@@ -148,12 +173,16 @@ export default async function AgendaDoDiaPage({
             <button className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>Ir</button>
           </form>
 
-          <Link
-            href={`/agenda/${unit.slug}/encaixe?d=${date}`}
-            className={cn(buttonVariants({ size: 'sm' }))}
-          >
-            Encaixar
-          </Link>
+          {/* Encaixar é escolher em qual cadeira a cliente senta — e para isso
+              é preciso enxergar todas. Fica com quem enxerga. */}
+          {gerir ? (
+            <Link
+              href={`/agenda/${unit.slug}/encaixe?d=${date}`}
+              className={cn(buttonVariants({ size: 'sm' }))}
+            >
+              Encaixar
+            </Link>
+          ) : null}
         </div>
       </header>
 
@@ -170,7 +199,7 @@ export default async function AgendaDoDiaPage({
         <div className="min-w-0">
           {columns.length === 0 ? (
             <p className="surface rounded-card text-muted p-6 text-sm">
-              Ninguém escalado neste dia.
+              {gerir ? 'Ninguém escalado neste dia.' : 'Você não está escalada neste dia.'}
             </p>
           ) : (
             <DayGrid
@@ -219,6 +248,7 @@ export default async function AgendaDoDiaPage({
             timezone={unit.timezone}
             closeHref={baseHref}
             unitSlug={unit.slug}
+            gerir={gerir}
           />
         ) : null}
       </div>
@@ -231,14 +261,32 @@ function Num({ children }: { children: React.ReactNode }) {
   return <strong className="tnum text-(--text-strong) font-medium">{children}</strong>
 }
 
-/** Uma coluna por profissional escalado — mais quem tem atendimento no dia. */
+/** Os atendimentos em que esta profissional executa pelo menos um serviço. */
+function soDaProfissional(
+  list: readonly AppointmentView[],
+  staffId: string | null,
+): AppointmentView[] {
+  /* Sem perfil de agenda não há coluna nem atendimento — lista vazia é a
+     resposta honesta, e não "então mostra tudo". */
+  if (!staffId) return []
+  return list.filter((item) => item.items.some((entry) => entry.staffId === staffId))
+}
+
+/**
+ * Uma coluna por profissional escalado — mais quem tem atendimento no dia.
+ *
+ * `apenas` recorta a prancheta a uma pessoa. Não é filtro de tela: as colunas
+ * das colegas nem chegam ao navegador.
+ */
 function buildColumns(
   ctx: Awaited<ReturnType<typeof loadBookingContext>>,
   live: readonly AppointmentView[],
+  apenas: string | null,
 ): GridColumn[] {
   const withWork = new Set(live.flatMap((item) => item.items.map((entry) => entry.staffId)))
 
   return ctx.staff
+    .filter((person) => (apenas === null ? true : person.staffId === apenas))
     .filter((person) => person.workingRanges.length > 0 || withWork.has(person.staffId))
     .map((person) => {
       const staff = ctx.staffInfo.get(person.staffId)

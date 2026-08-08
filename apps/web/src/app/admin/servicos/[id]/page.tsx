@@ -4,6 +4,7 @@ import { AdminShell, Section, backTo } from '@/components/admin/shell'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
 import { getServiceAdmin, listAssignables, listCategories, type ServiceRow } from '@/server/admin/services'
+import { requireRede } from '@/server/auth/permissoes'
 import { salvarServico } from './actions'
 
 const BLANK_SERVICE: ServiceRow = {
@@ -30,6 +31,7 @@ const BLANK_SERVICE: ServiceRow = {
 
 export default async function ServicoFormPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const acesso = await requireRede()
   const isNew = id === 'novo'
 
   const [data, categories, assignables] = await Promise.all([
@@ -44,7 +46,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
   const staffIds = new Set(data?.staffIds ?? [])
 
   return (
-    <AdminShell active="/admin/servicos" title={isNew ? 'Novo serviço' : service.name}>
+    <AdminShell acesso={acesso} active="/admin/servicos" title={isNew ? 'Novo serviço' : service.name}>
       <Link href={backTo('/admin/servicos')} className="text-muted mb-4 inline-block text-sm hover:underline">
         ← serviços
       </Link>

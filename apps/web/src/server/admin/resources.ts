@@ -7,8 +7,15 @@ import 'server-only'
  */
 
 import { organizations, resourceTypes, resources, units } from '@studio/db'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
+
+/**
+ * O recorte de quem está olhando: `null` é a rede inteira, uma lista são as
+ * lojas de um gerente. Tipo de recurso ("cabine") é da rede e aparece para os
+ * dois; a instância física mora numa loja e só aparece para quem cuida dela.
+ */
+export type EscopoRecursos = readonly string[] | null
 
 export interface ResourceTypeRow {
   id: string
@@ -47,7 +54,9 @@ export interface ResourceRow {
   priority: number
 }
 
-export async function listResourcesAdmin(): Promise<ResourceRow[]> {
+export async function listResourcesAdmin(escopo: EscopoRecursos = null): Promise<ResourceRow[]> {
+  if (escopo !== null && escopo.length === 0) return []
+
   const rows = await db
     .select({
       id: resources.id,
@@ -62,8 +71,19 @@ export async function listResourcesAdmin(): Promise<ResourceRow[]> {
     .from(resources)
     .innerJoin(units, eq(units.id, resources.unitId))
     .innerJoin(resourceTypes, eq(resourceTypes.id, resources.resourceTypeId))
+    .where(escopo === null ? undefined : inArray(resources.unitId, [...escopo]))
     .orderBy(asc(units.name), asc(resourceTypes.name), asc(resources.priority))
   return rows
+}
+
+/** De qual loja é este recurso — a permissão pergunta ao banco, não ao formulário. */
+export async function unitOfResource(id: string): Promise<string | null> {
+  const [row] = await db
+    .select({ unitId: resources.unitId })
+    .from(resources)
+    .where(eq(resources.id, id))
+    .limit(1)
+  return row?.unitId ?? null
 }
 
 export interface ResourceInput {
@@ -83,13 +103,21 @@ export async function updateResource(id: string, input: ResourceInput): Promise<
   await db.update(resources).set(input).where(eq(resources.id, id))
 }
 
-/** Para montar o formulário: unidades e tipos disponíveis na rede. */
-export async function listResourceAssignables(): Promise<{
+/** Para montar o formulário: as unidades ao alcance de quem edita, e os tipos da rede. */
+export async function listResourceAssignables(escopo: EscopoRecursos = null): Promise<{
   units: { id: string; name: string }[]
   resourceTypes: { id: string; name: string }[]
 }> {
+  /* Escopo vazio é "nenhuma loja", não "todas": sem esta linha o `inArray` de
+     lista vazia viraria um filtro que não filtra nada. */
   const [unitRows, typeRows] = await Promise.all([
-    db.select({ id: units.id, name: units.name }).from(units).orderBy(asc(units.name)),
+    escopo !== null && escopo.length === 0
+      ? Promise.resolve([])
+      : db
+          .select({ id: units.id, name: units.name })
+          .from(units)
+          .where(escopo === null ? undefined : inArray(units.id, [...escopo]))
+          .orderBy(asc(units.name)),
     db.select({ id: resourceTypes.id, name: resourceTypes.name }).from(resourceTypes).orderBy(asc(resourceTypes.name)),
   ])
   return { units: unitRows, resourceTypes: typeRows }

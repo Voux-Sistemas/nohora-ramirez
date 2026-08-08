@@ -1,11 +1,17 @@
 import { OperateTopbar } from '@/components/operate/topbar'
-import { requireStaffSession } from '@/server/auth/session'
+import { requireGestao } from '@/server/auth/permissoes'
 
+/*
+  Gestão passa por aqui; cada tela de dentro aperta mais.
+  O gerente cuida de equipe e recursos das lojas dele — é o que "gerenciar a
+  unidade" quer dizer na prática. Unidades, catálogo de serviços e comissões são
+  da rede: mexer neles muda as três lojas de uma vez, e isso é decisão da dona.
+*/
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireStaffSession()
+  const acesso = await requireGestao()
   return (
     <>
-      <OperateTopbar session={session} active="/admin/unidades" />
+      <OperateTopbar acesso={acesso} active="cadastros" />
       {children}
     </>
   )

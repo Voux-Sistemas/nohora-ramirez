@@ -4,12 +4,17 @@ import { Button } from '@/components/ui/button'
 import { formatPhone } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listStaffAdmin } from '@/server/admin/staff'
+import { requireGestao } from '@/server/auth/permissoes'
 
+/* A lista já vem recortada: o gerente do Centro não abre a ficha nem o telefone
+   de quem só atende no Jardins. */
 export default async function EquipePage() {
-  const staff = await listStaffAdmin()
+  const acesso = await requireGestao()
+  const staff = await listStaffAdmin(acesso.unidadeIds)
 
   return (
     <AdminShell
+      acesso={acesso}
       active="/admin/equipe"
       title="Equipe"
       subtitle="Profissionais, unidades onde atendem e escala semanal."
@@ -26,6 +31,7 @@ export default async function EquipePage() {
               <th className="p-3 font-medium">Nome</th>
               <th className="p-3 font-medium">Telefone</th>
               <th className="p-3 font-medium">Unidades</th>
+              <th className="p-3 font-medium">Acesso</th>
               <th className="p-3 font-medium">Online</th>
               <th className="p-3 font-medium">Status</th>
             </tr>
@@ -47,6 +53,7 @@ export default async function EquipePage() {
                 </td>
                 <td className="p-3">{formatPhone(s.phone)}</td>
                 <td className="text-muted p-3">{s.unitNames.join(', ') || '—'}</td>
+                <td className="text-muted p-3">{s.papel}</td>
                 <td className="p-3">{s.acceptsOnlineBooking ? 'sim' : 'não'}</td>
                 <td className="p-3">
                   <span className={s.active ? 'text-green-700 dark:text-green-400' : 'text-muted'}>
@@ -57,7 +64,7 @@ export default async function EquipePage() {
             ))}
             {staff.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-muted p-6 text-center">
+                <td colSpan={6} className="text-muted p-6 text-center">
                   Nenhum profissional cadastrado ainda.
                 </td>
               </tr>

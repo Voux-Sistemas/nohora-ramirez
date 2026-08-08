@@ -3,23 +3,31 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
+import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { PAYMENT_METHOD_LABEL, getComanda } from '@/server/finance/comanda'
 import { getUnitBySlug } from '@/server/scheduling/context'
 import { fecharComanda } from './actions'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Comanda é caixa: recebe dinheiro, dá desconto e credita comissão. Tela de
+ * gestão, e presa à unidade do atendimento — o slug do endereço é só o caminho
+ * de volta para a agenda, não a fonte da permissão.
+ */
 export default async function ComandaPage({
   params,
 }: {
   params: Promise<{ unidade: string; id: string }>
 }) {
   const { unidade, id } = await params
+  const acesso = await requireGestao()
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
 
   const comanda = await getComanda(id)
-  if (!comanda) notFound()
+  if (!comanda || comanda.unitId !== unit.id) notFound()
+  requireUnidade(acesso, comanda.unitId)
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { toE164 } from '@/lib/format'
+import { assertUnidade } from '@/server/auth/permissoes'
 import { findOrCreateClient } from '@/server/people/clients'
 import { createAppointment } from '@/server/scheduling/book'
 import { getUnitBySlug } from '@/server/scheduling/context'
@@ -14,6 +15,10 @@ import { getUnitBySlug } from '@/server/scheduling/context'
  * Diferente do agendamento do cliente em dois pontos: o canal é `reception`
  * (logo o motor ignora antecedência mínima e serviços fora do catálogo online),
  * e a observação vai para a nota interna, não para a nota da cliente.
+ *
+ * Esse canal é um atalho pelas regras, e por isso a ação confere quem chama —
+ * a tela já é de gestão, mas server action é endereço HTTP: sem porteiro aqui,
+ * um formulário forjado marcaria por fora da antecedência em qualquer loja.
  */
 
 const schema = z.object({
@@ -46,6 +51,7 @@ export async function criarEncaixe(
 
   const unit = await getUnitBySlug(input.unidade)
   if (!unit) return { error: 'Unidade não encontrada.' }
+  await assertUnidade(unit.id)
 
   const client = await findOrCreateClient({
     phone,

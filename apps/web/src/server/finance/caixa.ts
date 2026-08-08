@@ -31,6 +31,20 @@ export async function getOpenSession(unitId: string): Promise<CashSessionView | 
   return row ?? null
 }
 
+/**
+ * De qual loja é esta sessão. As ações de caixa recebem só o `sessionId` do
+ * formulário — e é aqui que ele vira unidade, para a permissão perguntar sobre
+ * a loja de verdade em vez de acreditar num campo escondido.
+ */
+export async function unitOfSession(sessionId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ unitId: cashSessions.unitId })
+    .from(cashSessions)
+    .where(eq(cashSessions.id, sessionId))
+    .limit(1)
+  return row?.unitId ?? null
+}
+
 export async function openSession(unitId: string, openingAmount: number): Promise<string> {
   const existing = await getOpenSession(unitId)
   if (existing) throw new Error('já existe um caixa aberto nesta unidade')

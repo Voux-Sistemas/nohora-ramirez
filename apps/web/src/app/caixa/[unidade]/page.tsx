@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
+import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { getOpenSession, listMovements, listSessionsForUnit } from '@/server/finance/caixa'
 import { getUnitBySlug } from '@/server/scheduling/context'
 import { abrirCaixa, fecharCaixa, lancarMovimento } from './actions'
@@ -21,8 +22,10 @@ export default async function CaixaUnidadePage({
   params: Promise<{ unidade: string }>
 }) {
   const { unidade } = await params
+  const acesso = await requireGestao()
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
+  requireUnidade(acesso, unit.id)
 
   const session = await getOpenSession(unit.id)
   const [movements, history] = await Promise.all([

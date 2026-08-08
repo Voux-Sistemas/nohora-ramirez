@@ -1,0 +1,39 @@
+'use server'
+
+import { redirect } from 'next/navigation'
+import { toE164 } from '@/lib/format'
+import { criarPrimeiraConta } from '@/server/auth/instalacao'
+import { RULES, hit } from '@/server/security/rate-limit'
+import { clientIp } from '@/server/security/request'
+
+export interface InstalarState {
+  error?: string
+}
+
+export async function instalar(_state: InstalarState, formData: FormData): Promise<InstalarState> {
+  // O freio vem antes de qualquer leitura do formulário: quem está adivinhando
+  // código não precisa nem chegar perto do banco.
+  const ip = await clientIp()
+  if (!hit(`instalar:${ip}`, RULES.instalacao).ok) {
+    return { error: 'Muitas tentativas. Espere alguns minutos e tente de novo.' }
+  }
+
+  const nome = String(formData.get('nome') ?? '').trim()
+  const senha = String(formData.get('senha') ?? '')
+  const confirmar = String(formData.get('confirmar') ?? '')
+  const codigo = String(formData.get('codigo') ?? '').trim()
+  const phone = toE164(String(formData.get('telefone') ?? '').trim())
+
+  if (nome.length < 2) return { error: 'Diga o nome completo.' }
+  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (senha.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' }
+  if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
+  if (!codigo) return { error: 'Digite o código de instalação.' }
+
+  const result = await criarPrimeiraConta({ nome, phone, senha, codigo })
+  if (!result.ok) return { error: result.message }
+
+  // Direto para as unidades: sem pelo menos uma, nada mais no sistema tem onde
+  // acontecer. É o primeiro cadastro de verdade, então é para onde a tela leva.
+  redirect('/admin/unidades')
+}

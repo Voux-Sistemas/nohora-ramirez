@@ -5,13 +5,16 @@ import 'server-only'
  *
  * O que isto defende, em ordem de gravidade real:
  *
- * 1. **Força bruta na senha da equipe.** `verifyStaffLogin` respondia a quantas
+ * 1. **Adivinhação do código de instalação.** Acerta o código antes da dona e a
+ *    conta de dona do salão é sua. Só existe janela até a primeira conta ser
+ *    criada, mas dentro dela o estrago é total.
+ * 2. **Força bruta na senha da equipe.** `verifyStaffLogin` respondia a quantas
  *    tentativas viessem. Sem freio, senha fraca cai em algumas horas de script
  *    — e quem entra vê a agenda inteira e o cadastro das clientes.
- * 2. **Enxurrada no agendamento público.** Qualquer pessoa com o link grava na
+ * 3. **Enxurrada no agendamento público.** Qualquer pessoa com o link grava na
  *    agenda. Um script enche o dia de horário falso e o salão abre a porta com
  *    a agenda cheia de gente que não existe.
- * 3. **Pedido de código em série.** Cada um grava linha em `auth_otps`; quando
+ * 4. **Pedido de código em série.** Cada um grava linha em `auth_otps`; quando
  *    o envio por WhatsApp existir, cada um também vira mensagem.
  *
  * A contagem vive na memória do processo, de propósito. O alvo é o script que
@@ -37,6 +40,9 @@ export const RULES = {
   agendamento: { limit: 6, windowSec: 300 },
   /* O cooldown de 60s por telefone já existe; este cobre a troca de telefone. */
   codigoOtp: { limit: 5, windowSec: 600 },
+  /* Instalar acontece uma vez na vida do salão. Cinco é folga para quem digitou
+     o código errado; qualquer número acima disso é alguém tentando adivinhar. */
+  instalacao: { limit: 5, windowSec: 600 },
 } as const satisfies Record<string, Rule>
 
 export function hit(key: string, rule: Rule) {

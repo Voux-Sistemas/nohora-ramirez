@@ -6,6 +6,7 @@ coisa que já deu (ou daria) trabalho descobrir na hora errada.
 | Assunto | Onde |
 | --- | --- |
 | Backup diário e prova do restore | [backup/README.md](backup/README.md) |
+| Dados a pedir para a dona, na ordem | [onboarding.md](onboarding.md) |
 | Primeira conta do sistema | aqui embaixo |
 
 ## A primeira conta

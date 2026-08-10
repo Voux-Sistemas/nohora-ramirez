@@ -140,9 +140,24 @@ apagada pelo próprio backup, em silêncio, no trigésimo primeiro dia.
 
 ```sh
 railway bucket create imagens --region sjc
+railway variable set \
+  'S3_BUCKET=${{imagens.BUCKET}}' \
+  'S3_ENDPOINT=${{imagens.ENDPOINT}}' \
+  'S3_ACCESS_KEY_ID=${{imagens.ACCESS_KEY_ID}}' \
+  'S3_SECRET_ACCESS_KEY=${{imagens.SECRET_ACCESS_KEY}}' \
+  'S3_REGION=${{imagens.REGION}}' \
+  --service web --skip-deploys
 railway variable set IMAGE_STORE=s3 --service web
-# credenciais por referência ao bucket, nunca escritas à mão
 ```
+
+Referência, nunca valor colado: a credencial não passa por terminal, por
+histórico de shell nem por log de agente. **As chaves do bucket não levam
+prefixo `AWS_`** — `${{imagens.AWS_ACCESS_KEY_ID}}` resolve para string vazia
+sem reclamar, e o sintoma aparece só na primeira foto, como 403.
+
+Ordem importa: o código do driver precisa estar no ar **antes** de
+`IMAGE_STORE=s3`. Ao contrário, a versão antiga recebe um driver que ela não
+conhece e derruba toda tela que toca imagem.
 
 Quem serve a imagem continua sendo `/api/imagens/<chave>`, não o bucket direto.
 Três consequências que valem saber: a coluna `image_url` não mudou de formato,

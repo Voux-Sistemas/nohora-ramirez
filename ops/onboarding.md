@@ -26,6 +26,8 @@ cadastrada.
 
 - nome completo
 - celular com DDD — é o login dela
+- e-mail pessoal — o dela, não o da loja: é para lá que vai o código quando ela
+  esquecer a senha
 - senha, ou uma provisória para ela trocar depois
 
 ### Cada unidade
@@ -51,7 +53,8 @@ cadastrada.
 
 ### Cada profissional
 
-- nome, celular e e-mail
+- nome, celular e e-mail — o e-mail não é enfeite: é por ele que a pessoa
+  recupera a senha se esquecer
 - em quais lojas atende
 - quais serviços faz
 - escala da semana: dia, hora de entrada e de saída, e em qual loja

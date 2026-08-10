@@ -19,6 +19,7 @@ export async function instalar(_state: InstalarState, formData: FormData): Promi
   }
 
   const nome = String(formData.get('nome') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
   const senha = String(formData.get('senha') ?? '')
   const confirmar = String(formData.get('confirmar') ?? '')
   const codigo = String(formData.get('codigo') ?? '').trim()
@@ -26,11 +27,14 @@ export async function instalar(_state: InstalarState, formData: FormData): Promi
 
   if (nome.length < 2) return { error: 'Diga o nome completo.' }
   if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  /* Conferência de formato, não de existência — o que importa aqui é não
+     gravar um endereço obviamente quebrado na única conta sem plano B. */
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'E-mail inválido.' }
   if (senha.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' }
   if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
   if (!codigo) return { error: 'Digite o código de instalação.' }
 
-  const result = await criarPrimeiraConta({ nome, phone, senha, codigo })
+  const result = await criarPrimeiraConta({ nome, phone, email, senha, codigo })
   if (!result.ok) return { error: result.message }
 
   // Direto para as unidades: sem pelo menos uma, nada mais no sistema tem onde

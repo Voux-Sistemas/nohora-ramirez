@@ -27,6 +27,15 @@ export function InstallForm() {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
+        E-mail
+        <input className="field" name="email" type="email" autoComplete="email" required />
+        {/* Não é cadastro de contato: é a única saída se esta senha se perder.
+            Esta conta não tem a quem recorrer — é ela que cria as outras. */}
+        <span className="text-muted text-xs">
+          Se você esquecer a senha, o código para trocá-la vai para cá.
+        </span>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
         Senha
         {/*
           `new-password` faz o gerenciador de senhas oferecer uma senha forte em

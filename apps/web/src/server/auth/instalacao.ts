@@ -79,6 +79,9 @@ export async function criarPrimeiraConta(input: {
   nome: string
   /** E.164. */
   phone: string
+  /** Obrigatório aqui, ao contrário do resto do sistema: é a única saída se
+      esta senha se perder. Não há conta acima desta para redefini-la. */
+  email: string
   senha: string
   codigo: string
 }): Promise<InstalacaoResult> {
@@ -107,7 +110,7 @@ export async function criarPrimeiraConta(input: {
     if (existente) {
       await tx
         .update(users)
-        .set({ name: input.nome, passwordHash, status: 'active' })
+        .set({ name: input.nome, email: input.email, passwordHash, status: 'active' })
         .where(eq(users.id, existente.id))
     }
 
@@ -116,7 +119,7 @@ export async function criarPrimeiraConta(input: {
       (
         await tx
           .insert(users)
-          .values({ phone: input.phone, name: input.nome, passwordHash })
+          .values({ phone: input.phone, name: input.nome, email: input.email, passwordHash })
           .returning({ id: users.id })
       )[0]!.id
 

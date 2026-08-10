@@ -112,3 +112,31 @@ Não há passo de código. A área abre sozinha no deploy seguinte.
 Quem não tem e-mail na ficha não consegue entrar — a tela diz isso e manda
 falar com o salão. O agendamento já pede o e-mail, então quem marcou pelo site
 tem; quem foi cadastrada no balcão pode não ter.
+
+## A dona esqueceu a senha
+
+Com o canal de e-mail ligado ela mesma resolve: **Entrar → Esqueci minha
+senha**, telefone, código que chega no e-mail da conta, senha nova. Trocar a
+senha derruba todas as sessões abertas com a antiga.
+
+Antes disso — ou se ela perdeu junto o acesso ao e-mail — a saída é aqui. O
+comando gera o hash no mesmo formato que o sistema usa (`scrypt`, `salt:hash`)
+e grava direto. A senha vai como argumento, nunca colada dentro do SQL:
+
+```sh
+railway ssh --service web
+# lá dentro, com DATABASE_URL já no ambiente:
+node -e '
+const {scrypt,randomBytes}=require("node:crypto");
+const s=require("postgres")(process.env.DATABASE_URL);
+const salt=randomBytes(16).toString("hex");
+scrypt(process.argv[2],salt,64,(e,d)=>{
+  if(e)throw e;
+  s`update users set password_hash = ${salt+":"+d.toString("hex")} where phone = ${process.argv[1]}`
+   .then(r=>console.log(r.count===1?"trocada":"telefone nao encontrado"))
+   .finally(()=>s.end());
+});' "+5511999998888" "senha-provisoria-longa"
+```
+
+Combine a senha provisória por telefone, não por e-mail, e peça para ela trocar
+no primeiro acesso.

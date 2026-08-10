@@ -59,6 +59,20 @@ export async function destroySession(): Promise<void> {
 }
 
 /**
+ * Derruba todas as sessões abertas de uma pessoa.
+ *
+ * Serve para quando a senha muda. Se alguém entrou com a senha antiga — o
+ * motivo mais provável de estarem trocando —, trocar a senha sem isso não o
+ * tiraria de dentro: o cookie dele continuaria valendo por trinta dias.
+ */
+export async function revokeAllSessions(userId: string): Promise<void> {
+  await db
+    .update(sessions)
+    .set({ revokedAt: new Date() })
+    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
+}
+
+/**
  * Lê a sessão do cookie atual, ou `null` se não houver uma válida.
  * Sem cache entre chamadas na mesma requisição de propósito — o volume de
  * leitura por requisição é baixo e a simplicidade vale mais aqui.

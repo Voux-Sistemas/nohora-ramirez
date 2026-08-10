@@ -61,12 +61,21 @@ export const userRoles = pgTable(
   ],
 )
 
-/** Códigos OTP de login do cliente. Expiram e são de uso único. */
+/**
+ * Códigos de uso único mandados por e-mail. Expiram e valem uma vez só.
+ *
+ * `purpose` separa dois pedidos que chegam pelo mesmo telefone e não podem se
+ * misturar: `login` entra na área da cliente, `recovery` troca a senha da
+ * equipe. Sem essa coluna, um código pedido para recuperar senha também abriria
+ * uma sessão pela porta do login — a pessoa pediria uma coisa e receberia
+ * outra, maior.
+ */
 export const authOtps = pgTable(
   'auth_otps',
   {
     id: pk(),
     phone: text('phone').notNull(),
+    purpose: text('purpose').notNull().default('login'),
     codeHash: text('code_hash').notNull(),
     expiresAt: tz('expires_at').notNull(),
     consumedAt: tz('consumed_at'),
@@ -74,7 +83,7 @@ export const authOtps = pgTable(
     requestIp: text('request_ip'),
     ...timestamps(),
   },
-  (t) => [index('auth_otps_phone_idx').on(t.phone, t.expiresAt)],
+  (t) => [index('auth_otps_phone_idx').on(t.phone, t.purpose, t.expiresAt)],
 )
 
 export const sessions = pgTable(

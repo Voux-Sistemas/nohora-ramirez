@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { StaffLoginForm } from '@/components/auth/staff-login-form'
 
 export const metadata = { title: 'Entrar' }
@@ -16,6 +17,9 @@ export default async function EntrarPage({
       <div className="surface rounded-card p-5">
         <StaffLoginForm next={next ?? '/admin'} />
       </div>
+      <Link className="text-muted mt-6 text-sm underline underline-offset-4" href="/entrar/esqueci">
+        Esqueci minha senha
+      </Link>
     </div>
   )
 }

@@ -18,17 +18,13 @@ import 'server-only'
  * para descobrir qual e-mail pertence a qual número.
  */
 
-import { authOtps, users } from '@studio/db'
-import { and, desc, eq, gt, isNull } from 'drizzle-orm'
+import { users } from '@studio/db'
+import { eq } from 'drizzle-orm'
 import { ehTeste } from '@/lib/ambiente'
 import { db } from '@/lib/db'
 import { canalEmailAtivo, enviarEmail, mascararEmail } from '@/server/notifications/email'
-import { hashSecret, randomOtpCode, verifySecret } from './crypto'
+import { VALIDADE_MIN, consumirCodigo, criarCodigo, emEspera, queimarCodigos } from './codigo'
 import { createSession } from './session'
-
-const CODE_TTL_MIN = 5
-const RESEND_COOLDOWN_SEC = 60
-const MAX_ATTEMPTS = 5
 
 /**
  * A porta da área da cliente só abre quando existe por onde mandar o código:
@@ -50,7 +46,7 @@ async function entregarCodigo(destino: string | null, code: string): Promise<boo
      desenvolvimento — em produção `requestOtp` nem chega aqui sem canal. */
   if (!canalEmailAtivo() || !destino) {
     // eslint-disable-next-line no-console
-    console.log(`[otp] código para ${destino ?? 'sem destino'}: ${code} (expira em ${CODE_TTL_MIN}min)`)
+    console.log(`[otp] código para ${destino ?? 'sem destino'}: ${code} (expira em ${VALIDADE_MIN}min)`)
     return true
   }
 
@@ -60,7 +56,7 @@ async function entregarCodigo(destino: string | null, code: string): Promise<boo
     texto: [
       `Seu código de acesso é ${code}.`,
       '',
-      `Ele vale por ${CODE_TTL_MIN} minutos e só pode ser usado uma vez.`,
+      `Ele vale por ${VALIDADE_MIN} minutos e só pode ser usado uma vez.`,
       '',
       'Se não foi você que pediu, ignore este e-mail — ninguém entra na sua conta sem este código.',
     ].join('\n'),
@@ -96,28 +92,14 @@ export async function requestOtp(phone: string): Promise<RequestOtpResult> {
      `auth_otps` que ninguém vai poder usar é lixo com data de validade. */
   if (canalEmailAtivo() && !user.email) return { ok: false, message: SEM_EMAIL }
 
-  const [recent] = await db
-    .select({ createdAt: authOtps.createdAt })
-    .from(authOtps)
-    .where(eq(authOtps.phone, phone))
-    .orderBy(desc(authOtps.createdAt))
-    .limit(1)
-  if (recent && Date.now() - recent.createdAt.getTime() < RESEND_COOLDOWN_SEC * 1000) {
+  if (await emEspera(phone, 'login')) {
     return { ok: false, message: 'Aguarde um minuto antes de pedir outro código.' }
   }
 
-  const code = randomOtpCode()
-  const codeHash = await hashSecret(code)
-  const expiresAt = new Date(Date.now() + CODE_TTL_MIN * 60 * 1000)
+  const code = await criarCodigo(phone, 'login')
 
-  await db.insert(authOtps).values({ phone, codeHash, expiresAt })
-
-  const entregue = await entregarCodigo(user.email, code)
-  if (!entregue) {
-    /* Queima o código que não chegou a lugar nenhum. Sem isto ele continuaria
-       válido por cinco minutos, e o cooldown impediria a cliente de pedir
-       outro — ela ficaria trancada esperando uma mensagem que não vem. */
-    await db.update(authOtps).set({ consumedAt: new Date() }).where(eq(authOtps.phone, phone))
+  if (!(await entregarCodigo(user.email, code))) {
+    await queimarCodigos(phone, 'login')
     return { ok: false, message: FALHOU }
   }
 
@@ -134,26 +116,8 @@ export interface VerifyOtpResult {
 }
 
 export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpResult> {
-  const [otp] = await db
-    .select()
-    .from(authOtps)
-    .where(and(eq(authOtps.phone, phone), isNull(authOtps.consumedAt), gt(authOtps.expiresAt, new Date())))
-    .orderBy(desc(authOtps.createdAt))
-    .limit(1)
-
-  if (!otp) return { ok: false, message: 'Código expirado ou inexistente. Peça um novo.' }
-  if (otp.attempts >= MAX_ATTEMPTS) {
-    await db.update(authOtps).set({ consumedAt: new Date() }).where(eq(authOtps.id, otp.id))
-    return { ok: false, message: 'Muitas tentativas. Peça um novo código.' }
-  }
-
-  const valid = await verifySecret(code, otp.codeHash)
-  if (!valid) {
-    await db.update(authOtps).set({ attempts: otp.attempts + 1 }).where(eq(authOtps.id, otp.id))
-    return { ok: false, message: 'Código incorreto.' }
-  }
-
-  await db.update(authOtps).set({ consumedAt: new Date() }).where(eq(authOtps.id, otp.id))
+  const conferido = await consumirCodigo(phone, 'login', code)
+  if (!conferido.ok) return conferido
 
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1)
   if (!user) return { ok: false, message: 'Conta não encontrada.' }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { DayGrid, type GridColumn } from '@/components/agenda/day-grid'
 import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
 import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
@@ -63,6 +64,9 @@ export default async function AgendaDoDiaPage({
 
   return (
     <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
+      {/* Dia que já passou não muda mais — ali o tique seria só gasto. */}
+      <AtualizaSozinho ativo={date >= today} />
+
       {/*
         O cabeçalho tem a medida da grade, não a da tela.
         Ele era `justify-between` dentro de 1400px enquanto a prancheta de duas

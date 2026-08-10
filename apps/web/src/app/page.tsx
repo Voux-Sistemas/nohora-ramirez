@@ -3,6 +3,7 @@ import { LIVE_APPOINTMENT_STATUSES, appointments, units } from '@studio/db'
 import { and, asc, count, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { OperateTopbar } from '@/components/operate/topbar'
+import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { Photo } from '@/components/ui/photo'
 import { db } from '@/lib/db'
 import { formatBRL } from '@/lib/format'
@@ -123,6 +124,10 @@ export default async function HomePage() {
         Coluna curta, olho anda pouco, comparação entre linhas fica imediata.
       */}
       <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        {/* A pauta do dia é o painel que fica aberto num canto da recepção o dia
+            inteiro. Congelado no estado das nove da manhã ele mente. */}
+        <AtualizaSozinho />
+
         <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div>
             {/* "na rede" só é verdade para quem tem a rede. Para o gerente de

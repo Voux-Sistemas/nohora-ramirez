@@ -23,9 +23,23 @@ export interface StoredImage {
   key: string
 }
 
+/** O que o driver devolve na leitura. `null` quando a chave não existe. */
+export interface StoredFile {
+  body: ReadableStream
+  /** Tamanho em bytes, quando o driver sabe — vira `Content-Length`. */
+  size?: number
+}
+
 export interface ImageStore {
   readonly name: string
   put(input: { key: string; body: Buffer; contentType: string }): Promise<StoredImage>
+  /*
+    A leitura passa pelo driver, e não pela rota, porque só o driver sabe onde o
+    arquivo está. O tipo do conteúdo fica de fora de propósito: quem decide é a
+    rota, a partir da extensão que ela mesma validou. Confiar no que o bucket
+    devolve seria deixar o `Content-Type` do que servimos vir de fora.
+  */
+  get(key: string): Promise<StoredFile | null>
   remove(key: string): Promise<void>
 }
 
@@ -73,8 +87,8 @@ export function extensionFor(contentType: string): string {
 let cached: ImageStore | null = null
 
 /**
- * O driver configurado. `IMAGE_STORE=local` (padrão) grava em disco e serve
- * por `/api/imagens`. Novos drivers entram no `switch`.
+ * O driver configurado. `IMAGE_STORE=local` (padrão) grava em disco;
+ * `IMAGE_STORE=s3` grava no bucket. Os dois servem por `/api/imagens`.
  */
 export function imageStore(): ImageStore {
   if (cached) return cached
@@ -83,9 +97,12 @@ export function imageStore(): ImageStore {
     case 'local':
       cached = localStore()
       return cached
+    case 's3':
+      cached = s3Store()
+      return cached
     default:
       throw new Error(
-        `IMAGE_STORE="${driver}" desconhecido — drivers disponíveis: local. ` +
+        `IMAGE_STORE="${driver}" desconhecido — drivers disponíveis: local, s3. ` +
           'Um driver novo se implementa em apps/web/src/server/storage/.',
       )
   }
@@ -111,6 +128,30 @@ function localStore(): ImageStore {
       void contentType
       return { url: `/api/imagens/${key}`, key }
     },
+    async get(key) {
+      const { createReadStream } = await import('node:fs')
+      const { stat } = await import('node:fs/promises')
+      const { join, normalize, sep } = await import('node:path')
+      const { Readable } = await import('node:stream')
+
+      /*
+        Cinto e suspensório: a rota já recusa chave com `..` ou barra invertida,
+        mas a garantia de não servir arquivo de fora da raiz mora aqui, junto do
+        único código que abre arquivo. Guarda longe do que ela protege é guarda
+        que some na próxima refatoração.
+      */
+      const root = normalize(uploadRoot())
+      const file = normalize(join(root, key))
+      if (file !== root && !file.startsWith(root + sep)) return null
+
+      const info = await stat(file).catch(() => null)
+      if (!info?.isFile()) return null
+
+      return {
+        body: Readable.toWeb(createReadStream(file)) as ReadableStream,
+        size: info.size,
+      }
+    },
     async remove(key) {
       const { unlink } = await import('node:fs/promises')
       const { join } = await import('node:path')
@@ -124,4 +165,115 @@ function localStore(): ImageStore {
 /** Raiz dos arquivos enviados. `UPLOAD_DIR` sobrescreve para outro volume. */
 export function uploadRoot(): string {
   return process.env.UPLOAD_DIR ?? `${process.cwd()}/.uploads`
+}
+
+/*
+  Driver de bucket.
+
+  É o driver de produção, e o motivo é backup: o volume de disco não entra no
+  backup diário: o banco guardaria o endereço de uma foto que não existe mais.
+  O bucket é o mesmo lugar para onde o dump do banco já vai todo dia.
+
+  Bucket **separado** do `backups`, e isso não é organização — é segurança. A
+  poda de retenção do `ops/backup/backup.sh` lista a raiz do bucket e apaga
+  tudo que não está entre os 30 arquivos mais recentes. Foto de salão no mesmo
+  bucket seria apagada pelo próprio backup, em silêncio, no trigésimo primeiro
+  dia.
+
+  A URL continua sendo `/api/imagens/<chave>`: quem serve é a nossa rota, que
+  lê pelo driver. Assim a coluna `image_url` não muda de formato, as fotos já
+  gravadas continuam abrindo, e o controle de quem lê o quê continua nosso.
+*/
+function s3Store(): ImageStore {
+  const bucket = exigir('S3_BUCKET')
+  const endpoint = exigir('S3_ENDPOINT')
+  const credentials = {
+    accessKeyId: exigir('S3_ACCESS_KEY_ID'),
+    secretAccessKey: exigir('S3_SECRET_ACCESS_KEY'),
+    region: process.env.S3_REGION || 'auto',
+  }
+
+  /* Estilo de subdomínio: o bucket vira host. É o que o endpoint da Railway
+     espera — no formato antigo, de caminho, ele não acha o bucket. */
+  const base = new URL(endpoint)
+  base.host = `${bucket}.${base.host}`
+
+  /* Montada à mão, não com `new URL(key, base)`: resolução relativa mudaria de
+     resultado se o endpoint um dia vier com caminho. */
+  const enderecoDe = (key: string) =>
+    `${base.origin}/${key.split('/').map(encodeURIComponent).join('/')}`
+
+  return {
+    name: 's3',
+    async put({ key, body, contentType }) {
+      const { sha256Hex, signRequest } = await import('@studio/core/s3')
+      const hash = sha256Hex(body)
+      const assinada = signRequest({
+        method: 'PUT',
+        url: enderecoDe(key),
+        payloadHash: hash,
+        headers: { 'content-type': contentType, 'x-amz-content-sha256': hash },
+        credentials,
+      })
+
+      const resposta = await fetch(assinada.url, {
+        method: 'PUT',
+        headers: assinada.headers,
+        body: new Uint8Array(body),
+      })
+
+      /*
+        Estourar aqui é de propósito. Upload que falha em silêncio grava a URL
+        no banco e a foto quebrada só aparece semanas depois, para a cliente.
+      */
+      if (!resposta.ok) {
+        throw new Error(`bucket recusou o upload de ${key}: ${resposta.status}`)
+      }
+      return { url: `/api/imagens/${key}`, key }
+    },
+    async get(key) {
+      const { EMPTY_SHA256, signRequest } = await import('@studio/core/s3')
+      const assinada = signRequest({
+        method: 'GET',
+        url: enderecoDe(key),
+        payloadHash: EMPTY_SHA256,
+        headers: { 'x-amz-content-sha256': EMPTY_SHA256 },
+        credentials,
+      })
+
+      const resposta = await fetch(assinada.url, { headers: assinada.headers })
+      if (!resposta.ok || !resposta.body) return null
+
+      const tamanho = Number(resposta.headers.get('content-length'))
+      return {
+        body: resposta.body,
+        size: Number.isFinite(tamanho) && tamanho > 0 ? tamanho : undefined,
+      }
+    },
+    async remove(key) {
+      const { EMPTY_SHA256, signRequest } = await import('@studio/core/s3')
+      const assinada = signRequest({
+        method: 'DELETE',
+        url: enderecoDe(key),
+        payloadHash: EMPTY_SHA256,
+        headers: { 'x-amz-content-sha256': EMPTY_SHA256 },
+        credentials,
+      })
+
+      // melhor esforço, igual ao driver local: o objetivo é não existir mais
+      await fetch(assinada.url, { method: 'DELETE', headers: assinada.headers }).catch(() => {})
+    },
+  }
+}
+
+/*
+  Falta de credencial derruba na primeira foto, não no start. Preferimos o erro
+  com nome da variável a um driver que sobe e grava em lugar nenhum.
+*/
+function exigir(nome: string): string {
+  const valor = process.env[nome]
+  if (!valor) {
+    throw new Error(`IMAGE_STORE=s3 exige ${nome} — ver ops/README.md, "Onde as fotos ficam".`)
+  }
+  return valor
 }

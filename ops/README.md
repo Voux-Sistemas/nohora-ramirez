@@ -120,9 +120,39 @@ de virar um lançamento no caixa da loja vizinha.
 | `AMBIENTE` | `producao` ou `teste`. Sem ela, `NODE_ENV=production` já vale como produção |
 | `CODIGO_INSTALACAO` | libera `/comecar` enquanto não houver conta de equipe |
 | `DATABASE_URL` | referência ao serviço `Postgres` |
-| `IMAGE_STORE` `UPLOAD_DIR` | onde as fotos ficam — no volume, não no container |
+| `IMAGE_STORE` | `s3` em produção, `local` no padrão. Ver abaixo |
+| `S3_BUCKET` `S3_ENDPOINT` `S3_ACCESS_KEY_ID` `S3_SECRET_ACCESS_KEY` `S3_REGION` | credenciais do bucket `imagens`, todas por referência |
+| `UPLOAD_DIR` | raiz do driver `local`. Sem efeito com `IMAGE_STORE=s3` |
 | `RESEND_API_KEY` `EMAIL_REMETENTE` | as duas juntas ligam o canal de e-mail e a área da cliente |
 | `TELEFONES_SUPORTE` | telefones de quem mantém a instalação, separados por vírgula |
+
+### Onde as fotos ficam
+
+Em produção, no bucket `imagens` — **não** no volume de disco. O motivo é uma
+frase só: o volume não entra no backup. O dump diário salva o banco, e o banco
+guarda o *endereço* da foto, não a foto. Volume perdido é banco íntegro
+apontando para o vazio, e a dona fotografando o salão de novo.
+
+O bucket é **separado do `backups`**, e isso não é organização. A poda de
+retenção do [backup.sh](backup/backup.sh) lista a raiz do bucket e apaga tudo
+que não está entre os 30 arquivos mais recentes: foto no mesmo bucket seria
+apagada pelo próprio backup, em silêncio, no trigésimo primeiro dia.
+
+```sh
+railway bucket create imagens --region sjc
+railway variable set IMAGE_STORE=s3 --service web
+# credenciais por referência ao bucket, nunca escritas à mão
+```
+
+Quem serve a imagem continua sendo `/api/imagens/<chave>`, não o bucket direto.
+Três consequências que valem saber: a coluna `image_url` não mudou de formato,
+as fotos gravadas no disco antes da troca continuam abrindo, e quem decide o
+`Content-Type` do que sai é a nossa rota, a partir da extensão que ela mesma
+validou — nunca o que o bucket devolve.
+
+O driver `local` continua existindo e continua sendo o padrão, para o projeto
+rodar recém-clonado sem conta em lugar nenhum. Em produção com mais de uma
+instância ele não serve: cada máquina enxerga só o próprio disco.
 
 ### Quem é o suporte
 

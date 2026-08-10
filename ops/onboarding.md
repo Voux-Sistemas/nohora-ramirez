@@ -8,7 +8,7 @@ tela depende da anterior.
 
 | # | Onde | Por que antes do seguinte |
 | --- | --- | --- |
-| 1 | `/comecar` | cria a dona; sem ela ninguém entra no `/admin` |
+| 1 | `/comecar` | cria a primeira conta; sem ela ninguém entra no `/admin` |
 | 2 | `/admin/unidades` | tudo pendura em unidade: equipe, agenda, caixa |
 | 3 | `/admin/recursos` | o serviço marca o tipo de recurso que exige |
 | 4 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
@@ -19,6 +19,17 @@ tela depende da anterior.
 Dá para voltar e ajustar qualquer um depois. O que não dá é pular o 2 e o 6: sem
 unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipe
 cadastrada.
+
+## Quem instala não é quem é dona
+
+A conta do `/comecar` é de quem instalou o sistema — normalmente não a dona do
+salão. É de propósito: quem monta o ambiente precisa entrar antes de a dona
+existir, e o código de instalação some assim que a primeira conta nasce.
+
+A conta da dona vem depois, em `/admin/equipe`, com o acesso **Dona** marcado.
+Ela enxerga a rede inteira e mexe no cadastro, igual à primeira conta. As duas
+convivem sem problema, e o sistema recusa tirar o acesso da última — inclusive o
+seu próprio, que só sai depois de outra pessoa já ser dona.
 
 ## O que pedir para a dona
 
@@ -59,8 +70,9 @@ cadastrada.
 - quais serviços faz
 - escala da semana: dia, hora de entrada e de saída, e em qual loja
 - se aparece para a cliente escolher no agendamento online
-- acesso: **gerente** (toca a operação da loja) ou **profissional** (só a agenda
-  dela). Ver [README.md](README.md#papéis)
+- acesso: **dona** (a rede inteira e o cadastro), **gerente** (toca a operação
+  da loja) ou **profissional** (só a agenda dela). Ver
+  [README.md](README.md#papéis)
 
 ### Comissão
 

@@ -11,6 +11,28 @@ import { salvarEscala, salvarProfissional } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
+/* Do mais fraco para o mais forte: a leitura de cima para baixo é a de quem
+   vai subindo alguém de degrau, que é o movimento comum. */
+const ACESSOS: readonly { papel: StaffDetail['papel']; titulo: string; explica: string }[] = [
+  {
+    papel: 'profissional',
+    titulo: 'Profissional',
+    explica: 'Entra e vê só a própria agenda.',
+  },
+  {
+    papel: 'gerente',
+    titulo: 'Gerente da unidade',
+    explica:
+      'Toca a operação das lojas marcadas acima: agenda da equipe, caixa, clientes e avisos.',
+  },
+  {
+    papel: 'dona',
+    titulo: 'Dona',
+    explica:
+      'Enxerga a rede inteira e mexe no cadastro: unidades, serviços, comissões e o acesso das outras pessoas.',
+  },
+]
+
 const BLANK_STAFF: StaffDetail = {
   id: '',
   userId: '',
@@ -111,18 +133,24 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
           </div>
         </Section>
 
-        {/* Nomear gerente é decisão da dona: o gerente que pudesse promover a si
-            mesmo tornaria o degrau enfeite. */}
+        {/* Nomear gerente ou dona é decisão de quem já é dona: o gerente que
+            pudesse promover a si mesmo tornaria o degrau enfeite. */}
         {rede ? (
-          <Section
-            title="Acesso ao sistema"
-            hint="Profissional entra e vê a própria agenda. Gerente toca a operação das unidades marcadas acima: agenda da equipe, caixa, clientes e avisos."
-          >
-            <div className="flex flex-col gap-2">
-              {(['profissional', 'gerente'] as const).map((papel) => (
-                <label key={papel} className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="papel" value={papel} defaultChecked={staff.papel === papel} />
-                  {papel === 'profissional' ? 'Profissional' : 'Gerente da unidade'}
+          <Section title="Acesso ao sistema">
+            <div className="flex flex-col gap-3">
+              {ACESSOS.map((opcao) => (
+                <label key={opcao.papel} className="flex items-start gap-2 text-sm">
+                  <input
+                    className="mt-1"
+                    type="radio"
+                    name="papel"
+                    value={opcao.papel}
+                    defaultChecked={staff.papel === opcao.papel}
+                  />
+                  <span>
+                    {opcao.titulo}
+                    <span className="text-muted block text-xs">{opcao.explica}</span>
+                  </span>
                 </label>
               ))}
             </div>

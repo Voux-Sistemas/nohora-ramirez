@@ -19,10 +19,15 @@ import { toE164 } from '@/lib/format'
  * Papel de acesso da pessoa, do jeito que a dona fala.
  *
  * `profissional` atende e vê a própria agenda; `gerente` toca a operação das
- * unidades marcadas no cadastro. Vira linha em `user_roles` — e é de lá que os
- * porteiros leem. Quem nomeia gerente é só a dona.
+ * unidades marcadas no cadastro; `dona` enxerga a rede inteira e mexe no
+ * catálogo. Vira linha em `user_roles` — e é de lá que os porteiros leem. Quem
+ * nomeia gerente ou dona é só quem já é dona.
+ *
+ * `dona` existe aqui por um motivo prático: a conta do `/comecar` é criada por
+ * quem instala o sistema, que nem sempre é a dona do salão. Sem este degrau no
+ * formulário, a dona de verdade ficaria presa em gerente para sempre.
  */
-export type PapelEquipe = 'profissional' | 'gerente'
+export type PapelEquipe = 'profissional' | 'gerente' | 'dona'
 
 export interface StaffListRow {
   id: string
@@ -72,7 +77,7 @@ export async function listStaffAdmin(
     byStaff.set(row.staffId, list)
   }
 
-  const gerentes = await gerentesPorUsuario(rows.map((row) => row.userId))
+  const papeis = await papeisPorUsuario(rows.map((row) => row.userId))
 
   return rows
     .map((row) => {
@@ -89,7 +94,7 @@ export async function listStaffAdmin(
         unitNames: lotacoes
           .filter((item) => unidadeIds === null || unidadeIds.includes(item.id))
           .map((item) => item.name),
-        papel: gerentes.has(row.userId) ? ('gerente' as const) : ('profissional' as const),
+        papel: papeis.get(row.userId) ?? ('profissional' as const),
         unitIds: lotacoes.map((item) => item.id),
       }
     })
@@ -99,14 +104,32 @@ export async function listStaffAdmin(
     .map(({ unitIds: _unitIds, ...row }) => row)
 }
 
-/** Quais destes usuários têm alguma linha de `unit_manager`. */
-async function gerentesPorUsuario(userIds: readonly string[]): Promise<Set<string>> {
-  if (userIds.length === 0) return new Set()
+/**
+ * O degrau de cada um destes usuários, lido de `user_roles`.
+ *
+ * `owner` vence `unit_manager` — quem acumula fica com o mais forte, a mesma
+ * regra que `permissoes.ts` aplica na hora de montar a sessão. Quem não tem
+ * nenhuma das duas linhas é profissional, que é o degrau base da equipe.
+ */
+async function papeisPorUsuario(userIds: readonly string[]): Promise<Map<string, PapelEquipe>> {
+  const papeis = new Map<string, PapelEquipe>()
+  if (userIds.length === 0) return papeis
+
   const rows = await db
-    .select({ userId: userRoles.userId })
+    .select({ userId: userRoles.userId, role: userRoles.role })
     .from(userRoles)
-    .where(and(inArray(userRoles.userId, [...userIds]), eq(userRoles.role, 'unit_manager')))
-  return new Set(rows.map((row) => row.userId))
+    .where(
+      and(
+        inArray(userRoles.userId, [...userIds]),
+        inArray(userRoles.role, ['owner', 'unit_manager']),
+      ),
+    )
+
+  for (const row of rows) {
+    if (row.role === 'owner') papeis.set(row.userId, 'dona')
+    else if (papeis.get(row.userId) !== 'dona') papeis.set(row.userId, 'gerente')
+  }
+  return papeis
 }
 
 /**
@@ -179,7 +202,7 @@ export async function getStaffAdmin(
     .limit(1)
   if (!row) return null
 
-  const [units, skills, schedule, gerentes] = await Promise.all([
+  const [units, skills, schedule, papeis] = await Promise.all([
     db.select({ unitId: staffUnits.unitId }).from(staffUnits).where(eq(staffUnits.staffId, id)),
     db.select({ serviceId: staffSkills.serviceId }).from(staffSkills).where(eq(staffSkills.staffId, id)),
     db
@@ -187,7 +210,7 @@ export async function getStaffAdmin(
       .from(staffSchedules)
       .where(and(eq(staffSchedules.staffId, id), isNull(staffSchedules.validTo)))
       .orderBy(asc(staffSchedules.weekday), asc(staffSchedules.startsAt)),
-    gerentesPorUsuario([row.userId]),
+    papeisPorUsuario([row.userId]),
   ])
 
   return {
@@ -195,7 +218,7 @@ export async function getStaffAdmin(
       ...row,
       unitIds: units.map((u) => u.unitId),
       serviceIds: skills.map((s) => s.serviceId),
-      papel: gerentes.has(row.userId) ? 'gerente' : 'profissional',
+      papel: papeis.get(row.userId) ?? 'profissional',
     },
     schedule: schedule.map((s) => ({
       id: s.id,
@@ -352,8 +375,13 @@ async function writeUnitsAndSkills(
  * Escreve o degrau de acesso em `user_roles`.
  *
  * Uma linha de `unit_manager` por unidade — é assim que `permissoes.ts` lê o
- * alcance do gerente. `owner` nunca é tocado aqui: a dona não se rebaixa por um
- * formulário de equipe, e ninguém vira dona por ele.
+ * alcance do gerente. `owner` é uma linha só, sem unidade, que é como a dona
+ * enxerga a rede inteira.
+ *
+ * A única regra rígida aqui: o sistema nunca fica sem nenhuma dona. Tirar a
+ * última é o mesmo que jogar a chave fora — ninguém mais poderia cadastrar
+ * unidade, serviço ou promover alguém, e não há tela para consertar isso por
+ * dentro. Quem tenta leva um erro, não um sucesso silencioso.
  */
 async function syncPapel(
   tx: Tx,
@@ -363,15 +391,41 @@ async function syncPapel(
 ): Promise<void> {
   if (!papel) return
 
+  if (papel !== 'dona' && (await ehUltimaDona(tx, userId))) {
+    throw new Error('esta é a única dona do sistema — promova outra pessoa antes de rebaixar esta')
+  }
+
   await tx
     .delete(userRoles)
-    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, 'unit_manager')))
+    .where(
+      and(
+        eq(userRoles.userId, userId),
+        inArray(userRoles.role, ['unit_manager', 'owner']),
+      ),
+    )
+
+  if (papel === 'dona') {
+    /* Sem `unitId`: escopo de rede. É o que `escopoDe` lê como "enxerga tudo". */
+    await tx.insert(userRoles).values({ userId, role: 'owner' }).onConflictDoNothing()
+    return
+  }
 
   if (papel !== 'gerente' || unitIds.length === 0) return
   await tx
     .insert(userRoles)
     .values(unitIds.map((unitId) => ({ userId, role: 'unit_manager' as const, unitId })))
     .onConflictDoNothing()
+}
+
+/** Esta pessoa é dona e não sobrou nenhuma outra. */
+async function ehUltimaDona(tx: Tx, userId: string): Promise<boolean> {
+  const donas = await tx
+    .select({ userId: userRoles.userId })
+    .from(userRoles)
+    .where(eq(userRoles.role, 'owner'))
+
+  const ids = new Set(donas.map((row) => row.userId))
+  return ids.has(userId) && ids.size === 1
 }
 
 export interface ScheduleInput {

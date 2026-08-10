@@ -51,7 +51,20 @@ export async function salvarProfissional(formData: FormData): Promise<void> {
      seria ignorado: `papel` ausente quer dizer "não mexa no papel". */
   if (podeRede(acesso)) {
     const papel = String(formData.get('papel') ?? '')
-    if (papel === 'gerente' || papel === 'profissional') input.papel = papel as PapelEquipe
+    if (papel === 'gerente' || papel === 'profissional' || papel === 'dona') {
+      input.papel = papel as PapelEquipe
+    }
+
+    /* Rebaixar a si mesma é sair do sistema pela porta que se está fechando: a
+       tela seguinte já recusaria a entrada, e não haveria como voltar atrás.
+       Passar o bastão é promover a outra pessoa primeiro, com as duas contas
+       vivas, e só então descer. */
+    if (input.papel && input.papel !== 'dona' && id !== 'novo') {
+      const alvo = await alcanceDoStaff(id)
+      if (alvo?.userId === acesso.session.userId) {
+        throw new Error('você não pode tirar o próprio acesso de dona')
+      }
+    }
   }
 
   /* Marcar uma loja fora do alcance seria lotar alguém onde quem salva não

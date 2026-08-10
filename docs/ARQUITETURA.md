@@ -13,7 +13,7 @@
 | Auth | Cliente: **telefone + OTP** · Staff: **e-mail + senha + 2FA opcional** | Conversão do cliente brasileiro despenca com formulário de senha |
 | Filas/cron | **pg-boss** (jobs no próprio Postgres) | Lembretes, campanhas, fechamento de comissão. Evita Redis no começo |
 | Realtime (chat) | **WebSocket** (servidor Node dedicado) ou **Supabase Realtime** | Depende da decisão de infra abaixo |
-| Arquivos | **Cloudflare R2** ou **S3** | Fotos antes/depois, anexos de chat |
+| Arquivos | **Bucket da Railway** (S3-compatível), bucket `imagens` | Decidido: fica junto do resto, e é o único lugar com backup. O driver é trocável (`IMAGE_STORE`), então R2 ou S3 continuam a uma variável de distância |
 | Pagamentos | **Asaas** ou **Mercado Pago** | Pix instantâneo com webhook confiável é o requisito principal |
 | WhatsApp | **Meta Cloud API** (oficial) | Templates *utility* praticamente sem custo; API não oficial dá ban |
 | E-mail | **Resend** | Transacional simples |

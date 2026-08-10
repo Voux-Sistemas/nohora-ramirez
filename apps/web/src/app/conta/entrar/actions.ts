@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { ehTeste } from '@/lib/ambiente'
 import { toE164 } from '@/lib/format'
-import { loginTestClient, requestOtp } from '@/server/auth/otp'
+import { loginClienteDisponivel, loginTestClient, requestOtp } from '@/server/auth/otp'
 import { RULES, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
 
@@ -23,12 +23,12 @@ const TEST_PASSWORD = 'cliente123'
 
 export async function pedirCodigo(_state: PhoneState, formData: FormData): Promise<PhoneState> {
   /*
-    Em produção não há canal de envio: `deliverOtpCode` só escreve no log do
-    servidor. Deixar o formulário responder "código enviado" seria mentira, e a
-    cliente ficaria esperando uma mensagem que não sai. Enquanto o envio não
-    existir, a porta fica fechada e a tela diz o que fazer no lugar.
+    Responder "código enviado" sem ter por onde enviar é mentira: a cliente
+    ficaria esperando uma mensagem que não sai. A porta só abre quando existe
+    canal (`canalEmailAtivo`) — ou no ambiente de teste, onde o código volta na
+    própria tela e ninguém depende de mensagem nenhuma.
   */
-  if (!ehTeste()) {
+  if (!loginClienteDisponivel()) {
     return { error: 'A área da cliente ainda não está disponível. Fale com o salão para ver ou remarcar seus horários.' }
   }
 
@@ -43,7 +43,13 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
   }
 
   const raw = String(formData.get('telefone') ?? '').trim().toLowerCase()
-  const aliasPhone = TEST_ALIASES[raw]
+  /*
+    O atalho morre fora do ambiente de teste. Antes ele vinha protegido de
+    carona, porque a ação inteira era fechada em produção; agora que ela abre
+    junto com o canal de e-mail, o alias precisa da própria trava — senão
+    "cliente" + senha impressa no código-fonte entraria numa conta real.
+  */
+  const aliasPhone = ehTeste() ? TEST_ALIASES[raw] : undefined
 
   if (aliasPhone) {
     const senha = String(formData.get('senha') ?? '')
@@ -60,6 +66,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
   if (!result.ok) return { error: result.message }
 
   const params = new URLSearchParams({ telefone: phone })
+  if (result.destino) params.set('para', result.destino)
   if (result.devCode) params.set('dev', result.devCode)
   redirect(`/conta/verificar?${params.toString()}` as never)
 }

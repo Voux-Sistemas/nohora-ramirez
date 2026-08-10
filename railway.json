@@ -7,6 +7,8 @@
   "deploy": {
     "startCommand": "npm run start --workspace=apps/web",
     "restartPolicyType": "ON_FAILURE",
+    "healthcheckPath": "/api/saude",
+    "healthcheckTimeout": 120,
     "preDeployCommand": "npm run migrate --workspace=@studio/db && npm run constraints --workspace=@studio/db"
   }
 }

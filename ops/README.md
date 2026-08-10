@@ -93,3 +93,22 @@ de virar um lançamento no caixa da loja vizinha.
 | `CODIGO_INSTALACAO` | libera `/comecar` enquanto não houver conta de equipe |
 | `DATABASE_URL` | referência ao serviço `Postgres` |
 | `IMAGE_STORE` `UPLOAD_DIR` | onde as fotos ficam — no volume, não no container |
+| `RESEND_API_KEY` `EMAIL_REMETENTE` | as duas juntas ligam o canal de e-mail e a área da cliente |
+
+### Ligar a área da cliente
+
+A cliente entra com o telefone e recebe um código de seis dígitos por e-mail.
+Enquanto não houver por onde enviar, `/conta/entrar` não mostra formulário
+nenhum — diz que a área está em preparo e manda falar com o salão. Para abrir:
+
+1. Registrar o domínio `.com.br` e verificá-lo no [Resend](https://resend.com)
+   (plano grátis: 3.000 e-mails/mês, sem cartão). Sem domínio verificado o
+   e-mail cai no spam.
+2. `railway variable set RESEND_API_KEY=<a chave> --service web`
+3. `railway variable set "EMAIL_REMETENTE=Nohora Ramirez <nao-responda@dominio.com.br>" --service web`
+
+Não há passo de código. A área abre sozinha no deploy seguinte.
+
+Quem não tem e-mail na ficha não consegue entrar — a tela diz isso e manda
+falar com o salão. O agendamento já pede o e-mail, então quem marcou pelo site
+tem; quem foi cadastrada no balcão pode não ter.

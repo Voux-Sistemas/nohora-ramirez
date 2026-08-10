@@ -6,13 +6,14 @@ import { setStaffPassword } from '@/server/auth/password'
 import {
   alcanceDoStaff,
   createStaff,
+  getStaffAdmin,
   replaceSchedule,
   updateStaff,
   type PapelEquipe,
   type ScheduleInput,
   type StaffInput,
 } from '@/server/admin/staff'
-import { assertGestao, podeRede, veUnidade, type Acesso } from '@/server/auth/permissoes'
+import { assertGestao, podeRede, podeSuporte, veUnidade, type Acesso } from '@/server/auth/permissoes'
 
 /**
  * Cadastro de equipe.
@@ -53,6 +54,18 @@ export async function salvarProfissional(formData: FormData): Promise<void> {
     const papel = String(formData.get('papel') ?? '')
     if (papel === 'gerente' || papel === 'profissional' || papel === 'dona') {
       input.papel = papel as PapelEquipe
+    }
+
+    /* O degrau de dona entrega o cadastro inteiro da rede e não tem volta fácil
+       — se a pessoa sair no dia seguinte com a senha na mão, quem ficou não
+       desfaz sozinha. Então ele só se concede pelo suporte, a pedido.
+       Simétrico e pelo mesmo motivo: quem não é suporte também não *tira* o
+       degrau de quem já é dona. Sem essa segunda metade, a dona que abrisse a
+       ficha da sócia e salvasse qualquer outro campo a rebaixaria sem querer,
+       já que a tela dela não mostra o botão "Dona" para ficar marcado. */
+    if (!podeSuporte(acesso)) {
+      const jaEhDona = id !== 'novo' && (await getStaffAdmin(id))?.staff.papel === 'dona'
+      if (input.papel === 'dona' || jaEhDona) input.papel = undefined
     }
 
     /* Rebaixar a si mesma é sair do sistema pela porta que se está fechando: a

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import {
   addUnitException,
   createUnit,
+  getUnitAdmin,
   getUnitImage,
   removeUnitException,
   replaceUnitHours,
@@ -13,13 +14,18 @@ import {
   type HoursInput,
   type UnitInput,
 } from '@/server/admin/units'
-import { assertRede } from '@/server/auth/permissoes'
+import { assertRede, assertSuporte, podeSuporte } from '@/server/auth/permissoes'
 import { resolveImageField } from '@/server/storage/form'
 
 /*
   Unidade é da rede: nome, endereço, horário de funcionamento e as regras que a
   agenda da loja inteira obedece. Só a dona. As três ações conferem por conta
   própria porque nenhuma tela protege um endereço HTTP.
+
+  Duas coisas ficam um degrau acima, no suporte: abrir uma loja nova e mudar o
+  slug. Loja nova mexe em cobrança e em tudo que pendura em unidade; o slug é o
+  endereço que o salão já imprimiu em cartão e colocou no Instagram, e trocar
+  quebra o link antigo em silêncio.
 */
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const
@@ -64,8 +70,21 @@ export async function salvarUnidade(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '')
   const input = parseUnit(formData)
   const hours = parseHours(formData)
-  if (!input.name || !input.slug) return
-  await assertRede()
+  if (!input.name) return
+
+  if (id === 'nova') await assertSuporte()
+  const acesso = await assertRede()
+
+  /* Sem o degrau de suporte o slug não é campo: vale sempre o que já está no
+     banco. O formulário nem mostra o input, então quem chegar aqui com um slug
+     diferente está forjando a requisição — e o pior desfecho é o campo ser
+     ignorado, não o endereço mudar. */
+  if (id !== 'nova' && !podeSuporte(acesso)) {
+    const atual = await getUnitAdmin(id)
+    if (!atual) throw new Error('unidade não encontrada')
+    input.slug = atual.unit.slug
+  }
+  if (!input.slug) return
 
   const unitId = id === 'nova' ? await createUnit(input) : id
   if (id !== 'nova') await updateUnit(id, input)

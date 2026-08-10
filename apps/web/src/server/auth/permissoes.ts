@@ -9,17 +9,30 @@ import 'server-only'
  * equipe que entra e sai, incomoda: a profissional que entra para ver o próprio
  * dia enxerga o caixa da rede, o telefone de todas as clientes e o cadastro.
  *
- * São três degraus, e eles vêm de duas perguntas independentes:
+ * São quatro degraus, e eles vêm de duas perguntas independentes:
  *
  * - **até onde** a pessoa enxerga: uma unidade, algumas, ou a rede inteira;
- * - **o quanto** ela decide: só a própria agenda, a operação de uma loja, ou o
- *   cadastro da rede.
+ * - **o quanto** ela decide: só a própria agenda, a operação de uma loja, o
+ *   cadastro da rede, ou a forma da instalação.
  *
  * | Papel | Enxerga | Decide |
  * | --- | --- | --- |
+ * | `suporte` | a rede | tudo, mais o que define a instalação |
  * | `dona` | a rede | tudo, inclusive o catálogo e as unidades |
  * | `gerente` | as unidades dela | a operação e a equipe dessas unidades |
  * | `profissional` | a própria agenda | o próprio atendimento |
+ *
+ * **`suporte` não mora no banco.** É quem instalou e mantém o sistema, não
+ * alguém do salão, e por isso não sai de `user_roles`: sai de
+ * `TELEFONES_SUPORTE`, uma variável de ambiente. A diferença é o ponto —
+ * qualquer degrau que morasse no banco poderia ser dado por quem já tem o
+ * cadastro na mão; este só se concede no painel da hospedagem, que é nosso.
+ * Não é porta de entrada: quem está na lista continua precisando de um papel de
+ * equipe para entrar; a variável eleva, não autentica.
+ *
+ * Com a variável vazia ninguém é suporte, e as telas que dependem dela ficam
+ * fechadas para todo mundo. É de propósito: o custo de esquecer de preencher é
+ * um telefonema para nós, não um salão com a instalação aberta.
  *
  * **O padrão é fechado.** Um papel que este arquivo não reconhece não vira
  * acesso nenhum — `receptionist` e `finance` existem no enum do banco desde o
@@ -36,7 +49,7 @@ import { notFound, redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { getSession, type SessionUser } from './session'
 
-export type Papel = 'dona' | 'gerente' | 'profissional'
+export type Papel = 'suporte' | 'dona' | 'gerente' | 'profissional'
 
 /** Papel de `user_roles` → degrau, do mais forte para o mais fraco. */
 const DEGRAUS: readonly { role: string; papel: Papel }[] = [
@@ -44,6 +57,26 @@ const DEGRAUS: readonly { role: string; papel: Papel }[] = [
   { role: 'unit_manager', papel: 'gerente' },
   { role: 'professional', papel: 'profissional' },
 ]
+
+/**
+ * Os telefones de quem mantém a instalação, em E.164, separados por vírgula.
+ * Lida a cada chamada porque em produção a variável só muda com redeploy — e
+ * ler na hora evita um valor congelado no build de quem for rodar isto de
+ * outro jeito.
+ */
+function telefonesDeSuporte(): Set<string> {
+  const bruto = process.env.TELEFONES_SUPORTE ?? ''
+  return new Set(
+    bruto
+      .split(',')
+      .map((item) => item.replace(/\D/g, ''))
+      .filter((item) => item.length >= 10),
+  )
+}
+
+function ehSuporte(phone: string): boolean {
+  return telefonesDeSuporte().has(phone.replace(/\D/g, ''))
+}
 
 export interface Acesso {
   session: SessionUser
@@ -85,7 +118,15 @@ export async function acessoDe(session: SessionUser): Promise<Acesso | null> {
     if (!escopo.tem) continue
 
     if (degrau.papel !== 'profissional') {
-      return { session, papel: degrau.papel, unidadeIds: escopo.unidades, staffId: session.staffId }
+      /* Quem mantém a instalação sobe um degrau acima da dona, e enxerga a rede
+         inteira mesmo que o papel dela no banco seja de uma loja só. */
+      const suporte = ehSuporte(session.phone)
+      return {
+        session,
+        papel: suporte ? 'suporte' : degrau.papel,
+        unidadeIds: suporte ? null : escopo.unidades,
+        staffId: session.staffId,
+      }
     }
 
     /*
@@ -125,7 +166,17 @@ export function podeGerir(acesso: Acesso): boolean {
 
 /** Mexe no que é da rede: unidades, catálogo de serviços, regras de comissão. */
 export function podeRede(acesso: Acesso): boolean {
-  return acesso.papel === 'dona'
+  return acesso.papel === 'dona' || acesso.papel === 'suporte'
+}
+
+/**
+ * Mexe no que define a instalação, e não no que o salão opera: abrir uma loja
+ * nova, mudar o endereço público dela, inventar um tipo de recurso e dar acesso
+ * de dona a alguém. São decisões que o salão pede e nós executamos — desfazer
+ * qualquer uma delas custa mais caro do que fazer.
+ */
+export function podeSuporte(acesso: Acesso): boolean {
+  return acesso.papel === 'suporte'
 }
 
 export function veUnidade(acesso: Acesso, unitId: string): boolean {
@@ -174,6 +225,12 @@ export async function requireRede(): Promise<Acesso> {
   return acesso
 }
 
+export async function requireSuporte(): Promise<Acesso> {
+  const acesso = await requireAcesso()
+  if (!podeSuporte(acesso)) redirect(inicio(acesso))
+  return acesso
+}
+
 /**
  * `notFound`, e não um "sem permissão": para quem não trabalha nela, a unidade
  * simplesmente não existe. Uma mensagem de acesso negado confirmaria o endereço
@@ -193,6 +250,11 @@ export function requireUnidade(acesso: Acesso, unitId: string): void {
 
 const NEGADO = 'sem permissão para esta ação'
 
+/* Aqui a mensagem é diferente de propósito: não é engano nem invasão, é uma
+   decisão que a dona legitimamente quer e que passa por nós. Dizer "sem
+   permissão" faria ela achar que quebrou alguma coisa. */
+const NEGADO_SUPORTE = 'esta mudança é feita pelo suporte — fale com quem instalou o sistema'
+
 export async function assertGestao(): Promise<Acesso> {
   const acesso = await requireAcesso()
   if (!podeGerir(acesso)) throw new Error(NEGADO)
@@ -202,6 +264,12 @@ export async function assertGestao(): Promise<Acesso> {
 export async function assertRede(): Promise<Acesso> {
   const acesso = await requireAcesso()
   if (!podeRede(acesso)) throw new Error(NEGADO)
+  return acesso
+}
+
+export async function assertSuporte(): Promise<Acesso> {
+  const acesso = await requireAcesso()
+  if (!podeSuporte(acesso)) throw new Error(NEGADO_SUPORTE)
   return acesso
 }
 

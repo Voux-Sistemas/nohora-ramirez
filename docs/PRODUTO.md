@@ -87,14 +87,13 @@ Vive na tela de agenda. Precisa de velocidade.
 
 ### 4.1 Agendamento (núcleo)
 - [ ] Catálogo de serviços por categoria, com foto e descrição
-- [ ] Duração composta: aplicação → processamento → finalização
+- [ ] Duração do serviço (um número: o tempo total com a cliente)
 - [ ] Buffer configurável antes/depois por serviço
 - [ ] Preço e duração **variáveis por profissional e por unidade**
 - [ ] Matriz de habilidades (quem faz o quê)
 - [ ] Carrinho de múltiplos serviços em sequência na mesma visita
 - [ ] Escolha de profissional ou "sem preferência" (sistema distribui)
 - [ ] Motor de disponibilidade com recursos (cabine, lavatório, equipamento)
-- [ ] Gap booking: aproveitar o tempo de processamento
 - [ ] Regras: antecedência mín./máx., janela de cancelamento, limite de agendamentos futuros
 - [ ] Reserva transacional com trava anti-overbooking
 - [ ] Agenda multicoluna por profissional com drag & drop e redimensionar

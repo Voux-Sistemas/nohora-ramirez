@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button'
 import { listServicesAdmin } from '@/server/admin/services'
 import { getStaffAdmin, type StaffDetail } from '@/server/admin/staff'
 import { listUnitsAdmin } from '@/server/admin/units'
-import { podeRede, requireGestao, unidadesVisiveis, veUnidade } from '@/server/auth/permissoes'
+import {
+  podeRede,
+  podeSuporte,
+  requireGestao,
+  unidadesVisiveis,
+  veUnidade,
+} from '@/server/auth/permissoes'
 import { salvarEscala, salvarProfissional } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -51,6 +57,7 @@ const BLANK_STAFF: StaffDetail = {
 export default async function ProfissionalFormPage({ params }: { params: Promise<{ id: string }> }) {
   const acesso = await requireGestao()
   const rede = podeRede(acesso)
+  const suporte = podeSuporte(acesso)
   const { id } = await params
   const isNew = id === 'novo'
 
@@ -67,6 +74,10 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
 
   const units = unidadesVisiveis(acesso, todasUnidades)
   const staff = data?.staff ?? BLANK_STAFF
+  /* Conceder e retirar o degrau de dona é do suporte, então para a dona a ficha
+     de outra dona mostra o degrau sem deixar mexer. */
+  const ehDona = staff.papel === 'dona'
+  const podeMexerNoPapel = suporte || !ehDona
   const unitIds = new Set(staff.unitIds)
   const serviceIds = new Set(staff.serviceIds)
   const schedule = data?.schedule ?? []
@@ -138,7 +149,7 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
         {rede ? (
           <Section title="Acesso ao sistema">
             <div className="flex flex-col gap-3">
-              {ACESSOS.map((opcao) => (
+              {ACESSOS.filter((opcao) => opcao.papel !== 'dona' || ehDona || suporte).map((opcao) => (
                 <label key={opcao.papel} className="flex items-start gap-2 text-sm">
                   <input
                     className="mt-1"
@@ -146,6 +157,7 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
                     name="papel"
                     value={opcao.papel}
                     defaultChecked={staff.papel === opcao.papel}
+                    disabled={!podeMexerNoPapel}
                   />
                   <span>
                     {opcao.titulo}
@@ -154,6 +166,13 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
                 </label>
               ))}
             </div>
+            {podeMexerNoPapel ? null : (
+              <p className="text-muted mt-3 text-sm">
+                Quem é dona só muda de degrau pelo suporte — nem para cima nem para baixo. É
+                o acesso que abre o cadastro da rede inteira, e tirar de volta não é algo que
+                dê para desfazer sozinha aqui de dentro.
+              </p>
+            )}
           </Section>
         ) : null}
 

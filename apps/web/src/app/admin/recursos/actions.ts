@@ -7,21 +7,24 @@ import {
   unitOfResource,
   updateResource,
 } from '@/server/admin/resources'
-import { assertRede, assertUnidade } from '@/server/auth/permissoes'
+import { assertSuporte, assertUnidade } from '@/server/auth/permissoes'
 
 /**
  * Cadastro de recursos. Nenhuma das três ações conferia nada — com o id de um
  * recurso, sem sessão, dava para desativar a cabine de qualquer loja e derrubar
  * a agenda do dia.
  *
- * O tipo é da rede (criar "cabine" muda as três lojas); a instância mora numa
- * unidade, e a unidade que vale é sempre a lida do banco, não a do formulário.
+ * O tipo é vocabulário da instalação: inventar "cabine" muda as três lojas e
+ * passa a aparecer em todo serviço, e tipo criado errado fica para sempre
+ * porque não existe tela de apagar. Por isso ele é do suporte. A instância —
+ * "compramos mais uma cadeira" — continua sendo do dia a dia da loja, e a
+ * unidade que vale é sempre a lida do banco, não a do formulário.
  */
 
 export async function criarTipoRecurso(formData: FormData): Promise<void> {
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
-  await assertRede()
+  await assertSuporte()
   await createResourceType(name)
   revalidatePath('/admin/recursos')
 }

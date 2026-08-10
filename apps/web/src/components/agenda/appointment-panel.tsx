@@ -115,9 +115,6 @@ export function AppointmentPanel({
               <span className="tnum text-muted mr-2">{formatTime(item.start, timezone)}</span>
               {item.serviceName}
               <span className="text-muted"> · {item.staffName}</span>
-              {item.durationProfile?.processingMin ? (
-                <span className="text-muted"> · {item.durationProfile.processingMin}min de processo</span>
-              ) : null}
             </span>
             <span className="tnum shrink-0">{formatBRL(item.price)}</span>
           </li>

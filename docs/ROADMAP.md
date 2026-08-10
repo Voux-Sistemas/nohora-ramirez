@@ -8,7 +8,7 @@ Estimativas em semanas de trabalho contínuo com Claude Code. São ordens de gra
 
 Antes de escrever tela, resolver o que só você sabe.
 
-- [ ] **Levantamento real**: catálogo dos serviços das 3 unidades com duração (setup/processamento/finalização), preço e quem faz o quê
+- [ ] **Levantamento real**: catálogo dos serviços das 3 unidades com duração, preço e quem faz o quê
 - [ ] Horário de funcionamento de cada unidade, escala de cada profissional
 - [ ] Regras de comissão vigentes (por profissional, por serviço, com/sem desconto de material)
 - [ ] Política de cancelamento, sinal e no-show que você **quer** ter

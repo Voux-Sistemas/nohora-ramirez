@@ -260,9 +260,6 @@ function ItemBlock({
   href: Route
   selected: boolean
 }) {
-  const profile = item.durationProfile
-  const processing = profile?.processingMin ?? 0
-  const setup = profile?.setupMin ?? 0
   const compact = height < COMPACT_PX
 
   return (
@@ -283,15 +280,6 @@ function ItemBlock({
       )}
       style={{ top, height: Math.max(height - 2, 22) }}
     >
-      {/* o buraco: profissional livre, cliente ainda na cadeira */}
-      {processing > 0 ? (
-        <span
-          aria-hidden
-          className="absolute inset-x-0 border-y border-dashed border-current/25 bg-[repeating-linear-gradient(135deg,transparent_0_6px,color-mix(in_oklab,currentColor_16%,transparent)_6px_12px)]"
-          style={{ top: setup * PX_PER_MIN, height: processing * PX_PER_MIN }}
-        />
-      ) : null}
-
       <span className="relative block truncate font-medium">
         <span className="tnum">{formatTime(item.start, timezone)}</span> {firstName(appointment.clientName)}
       </span>
@@ -306,7 +294,6 @@ function ItemBlock({
       <span className="sr-only">
         {' · '}
         {STATUS_LABEL[appointment.status] ?? appointment.status}
-        {processing > 0 ? `, ${processing} min de processamento` : ''}
       </span>
     </Link>
   )

@@ -55,16 +55,23 @@ volta a abrir sozinha.
 
 ## Papéis
 
-São três degraus de equipe, e quem decide o que é
+São quatro degraus, e quem decide o que é
 `apps/web/src/server/auth/permissoes.ts`. Todo porteiro do sistema sai de lá.
 
-| Papel | `user_roles` | Enxerga | Decide |
+| Papel | De onde vem | Enxerga | Decide |
 | --- | --- | --- | --- |
+| Suporte | `TELEFONES_SUPORTE` (variável) | a rede | tudo, mais o que define a instalação |
 | Dona | `owner` (sem unidade) | a rede | tudo: unidades, catálogo, comissões, equipe |
 | Gerente | `unit_manager`, uma linha por unidade | as lojas dela | operação e equipe dessas lojas |
 | Profissional | `professional` | a própria agenda | o próprio atendimento |
 
-Duas coisas que não são óbvias e mordem se esquecidas:
+Três coisas que não são óbvias e mordem se esquecidas:
+
+- **Suporte não mora no banco, e isso é o ponto.** Somos nós, não o salão.
+  Qualquer degrau guardado em `user_roles` poderia ser dado por quem já tem o
+  cadastro na mão; este só se concede no painel do Railway. A variável **eleva,
+  não autentica**: quem está na lista continua precisando de um papel de equipe
+  para entrar. Na prática a conta de instalação é `owner` **e** está na lista.
 
 - **O alcance da profissional não vem de `user_roles`.** A linha dela é gravada
   sem unidade; onde ela atende é `staff_units`, a mesma tabela que monta as
@@ -76,8 +83,29 @@ Duas coisas que não são óbvias e mordem se esquecidas:
   a quem ninguém decidiu dar. Quando esses papéis existirem de verdade, o caminho
   é entrar na tabela `DEGRAUS` de propósito.
 
-Quem nomeia gerente é só a dona, em `/admin/equipe`. O formulário grava uma linha
-de `unit_manager` por unidade marcada; `owner` nunca é escrito por ali.
+Quem nomeia gerente é a dona, em `/admin/equipe`. O formulário grava uma linha de
+`unit_manager` por unidade marcada.
+
+### O que só o suporte faz
+
+Quatro coisas, escolhidas pelo mesmo critério: são decisões que o salão pede uma
+vez e que ninguém desfaz por dentro depois.
+
+| O quê | Onde | Por que não é da dona |
+| --- | --- | --- |
+| Abrir uma unidade | `/admin/unidades/nova` | mexe em cobrança e tudo pendura em unidade |
+| Mudar o slug de uma unidade | ficha da unidade | é o link já impresso em cartão e no Instagram |
+| Criar um tipo de recurso | `/admin/recursos` | muda as três lojas e não existe tela de apagar |
+| Dar (ou tirar) acesso de **dona** | `/admin/equipe` | entrega o cadastro da rede e não tem volta fácil |
+
+O quarto vale nas duas direções de propósito: sem isso, a dona que abrisse a
+ficha da sócia e salvasse qualquer outro campo a rebaixaria sem querer, porque a
+tela dela não mostra o botão "Dona" para ficar marcado.
+
+O que **continua sendo da dona**, e é a maior parte: catálogo e preço, equipe e
+escala, comissão, horário de funcionamento, feriado, foto, endereço, telefone e
+as regras de agendamento de cada loja. Adicionar mais uma cabine do tipo que já
+existe também é dela — o que passa por nós é inventar um tipo novo.
 
 As telas de rede (`/admin/unidades`, `/admin/servicos`, `/admin/comissoes`) somem
 da navegação do gerente e recusam a ação no servidor. As ações de operação
@@ -94,6 +122,18 @@ de virar um lançamento no caixa da loja vizinha.
 | `DATABASE_URL` | referência ao serviço `Postgres` |
 | `IMAGE_STORE` `UPLOAD_DIR` | onde as fotos ficam — no volume, não no container |
 | `RESEND_API_KEY` `EMAIL_REMETENTE` | as duas juntas ligam o canal de e-mail e a área da cliente |
+| `TELEFONES_SUPORTE` | telefones de quem mantém a instalação, separados por vírgula |
+
+### Quem é o suporte
+
+```sh
+railway variable set TELEFONES_SUPORTE=+5511999999999 --service web
+```
+
+Vários vão separados por vírgula. Vazia, ninguém é suporte e as quatro decisões
+da tabela acima ficam fechadas para todo mundo — inclusive para nós. É de
+propósito: o custo de esquecer é um telefonema, não uma instalação aberta.
+Mudar a variável exige redeploy, que o Railway faz sozinho ao salvar.
 
 ### Ligar a área da cliente
 

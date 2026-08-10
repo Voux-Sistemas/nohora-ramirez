@@ -40,10 +40,9 @@ queda ≥30% no no-show, fechamento de comissão de horas para <15 min.
 agendamento. O tráfego vem do Instagram, do Google e da indicação; o sistema converte, retém
 e organiza sob a marca do próprio estúdio. White-label é a posição, não um extra.
 
-Mecanismo que um concorrente não copia sem refazer o núcleo: duração composta
-(aplicação → processamento → finalização) com o profissional liberado durante o
-processamento, motor de disponibilidade que reserva recurso físico (cabine, lavatório,
-equipamento) junto com pessoa, e preço/duração variáveis por profissional e por unidade.
+Mecanismo que um concorrente não copia sem refazer o núcleo: motor de disponibilidade que
+reserva recurso físico (cabine, lavatório, equipamento) junto com pessoa, e preço/duração
+variáveis por profissional e por unidade.
 
 ## Operating Context
 
@@ -65,8 +64,11 @@ cliente e por senha para equipe.
 
 Restrições e fatos que o design não pode contrariar:
 
-- Duração composta e buffers antes/depois são por serviço; preço e duração têm exceção por
+- Duração e buffers antes/depois são por serviço; preço e duração têm exceção por
   profissional e por unidade (`resolvePrice`, precedência staff+unit → staff → unit → base).
+  A duração é **um número só** — o salão informa o tempo total com a cliente. O schema ainda
+  guarda `setup/processing/finish` porque o motor de agenda foi escrito assim, mas o produto
+  escreve tudo em `setup` e zera o resto: nenhuma tela oferece encaixe no processamento.
 - Alguns serviços exigem anamnese ou avaliação presencial antes de poderem ser marcados.
 - Sinal antecipado existe como percentual (pontos-base) ou valor fixo.
 - Estados do agendamento: agendado → confirmado → check-in → em atendimento → concluído /

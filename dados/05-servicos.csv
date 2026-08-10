@@ -1,12 +1,12 @@
-codigo;nome;categoria;preco;aplicacao_min;pausa_min;finalizacao_min;folga_depois_min;online;descricao
-corte-fem;Corte feminino;Cabelo;90,00;60;0;0;10;sim;Corte com lavagem e finalizacao
-escova;Escova;Cabelo;60,00;40;0;0;10;sim;
-coloracao;Coloracao raiz;Quimica;180,00;30;40;30;15;sim;Tempo de pausa e a acao da tinta
-mechas;Mechas / luzes;Quimica;450,00;90;45;60;15;sim;Confirmar duracao para cabelo longo
-progressiva;Progressiva;Quimica;350,00;60;30;60;15;nao;So com avaliacao presencial
-hidratacao;Hidratacao;Tratamento;120,00;15;30;15;10;sim;
-manicure;Manicure;Maos e pes;45,00;45;0;0;5;sim;
-pedicure;Pedicure;Maos e pes;55,00;50;0;0;5;sim;
-sobrancelha;Design de sobrancelha;Estetica;60,00;30;0;0;5;sim;
-cilios;Extensao de cilios;Estetica;250,00;120;0;0;10;sim;
-limpeza-pele;Limpeza de pele;Estetica;180,00;30;20;20;15;sim;
+codigo;nome;categoria;preco;duracao_min;folga_depois_min;online;descricao
+corte-fem;Corte feminino;Cabelo;90,00;60;10;sim;Corte com lavagem e finalizacao
+escova;Escova;Cabelo;60,00;40;10;sim;
+coloracao;Coloracao raiz;Quimica;180,00;100;15;sim;Retoque de raiz
+mechas;Mechas / luzes;Quimica;450,00;195;15;sim;Confirmar duracao para cabelo longo
+progressiva;Progressiva;Quimica;350,00;150;15;nao;So com avaliacao presencial
+hidratacao;Hidratacao;Tratamento;120,00;60;10;sim;
+manicure;Manicure;Maos e pes;45,00;45;5;sim;
+pedicure;Pedicure;Maos e pes;55,00;50;5;sim;
+sobrancelha;Design de sobrancelha;Estetica;60,00;30;5;sim;
+cilios;Extensao de cilios;Estetica;250,00;120;10;sim;
+limpeza-pele;Limpeza de pele;Estetica;180,00;70;15;sim;

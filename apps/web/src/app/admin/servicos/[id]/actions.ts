@@ -24,9 +24,12 @@ function parseService(formData: FormData): ServiceInput {
     description: String(formData.get('description') ?? '').trim() || undefined,
     categoryId: String(formData.get('categoryId') ?? '').trim() || undefined,
     basePrice: Math.round(Number(formData.get('basePriceReais') ?? 0) * 100),
-    setupMin: Number(formData.get('setupMin') ?? 0),
-    processingMin: Number(formData.get('processingMin') ?? 0),
-    finishMin: Number(formData.get('finishMin') ?? 0),
+    /* Duração é um número só no formulário. As três colunas do banco continuam
+       existindo por causa do motor de agenda, então a duração inteira vai para
+       a primeira e as outras zeram — bloco contínuo, sem encaixe. */
+    setupMin: Number(formData.get('durationMin') ?? 0),
+    processingMin: 0,
+    finishMin: 0,
     bufferBeforeMin: Number(formData.get('bufferBeforeMin') ?? 0),
     bufferAfterMin: Number(formData.get('bufferAfterMin') ?? 0),
     onlineBookable: formData.get('onlineBookable') === 'on',
@@ -44,7 +47,9 @@ function parseService(formData: FormData): ServiceInput {
 export async function salvarServico(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '')
   const input = parseService(formData)
-  if (!input.name || input.setupMin < 0) return
+  /* Duração zero abriria um serviço que ocupa nada na agenda — a grade
+     aceitaria infinitos no mesmo minuto. */
+  if (!input.name || input.setupMin < 1) return
   /* Preço e duração valem nas três lojas de uma vez: é decisão da rede. */
   await assertRede()
 

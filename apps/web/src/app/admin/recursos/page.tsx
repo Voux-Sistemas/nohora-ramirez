@@ -1,17 +1,18 @@
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
 import { listResourceAssignables, listResourcesAdmin, listResourceTypes } from '@/server/admin/resources'
-import { podeRede, requireGestao } from '@/server/auth/permissoes'
+import { podeSuporte, requireGestao } from '@/server/auth/permissoes'
 import { alternarRecurso, criarRecurso, criarTipoRecurso } from './actions'
 
 /**
  * Recursos: o gerente cuida das cabines da loja dele; o tipo de cabine é da
- * rede. Por isso a tela abre para os dois degraus de gestão, mas o cadastro de
- * tipo — que muda o vocabulário das três lojas — fica com a dona.
+ * instalação. Por isso a tela abre para os dois degraus de gestão, mas o
+ * cadastro de tipo — que muda o vocabulário das três lojas e não tem volta —
+ * fica com o suporte.
  */
 export default async function RecursosPage() {
   const acesso = await requireGestao()
-  const rede = podeRede(acesso)
+  const suporte = podeSuporte(acesso)
   const [types, resources, assignables] = await Promise.all([
     listResourceTypes(),
     listResourcesAdmin(acesso.unidadeIds),
@@ -34,7 +35,7 @@ export default async function RecursosPage() {
           ))}
           {types.length === 0 ? <li className="text-muted text-sm">Nenhum tipo cadastrado ainda.</li> : null}
         </ul>
-        {rede ? (
+        {suporte ? (
           <form action={criarTipoRecurso} className="flex gap-2">
             <input className="field max-w-xs" name="name" placeholder="Ex.: Cabine, Lavatório" required />
             <Button type="submit" variant="outline" size="sm">
@@ -43,7 +44,8 @@ export default async function RecursosPage() {
           </form>
         ) : (
           <p className="text-muted text-sm">
-            Criar um tipo novo muda as três lojas — fale com a administração.
+            Um tipo novo muda todas as lojas de uma vez e não tem como apagar depois — quem
+            cria é o suporte. Adicionar mais uma cabine do tipo que já existe é aqui embaixo.
           </p>
         )}
       </Section>

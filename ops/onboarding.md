@@ -26,10 +26,11 @@ A conta do `/comecar` é de quem instalou o sistema — normalmente não a dona 
 salão. É de propósito: quem monta o ambiente precisa entrar antes de a dona
 existir, e o código de instalação some assim que a primeira conta nasce.
 
-A conta da dona vem depois, em `/admin/equipe`, com o acesso **Dona** marcado.
-Ela enxerga a rede inteira e mexe no cadastro, igual à primeira conta. As duas
-convivem sem problema, e o sistema recusa tirar o acesso da última — inclusive o
-seu próprio, que só sai depois de outra pessoa já ser dona.
+A conta da dona vem depois, em `/admin/equipe`, com o acesso **Dona** marcado —
+o que exige estar em `TELEFONES_SUPORTE`, porque conceder esse degrau é do
+suporte. Ela enxerga a rede inteira e mexe no cadastro, igual à primeira conta.
+As duas convivem sem problema, e o sistema recusa tirar o acesso da última —
+inclusive o seu próprio, que só sai depois de outra pessoa já ser dona.
 
 ## O que pedir para a dona
 
@@ -55,9 +56,7 @@ seu próprio, que só sai depois de outra pessoa já ser dona.
 
 - nome e categoria (corte, coloração, manicure…)
 - preço
-- quanto tempo leva — e, quando o produto age sozinho, quanto desse tempo a
-  profissional fica livre para atender outra cliente. É o que permite encaixar
-  duas clientes no mesmo horário sem atropelar ninguém
+- quanto tempo leva do começo ao fim, contando a espera da química
 - pode ser marcado pelo site ou só pela recepção
 - exige sinal? avaliação presencial antes? ficha de anamnese?
 - se ocupa cabine, lavatório ou equipamento — e quantos de cada a loja tem
@@ -71,7 +70,8 @@ seu próprio, que só sai depois de outra pessoa já ser dona.
 - escala da semana: dia, hora de entrada e de saída, e em qual loja
 - se aparece para a cliente escolher no agendamento online
 - acesso: **dona** (a rede inteira e o cadastro), **gerente** (toca a operação
-  da loja) ou **profissional** (só a agenda dela). Ver
+  da loja) ou **profissional** (só a agenda dela). Dona é o único que a própria
+  dona não consegue conceder — esse pedido vem para o suporte. Ver
   [README.md](README.md#papéis)
 
 ### Comissão

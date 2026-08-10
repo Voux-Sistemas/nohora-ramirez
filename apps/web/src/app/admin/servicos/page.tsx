@@ -100,7 +100,6 @@ export default async function ServicosPage() {
                     </td>
                     <td className="text-muted tnum px-4 py-3 align-top whitespace-nowrap">
                       {formatDuration(s.setupMin + s.processingMin + s.finishMin)}
-                      {s.processingMin > 0 ? ` (${formatDuration(s.processingMin)} livre)` : ''}
                     </td>
                     <td className="tnum px-4 py-3 text-right align-top font-medium whitespace-nowrap">
                       {formatBRL(s.basePrice)}

@@ -74,12 +74,15 @@ Review · AuditLog
 **`service_categories`** — `name`, `order`, `unit_id` nullable (null = rede toda).
 
 **`services`** — `name`, `description`, `category_id`, `image_url`,
-`duration_setup_min` (aplicação), `duration_processing_min` (processamento — profissional livre), `duration_finish_min` (finalização),
+`duration_setup_min`, `duration_processing_min`, `duration_finish_min`,
 `buffer_before_min`, `buffer_after_min`,
 `base_price`, `online_bookable`, `requires_deposit`, `deposit_type` (percent/fixed), `deposit_value`,
 `requires_anamnesis`, `anamnesis_form_id`, `max_per_day`, `active`.
 
-> A duração total = setup + processing + finish + buffers. O profissional só é **ocupado** em setup e finish. O recurso é ocupado do início ao fim.
+> As três colunas são herança do motor de agenda, que sabe liberar o profissional no meio do
+> atendimento. O produto **não oferece isso**: o cadastro tem um campo de duração só, que vai
+> inteiro para `duration_setup_min` com os outros dois em zero. Duração total = setup + buffers,
+> e profissional e recurso ficam ocupados do início ao fim.
 
 **`service_pricing`** — override. `service_id`, `unit_id` nullable, `staff_id` nullable, `price`, `duration_override_min`. Resolução: staff+unit > staff > unit > base.
 

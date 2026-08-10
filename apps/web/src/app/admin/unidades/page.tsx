@@ -3,7 +3,7 @@ import { AdminShell } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
 import { href } from '@/lib/utils'
 import { listUnitsAdmin } from '@/server/admin/units'
-import { requireRede } from '@/server/auth/permissoes'
+import { podeSuporte, requireRede } from '@/server/auth/permissoes'
 
 export default async function UnidadesPage() {
   const acesso = await requireRede()
@@ -15,10 +15,14 @@ export default async function UnidadesPage() {
       active="/admin/unidades"
       title="Unidades"
       subtitle="Endereço, horário de funcionamento e regras de agendamento de cada loja."
+      /* Abrir loja mexe em cobrança e em tudo que pendura em unidade — é pedido
+         que passa pelo suporte, então para a dona o botão nem existe. */
       actions={
-        <Link href="/admin/unidades/nova">
-          <Button size="sm">+ nova unidade</Button>
-        </Link>
+        podeSuporte(acesso) ? (
+          <Link href="/admin/unidades/nova">
+            <Button size="sm">+ nova unidade</Button>
+          </Link>
+        ) : null
       }
     >
       <div className="surface rounded-card overflow-hidden overflow-x-auto">

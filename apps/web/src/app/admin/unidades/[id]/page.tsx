@@ -4,7 +4,7 @@ import { AdminShell, Section, backTo } from '@/components/admin/shell'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
 import { getUnitAdmin, type HoursRow, type UnitRow } from '@/server/admin/units'
-import { requireRede } from '@/server/auth/permissoes'
+import { podeSuporte, requireRede, requireSuporte } from '@/server/auth/permissoes'
 import { adicionarExcecao, removerExcecao, salvarUnidade } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -39,8 +39,10 @@ function slotsFor(weekday: number, hours: readonly HoursRow[]) {
 
 export default async function UnidadeFormPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const acesso = await requireRede()
   const isNew = id === 'nova'
+  /* Abrir loja nova é do suporte; a ficha de uma loja que já existe é da dona. */
+  const acesso = isNew ? await requireSuporte() : await requireRede()
+  const suporte = podeSuporte(acesso)
 
   const data = isNew ? null : await getUnitAdmin(id)
   if (!isNew && !data) notFound()
@@ -69,16 +71,30 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
               Nome
               <input className="field" name="name" defaultValue={unit.name} required />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Slug (URL)
-              {/*
-                O hífen vai escapado de propósito. O Chrome compila `pattern`
-                com a flag `v`, onde `-` solto dentro da classe é erro de
-                sintaxe — e o navegador então descarta a regra inteira em
-                silêncio, deixando passar "Jardins Paulista" como slug.
-              */}
-              <input className="field" name="slug" defaultValue={unit.slug} required pattern="[a-z0-9\-]+" />
-            </label>
+            {/*
+              O slug é o endereço que o salão divulga. Trocar depois quebra em
+              silêncio todo link já impresso, então para a dona ele vira texto:
+              some o campo, fica o valor e o caminho de quem muda.
+            */}
+            {suporte ? (
+              <label className="flex flex-col gap-1 text-sm">
+                Slug (URL)
+                {/*
+                  O hífen vai escapado de propósito. O Chrome compila `pattern`
+                  com a flag `v`, onde `-` solto dentro da classe é erro de
+                  sintaxe — e o navegador então descarta a regra inteira em
+                  silêncio, deixando passar "Jardins Paulista" como slug.
+                */}
+                <input className="field" name="slug" defaultValue={unit.slug} required pattern="[a-z0-9\-]+" />
+              </label>
+            ) : (
+              <div className="flex flex-col gap-1 text-sm">
+                Endereço no site
+                <p className="text-muted pt-2">
+                  /{unit.slug} — mudar quebra os links já divulgados, então passa pelo suporte.
+                </p>
+              </div>
+            )}
             <label className="flex flex-col gap-1 text-sm">
               Telefone
               <input className="field" name="phone" defaultValue={unit.phone ?? ''} />

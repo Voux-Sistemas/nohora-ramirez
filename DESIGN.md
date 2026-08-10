@@ -160,10 +160,6 @@ Vocabulário compartilhado entre as duas — mudou num lugar, muda nos três:
   peso conforme a cliente avança: marcado é leve, chegou ganha o banho de
   bronze, **em atendimento é o único bloco maciço da tela**, concluído afunda
   para o tom da régua e sai do caminho.
-- **O intervalo de processamento aparece vazado dentro do atendimento.** É a
-  única razão para desenhar uma grade em vez de listar: é ali que a recepção
-  enxerga que a profissional está livre com a cliente na cadeira, e é ali que
-  ela encaixa.
 - **A coluna tem teto** (`18rem`). Com `1fr` e duas profissionais escaladas, um
   corte de cabelo virava uma faixa de meia tela.
 - **O cabeçalho tem a medida da grade**, calculada da mesma fórmula

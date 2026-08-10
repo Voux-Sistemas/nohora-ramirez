@@ -124,8 +124,8 @@ function findAvailableSlots(q: SlotQuery, ctx: AvailabilityContext): Slot[]
    (a) minimiza buraco na agenda, (b) equilibra a carga do dia.
 ```
 
-### Gap booking (o pulo do gato)
-Numa coloração `setup=30 · processing=40 · finish=30`, o profissional fica ocupado 60 min, não 100. Os 40 min de processamento voltam para a grade dele — cabe uma escova rápida ali. É isso que enche a agenda sem contratar ninguém.
+### Gap booking (capacidade do motor, desligada no produto)
+O motor sabe liberar o profissional durante o `processing` e devolver esse pedaço para a grade dele. **O produto não expõe isso**: o cadastro de serviço tem um campo de duração só, gravado inteiro em `setup` com `processing = 0`, então todo bloco é contínuo. O código continua no lugar porque é o mesmo caminho que reserva o recurso; ligar de novo é voltar o campo no formulário.
 
 Implementação: `appointment_items.staff_busy_ranges` guarda só os blocos ativos; o `resource` fica reservado o período inteiro.
 

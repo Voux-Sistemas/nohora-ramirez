@@ -181,9 +181,11 @@ async function main(): Promise<void> {
         description: service.description ?? null,
         imageUrl: service.imageUrl ?? null,
         basePrice: service.basePrice,
-        setupMin: service.setupMin,
-        processingMin: service.processingMin,
-        finishMin: service.finishMin,
+        /* A duração vive em três colunas por causa do motor de agenda, mas o
+           produto só oferece um número: tudo na primeira, zero nas outras. */
+        setupMin: service.durationMin,
+        processingMin: 0,
+        finishMin: 0,
         bufferAfterMin: service.bufferAfterMin,
         onlineBookable: service.onlineBookable ?? true,
         requiresDeposit: service.requiresDeposit ?? false,
@@ -211,7 +213,7 @@ async function main(): Promise<void> {
       id: row!.id,
       slug: service.slug,
       basePrice: service.basePrice,
-      baseDurationMin: service.setupMin + service.processingMin + service.finishMin,
+      baseDurationMin: service.durationMin,
       onlineBookable: service.onlineBookable ?? true,
       deposit:
         service.requiresDeposit && service.depositType && service.depositValue
@@ -222,9 +224,9 @@ async function main(): Promise<void> {
       spec: {
         serviceId: row!.id,
         duration: {
-          setupMin: service.setupMin,
-          processingMin: service.processingMin,
-          finishMin: service.finishMin,
+          setupMin: service.durationMin,
+          processingMin: 0,
+          finishMin: 0,
           bufferBeforeMin: 0,
           bufferAfterMin: service.bufferAfterMin,
         },

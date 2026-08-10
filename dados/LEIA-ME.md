@@ -33,27 +33,14 @@ eu preciso dos dados para construir:
 
 ## O campo que mais gera dúvida: duração do serviço
 
-O sistema separa a duração em três partes. Isso não é firula — é o que permite
-encaixar outra cliente enquanto a primeira está de química na cabeça.
-
-```
-COLORAÇÃO — 100 minutos no total
-
-|── aplicação 30min ──|──── pausa 40min ────|── finalização 30min ──|
-      você trabalha         você está LIVRE        você trabalha
-```
-
-- **`aplicacao_min`** — o tempo em que a profissional está de fato com a cliente
-- **`pausa_min`** — o tempo de processamento/ação do produto, em que a
-  profissional pode atender outra pessoa. **Zero na maioria dos serviços**
-  (corte, escova, manicure)
-- **`finalizacao_min`** — lavar, secar, finalizar
-
-Se o serviço não tem pausa (corte, por exemplo), preencha só `aplicacao_min` e
-deixe os outros dois zerados.
-
+- **`duracao_min`** — o tempo total da cliente com a profissional, do começo ao
+  fim. Numa coloração conte tudo: aplicar, esperar a tinta agir e finalizar. Se
+  a coloração leva 1h40, escreva `100`.
 - **`folga_depois_min`** — tempo de limpeza/troca entre uma cliente e outra.
   Se você sempre precisa de 10 minutos para arrumar a estação, coloque 10.
+
+Duração errada é o erro que mais dói: a agenda passa a prometer horário que não
+existe. Na dúvida, cronometre dois atendimentos e use o maior.
 
 ## Convenções que valem para todos os arquivos
 

@@ -1,4 +1,4 @@
-servico;unidade;profissional;preco;aplicacao_min;pausa_min;finalizacao_min;observacao
-corte-fem;shopping;;110,00;;;;Aluguel do shopping e mais alto
-mechas;;ana;550,00;120;45;60;Ana e senior, cobra mais e demora mais
-corte-fem;centro;bia;80,00;45;;;Bia faz corte mais rapido
+servico;unidade;profissional;preco;duracao_min;observacao
+corte-fem;shopping;;110,00;;Aluguel do shopping e mais alto
+mechas;;ana;550,00;225;Ana e senior, cobra mais e demora mais
+corte-fem;centro;bia;80,00;45;Bia faz corte mais rapido

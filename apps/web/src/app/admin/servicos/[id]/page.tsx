@@ -94,29 +94,32 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
           </div>
         </Section>
 
-        <Section
-          title="Duração composta"
-          hint="setup (aplicação, profissional ocupado) → processing (agindo sozinho, profissional livre) → finish (finalização, profissional ocupado). Processing = 0 para um serviço simples."
-        >
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        {/*
+          Um número só. O banco ainda guarda a duração em três partes, herança
+          de um encaixe que o produto não oferece mais; o formulário escreve
+          tudo na primeira e zera as outras, então a agenda enxerga um bloco
+          contínuo. Serviço antigo com as três partes preenchidas aparece aqui
+          somado, e salvar já o normaliza.
+        */}
+        <Section title="Duração" hint="Quanto tempo a profissional fica com a cliente, do começo ao fim.">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <label className="flex flex-col gap-1 text-sm">
-              Setup (min)
-              <input className="field" type="number" min={0} name="setupMin" defaultValue={service.setupMin} required />
+              Duração (min)
+              <input
+                className="field"
+                type="number"
+                min={1}
+                name="durationMin"
+                defaultValue={service.setupMin + service.processingMin + service.finishMin}
+                required
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Processing (min)
-              <input className="field" type="number" min={0} name="processingMin" defaultValue={service.processingMin} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Finish (min)
-              <input className="field" type="number" min={0} name="finishMin" defaultValue={service.finishMin} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Buffer antes (min)
+              Intervalo antes (min)
               <input className="field" type="number" min={0} name="bufferBeforeMin" defaultValue={service.bufferBeforeMin} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Buffer depois (min)
+              Intervalo depois (min)
               <input className="field" type="number" min={0} name="bufferAfterMin" defaultValue={service.bufferAfterMin} />
             </label>
           </div>

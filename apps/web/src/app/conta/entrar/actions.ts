@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { ehTeste } from '@/lib/ambiente'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { loginClienteDisponivel, loginTestClient, requestOtp } from '@/server/auth/otp'
 import { RULES, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
@@ -60,7 +60,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
   }
 
   const phone = toE164(raw)
-  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
 
   const result = await requestOtp(phone)
   if (!result.ok) return { error: result.message }

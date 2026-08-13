@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { definirNovaSenha, pedirCodigoDeSenha, type EsqueciState } from '@/app/entrar/esqueci/actions'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 
 function Erro({ mensagem }: { mensagem?: string }) {
   if (!mensagem) return null
@@ -33,15 +34,7 @@ export function PedirCodigoForm() {
     <form action={action} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
         Telefone
-        <input
-          className="field"
-          name="telefone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="(11) 99999-8888"
-          required
-        />
+        <PhoneInput className="field" name="telefone" required />
       </label>
       <Erro mensagem={state.error} />
       <Enviar ocioso="Receber código" ocupado="Enviando…" />

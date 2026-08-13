@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { formatMoney, formatPhone, toE164 } from './format'
+import { formatMoney, formatPhone, formatPhoneLive, telefoneInvalidoErro, toE164 } from './format'
 
 /*
   Importado por caminho relativo, não por `@/`: assim o vitest roda sem precisar
@@ -50,6 +50,25 @@ describe('telefone português', () => {
       expect(formatPhone('+5511998887777')).toBe('+5511998887777')
     })
   })
+
+  it('agrupa em três enquanto a cliente ainda está digitando', () => {
+    emPais('PT', () => {
+      expect(formatPhoneLive('9')).toBe('9')
+      expect(formatPhoneLive('912')).toBe('912')
+      expect(formatPhoneLive('9123')).toBe('912 3')
+      expect(formatPhoneLive('912345678')).toBe('912 345 678')
+      /* Dígito a mais é cortado, não empurra um quarto grupo. */
+      expect(formatPhoneLive('9123456789')).toBe('912 345 678')
+      /* Caractere que não é dígito nunca aparece na máscara. */
+      expect(formatPhoneLive('912-345 abc678')).toBe('912 345 678')
+    })
+  })
+
+  it('erro de telefone fala telemóvel e nove dígitos, nunca DDD', () => {
+    emPais('PT', () => {
+      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Informe o telemóvel com 9 dígitos.')
+    })
+  })
 })
 
 describe('telefone brasileiro', () => {
@@ -67,6 +86,12 @@ describe('telefone brasileiro', () => {
       /* Santa Maria/RS. Tirar o "55" da frente deixaria nove dígitos, que não é
          comprimento nacional válido — então o número inteiro é o nacional. */
       expect(toE164('55998887777')).toBe('+5555998887777')
+    })
+  })
+
+  it('erro de telefone troca de vocabulário junto com o país', () => {
+    emPais('BR', () => {
+      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Informe o celular com 10 ou 11 dígitos.')
     })
   })
 })

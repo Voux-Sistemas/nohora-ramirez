@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { findOrCreateClient } from '@/server/people/clients'
 import { createAppointment } from '@/server/scheduling/book'
 import { getUnitBySlug } from '@/server/scheduling/context'
@@ -65,7 +65,7 @@ export async function confirmarAgendamento(
   const data = parsed.data
 
   const phone = toE164(data.telefone)
-  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
 
   const unit = await getUnitBySlug(data.unidade)
   if (!unit) return { error: 'Unidade não encontrada.' }

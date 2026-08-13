@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { pedirRecuperacao, recuperacaoDisponivel, trocarSenhaComCodigo } from '@/server/auth/recuperacao'
 import { RULES, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
@@ -30,7 +30,7 @@ export async function pedirCodigoDeSenha(
   }
 
   const phone = toE164(String(formData.get('telefone') ?? '').trim())
-  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
 
   const resultado = await pedirRecuperacao(phone)
   if (!resultado.ok) return { error: resultado.message }
@@ -58,7 +58,7 @@ export async function definirNovaSenha(
   }
 
   const phone = toE164(String(formData.get('telefone') ?? '').trim())
-  if (!phone) return { error: 'Telefone inválido.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
 
   const codigo = String(formData.get('codigo') ?? '').trim()
   const senha = String(formData.get('senha') ?? '')

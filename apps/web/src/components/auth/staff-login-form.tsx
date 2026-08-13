@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { entrarComoEquipe, type LoginState } from '@/app/entrar/actions'
 
 export function StaffLoginForm({ next }: { next: string }) {
@@ -13,15 +14,7 @@ export function StaffLoginForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
       <label className="flex flex-col gap-1 text-sm">
         Telefone
-        <input
-          className="field"
-          name="telefone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="(11) 99999-8888"
-          required
-        />
+        <PhoneInput className="field" name="telefone" required />
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Senha

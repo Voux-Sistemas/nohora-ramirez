@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { confirmarAgendamento, type ConfirmState } from '@/app/agendar/[unidade]/confirmar/actions'
 
 /**
@@ -50,14 +51,10 @@ export function ConfirmForm({
         <label htmlFor="telefone" className="mb-2 block text-sm font-medium">
           WhatsApp
         </label>
-        <input
+        <PhoneInput
           id="telefone"
           name="telefone"
           required
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="(11) 99999-8888"
           aria-describedby="telefone-ajuda"
           className="field tnum"
         />

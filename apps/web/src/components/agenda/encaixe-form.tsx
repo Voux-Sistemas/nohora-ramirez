@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { criarEncaixe, type EncaixeState } from '@/app/agenda/[unidade]/encaixe/actions'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 
 export function EncaixeForm({
   unidade,
@@ -43,14 +44,7 @@ export function EncaixeForm({
       </Field>
 
       <Field label="WhatsApp" hint="é por aqui que o lembrete vai sair">
-        <input
-          name="telefone"
-          required
-          inputMode="tel"
-          defaultValue={telefone ?? ''}
-          placeholder="(11) 99999-0000"
-          className="field"
-        />
+        <PhoneInput name="telefone" required defaultValue={telefone ?? ''} className="field" />
       </Field>
 
       <Field label="Observação interna" hint="não aparece para a cliente">

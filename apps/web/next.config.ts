@@ -1,6 +1,14 @@
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
+  /*
+    `PAIS` embutido no bundle do navegador também, não só no servidor: o campo
+    de telefone precisa saber o formato do país para mascarar enquanto a
+    cliente digita, e isso roda no cliente. `lib/pais.ts` lê `process.env.PAIS`
+    sem saber se está em componente de servidor ou de cliente — esta linha é o
+    que faz a leitura funcionar nos dois.
+  */
+  env: { PAIS: process.env.PAIS ?? '' },
   // os pacotes do monorepo são TypeScript cru; o Next compila junto
   transpilePackages: ['@studio/core', '@studio/db'],
   experimental: {

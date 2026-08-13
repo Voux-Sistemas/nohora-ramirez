@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { assertUnidade } from '@/server/auth/permissoes'
 import { findOrCreateClient } from '@/server/people/clients'
 import { createAppointment } from '@/server/scheduling/book'
@@ -47,7 +47,7 @@ export async function criarEncaixe(
   const input = parsed.data
 
   const phone = toE164(input.telefone)
-  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
 
   const unit = await getUnitBySlug(input.unidade)
   if (!unit) return { error: 'Unidade não encontrada.' }

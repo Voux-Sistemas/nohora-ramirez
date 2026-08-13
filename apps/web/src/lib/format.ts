@@ -98,6 +98,47 @@ export function toE164(input: string): string | null {
   return null
 }
 
+/** Só dígitos — descarta espaço, parêntese, traço e o que mais tiver entrado
+ *  colado ou digitado por engano. */
+export function apenasDigitos(valor: string): string {
+  return valor.replace(/\D/g, '')
+}
+
+/**
+ * Agrupa dígitos parciais como o país agrupa (`pais().agrupamentoNacional`) —
+ * a máscara ao vivo do campo de telefone, tecla a tecla. Diferente de
+ * `formatPhone`: aqui o número pode estar pela metade, então só formata o que
+ * já foi digitado em vez de exigir o comprimento inteiro.
+ */
+export function formatPhoneLive(raw: string): string {
+  const { agrupamentoNacional, digitosNacionais } = pais()
+  const max = Math.max(...digitosNacionais)
+  const digitos = apenasDigitos(raw).slice(0, max)
+  const partes: string[] = []
+  let i = 0
+  for (const tamanho of agrupamentoNacional) {
+    if (i >= digitos.length) break
+    partes.push(digitos.slice(i, i + tamanho))
+    i += tamanho
+  }
+  return partes.join(' ')
+}
+
+/**
+ * Mensagem para quando `toE164` devolve `null`, no vocabulário do país
+ * configurado. "DDD" é conceito só do Brasil — usar essa palavra para uma
+ * cliente portuguesa é o mesmo tipo de erro que motivou criar `lib/pais.ts`
+ * (ver o comentário lá).
+ */
+export function telefoneInvalidoErro(): string {
+  const { rotulos, digitosNacionais } = pais()
+  const digitos =
+    digitosNacionais.length === 1
+      ? `${digitosNacionais[0]} dígitos`
+      : `${digitosNacionais.join(' ou ')} dígitos`
+  return `Telefone inválido. Informe o ${rotulos.telemovel.toLowerCase()} com ${digitos}.`
+}
+
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
   const first = parts[0]?.[0] ?? ''

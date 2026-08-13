@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { pedirCodigo, type PhoneState } from '@/app/conta/entrar/actions'
 
 export function PhoneForm() {
@@ -12,15 +13,7 @@ export function PhoneForm() {
     <form action={action} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
         Telefone
-        <input
-          className="field"
-          name="telefone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="(11) 99999-8888"
-          required
-        />
+        <PhoneInput className="field" name="telefone" required />
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Senha (só para login de teste)

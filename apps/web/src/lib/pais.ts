@@ -33,6 +33,16 @@ export interface Pais {
   /** Como a recepção escreve o número num papel. */
   formatarNacional: (nacional: string) => string
   /**
+   * Em que grupos o campo separa os dígitos enquanto a pessoa ainda está
+   * digitando — da esquerda para a direita. Parecido com `formatarNacional`,
+   * mas esse aqui precisa lidar com número pela metade, porque é aplicado a
+   * cada tecla.
+   */
+  agrupamentoNacional: readonly number[]
+  /** Um número real no placeholder do campo — "999 999 999" não parece
+   *  telefone de ninguém, e uma cliente confunde com "preencha com noves". */
+  exemploTelemovel: string
+  /**
    * As palavras de endereço, que não são traduzíveis uma a uma: Portugal tem
    * distrito e freguesia onde o Brasil tem estado e bairro, e a sigla de duas
    * letras da UF não existe cá. Um formulário que pede "CEP" a uma cliente em
@@ -59,6 +69,8 @@ const PORTUGAL: Pais = {
      nacional a remover — o "0" de discagem interurbana não existe cá. */
   digitosNacionais: [9],
   formatarNacional: (n) => `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`,
+  agrupamentoNacional: [3, 3, 3],
+  exemploTelemovel: '912 345 678',
   rotulos: {
     regiao: 'Distrito',
     subdivisao: 'Freguesia',
@@ -80,6 +92,8 @@ const BRASIL: Pais = {
     n.length === 11
       ? `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`
       : `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`,
+  agrupamentoNacional: [2, 5, 4],
+  exemploTelemovel: '(11) 99999-8888',
   rotulos: {
     regiao: 'Estado (UF)',
     subdivisao: 'Bairro',

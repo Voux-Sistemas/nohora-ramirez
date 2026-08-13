@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { criarPrimeiraConta } from '@/server/auth/instalacao'
 import { RULES, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
@@ -26,7 +26,7 @@ export async function instalar(_state: InstalarState, formData: FormData): Promi
   const phone = toE164(String(formData.get('telefone') ?? '').trim())
 
   if (nome.length < 2) return { error: 'Diga o nome completo.' }
-  if (!phone) return { error: 'Telefone inválido. Use DDD + número.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
   /* Conferência de formato, não de existência — o que importa aqui é não
      gravar um endereço obviamente quebrado na única conta sem plano B. */
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'E-mail inválido.' }

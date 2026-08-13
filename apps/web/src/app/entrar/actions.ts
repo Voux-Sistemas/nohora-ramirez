@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { toE164 } from '@/lib/format'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { verifyStaffLogin } from '@/server/auth/password'
 import { RULES, forgive, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
@@ -25,7 +25,7 @@ export async function entrarComoEquipe(_state: LoginState, formData: FormData): 
   const phone = TEST_ALIASES[raw] ?? toE164(raw)
   const senha = String(formData.get('senha') ?? '')
   const next = safeNext(String(formData.get('next') ?? ''))
-  if (!phone) return { error: 'Telefone inválido.' }
+  if (!phone) return { error: telefoneInvalidoErro() }
   if (!senha) return { error: 'Digite a senha.' }
 
   /*

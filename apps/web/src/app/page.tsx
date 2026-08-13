@@ -6,7 +6,7 @@ import { OperateTopbar } from '@/components/operate/topbar'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { Photo } from '@/components/ui/photo'
 import { db } from '@/lib/db'
-import { formatBRL } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { requireGestao, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
@@ -147,13 +147,13 @@ export default async function HomePage() {
           <p className="text-body text-sm">
             <strong className="tnum text-(--text-strong) font-medium">{total.agendados}</strong>{' '}
             {total.agendados === 1 ? 'visita' : 'visitas'} ·{' '}
-            <strong className="tnum text-(--text-strong) font-medium">{formatBRL(total.faturamento)}</strong>{' '}
+            <strong className="tnum text-(--text-strong) font-medium">{formatMoney(total.faturamento)}</strong>{' '}
             no caixa
             {total.previsto > total.faturamento ? (
               <>
                 {' '}
                 de{' '}
-                <span className="tnum">{formatBRL(total.previsto)}</span> previstos
+                <span className="tnum">{formatMoney(total.previsto)}</span> previstos
               </>
             ) : null}
           </p>
@@ -225,7 +225,7 @@ function UnitRow({ unit }: { unit: UnitToday }) {
       <dl className="flex shrink-0 items-baseline gap-5 sm:gap-8">
         <Numero label="agenda" value={String(unit.agendados)} />
         <Numero label="feitos" value={String(unit.concluidos)} />
-        <Numero label="caixa" value={formatBRL(unit.faturamento)} wide />
+        <Numero label="caixa" value={formatMoney(unit.faturamento)} wide />
       </dl>
 
       <span

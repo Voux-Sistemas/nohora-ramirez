@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { PAYMENT_METHOD_LABEL, getComanda } from '@/server/finance/comanda'
@@ -49,23 +49,23 @@ export default async function ComandaPage({
                 {item.serviceName}
                 <span className="text-muted"> · {item.staffName}</span>
               </span>
-              <span className="tnum">{formatBRL(item.price)}</span>
+              <span className="tnum">{formatMoney(item.price)}</span>
             </li>
           ))}
         </ul>
         <p className="mt-3 flex items-baseline justify-between border-t border-(--border-subtle) pt-3 text-sm">
           <span>Subtotal</span>
-          <span className="tnum">{formatBRL(comanda.subtotal)}</span>
+          <span className="tnum">{formatMoney(comanda.subtotal)}</span>
         </p>
         {comanda.discount > 0 ? (
           <p className="text-muted flex items-baseline justify-between text-sm">
             <span>Desconto{comanda.discountReason ? ` (${comanda.discountReason})` : ''}</span>
-            <span className="tnum">− {formatBRL(comanda.discount)}</span>
+            <span className="tnum">− {formatMoney(comanda.discount)}</span>
           </p>
         ) : null}
         <p className="mt-1 flex items-baseline justify-between font-medium">
           <span>Total</span>
-          <span className="tnum">{formatBRL(comanda.total)}</span>
+          <span className="tnum">{formatMoney(comanda.total)}</span>
         </p>
       </section>
 
@@ -79,7 +79,7 @@ export default async function ComandaPage({
                   {PAYMENT_METHOD_LABEL[p.method]}
                   <span className="text-muted"> · {formatDateLong(p.paidAt.toISOString().slice(0, 10))} {formatTime(p.paidAt, unit.timezone)}</span>
                 </span>
-                <span className="tnum">{formatBRL(p.amount)}</span>
+                <span className="tnum">{formatMoney(p.amount)}</span>
               </li>
             ))}
           </ul>

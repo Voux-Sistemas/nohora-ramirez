@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { EncaixeForm } from '@/components/agenda/encaixe-form'
 import { ServicePicker, type PickableService } from '@/components/booking/service-picker'
 import { buttonVariants } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatDuration, formatPhone, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatDuration, formatPhone, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { searchClients } from '@/server/people/clients'
@@ -165,7 +165,7 @@ export default async function EncaixePage({
           ))}
           <li className="flex justify-between px-4 py-2.5 font-medium">
             <span>Total</span>
-            <span className="tnum">{formatBRL(total)}</span>
+            <span className="tnum">{formatMoney(total)}</span>
           </li>
         </ul>
 

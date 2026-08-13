@@ -7,6 +7,12 @@
  * que exige avaliação, preço que muda por unidade e agenda que não fecha
  * redondinha.
  *
+ * Este estúdio fictício é BRASILEIRO: telefones de onze dígitos, CEP, UF, fuso
+ * de São Paulo. Rode a demonstração com `PAIS=BR` — sob `PAIS=PT` os telefones
+ * aparecem crus (`+5511…`, porque `formatPhone` devolve intacto o que não é
+ * nacional) e os preços saem em euro sobre endereços paulistanos. A rede real
+ * em produção é portuguesa e não vem daqui: vem do cadastro.
+ *
  * Convenções:
  *   - dinheiro em CENTAVOS
  *   - dia da semana: 0 = domingo … 6 = sábado

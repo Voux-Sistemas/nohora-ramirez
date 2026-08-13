@@ -1,25 +1,33 @@
 /**
- * Formatação para o Brasil.
+ * Como número, data e telefone aparecem na tela.
+ *
+ * Nada aqui decide país — quem decide é `lib/pais.ts`. Este arquivo só aplica.
+ * Foi assim que o salão português deixou de ver preço em real: uma troca de
+ * variável, não uma varredura por catorze telas.
  *
  * Tudo que é hora recebe a timezone da unidade explicitamente: o servidor roda
  * em UTC e a recepção não pode ver 20:00 onde a cliente marcou 17:00.
  */
 
-export function formatBRL(cents: number): string {
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+import { pais } from './pais'
+
+export function formatMoney(cents: number): string {
+  const { locale, moeda } = pais()
+  return (cents / 100).toLocaleString(locale, { style: 'currency', currency: moeda })
 }
 
-/** Sem centavos — para números grandes de painel. */
-export function formatBRLShort(cents: number): string {
-  return (cents / 100).toLocaleString('pt-BR', {
+/** Sem cêntimos — para números grandes de painel. */
+export function formatMoneyShort(cents: number): string {
+  const { locale, moeda } = pais()
+  return (cents / 100).toLocaleString(locale, {
     style: 'currency',
-    currency: 'BRL',
+    currency: moeda,
     maximumFractionDigits: 0,
   })
 }
 
 export function formatTime(instant: Date | string, timeZone: string): string {
-  return new Date(instant).toLocaleTimeString('pt-BR', {
+  return new Date(instant).toLocaleTimeString(pais().locale, {
     hour: '2-digit',
     minute: '2-digit',
     timeZone,
@@ -27,7 +35,7 @@ export function formatTime(instant: Date | string, timeZone: string): string {
 }
 
 export function formatDateLong(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('pt-BR', {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -36,7 +44,7 @@ export function formatDateLong(isoDate: string): string {
 }
 
 export function formatDateShort(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString('pt-BR', {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
     day: '2-digit',
     month: '2-digit',
     timeZone: 'UTC',
@@ -45,7 +53,7 @@ export function formatDateShort(isoDate: string): string {
 
 export function formatWeekdayShort(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00Z`)
-    .toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' })
+    .toLocaleDateString(pais().locale, { weekday: 'short', timeZone: 'UTC' })
     .replace('.', '')
 }
 
@@ -57,20 +65,37 @@ export function formatDuration(minutes: number): string {
   return rest === 0 ? `${hours}h` : `${hours}h${String(rest).padStart(2, '0')}`
 }
 
-/** +5511998887777 → (11) 99888-7777 */
+/** `+351934730344` → `934 730 344` */
 export function formatPhone(e164: string): string {
-  const digits = e164.replace(/\D/g, '').replace(/^55/, '')
-  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  return e164
+  const { ddi, digitosNacionais, formatarNacional } = pais()
+  const digits = e164.replace(/\D/g, '')
+  const nacional = digits.startsWith(ddi) ? digits.slice(ddi.length) : digits
+  /* Número de outro país (uma cliente que veio do Brasil, um registo antigo)
+     sai como está. Formatar com a régua errada inventaria um número que não
+     existe, e é a recepção que vai discar. */
+  if (!digitosNacionais.includes(nacional.length)) return e164
+  return formatarNacional(nacional)
 }
 
 /** Aceita o que a pessoa digitar e devolve E.164, ou null se não der. */
 export function toE164(input: string): string | null {
-  const digits = input.replace(/\D/g, '')
-  const national = digits.startsWith('55') ? digits.slice(2) : digits
-  if (national.length < 10 || national.length > 11) return null
-  return `+55${national}`
+  const { ddi, digitosNacionais } = pais()
+  /* `00` é o prefixo de saída internacional que muita gente digita antes do
+     indicativo. Não é parte de número nenhum. */
+  const digits = input.replace(/\D/g, '').replace(/^00/, '')
+
+  /*
+     Tentar tirar o indicativo primeiro, mas só aceitar o que sobra se tiver
+     comprimento nacional válido. No Brasil isto importa: `55998887777` é o DDD
+     55 com nove dígitos, não o indicativo 55 mais um número de nove — e o teste
+     de comprimento é o que separa os dois.
+  */
+  if (digits.startsWith(ddi)) {
+    const semDdi = digits.slice(ddi.length)
+    if (digitosNacionais.includes(semDdi.length)) return `+${ddi}${semDdi}`
+  }
+  if (digitosNacionais.includes(digits.length)) return `+${ddi}${digits}`
+  return null
 }
 
 export function initials(name: string): string {

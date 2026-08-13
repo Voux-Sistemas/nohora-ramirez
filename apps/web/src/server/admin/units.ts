@@ -9,8 +9,8 @@ import 'server-only'
  * almoço ao meio-dia, volta 1h").
  */
 
-import { organizations, unitExceptions, unitHours, units } from '@studio/db'
-import { asc, eq } from 'drizzle-orm'
+import { organizations, unitExceptions, unitHours, unitPhotos, units } from '@studio/db'
+import { asc, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 
 export interface UnitSettingsForm {
@@ -256,4 +256,117 @@ export async function addUnitException(unitId: string, input: ExceptionInput): P
 
 export async function removeUnitException(id: string): Promise<void> {
   await db.delete(unitExceptions).where(eq(unitExceptions.id, id))
+}
+
+/*
+  A galeria da loja.
+
+  Separada de `units.imageUrl` de propósito: aquela é a capa — a fotografia que
+  abre a página e vai na partilha do Instagram — e tem de continuar a ser uma
+  escolha única, óbvia no formulário. Esta é o ensaio, tem ordem e tem legenda,
+  e ordem e legenda não cabem numa coluna de texto.
+*/
+
+export interface PhotoRow {
+  id: string
+  url: string
+  alt: string | null
+  sortOrder: number
+}
+
+export async function listUnitPhotos(unitId: string): Promise<PhotoRow[]> {
+  return db
+    .select({
+      id: unitPhotos.id,
+      url: unitPhotos.url,
+      alt: unitPhotos.alt,
+      sortOrder: unitPhotos.sortOrder,
+    })
+    .from(unitPhotos)
+    .where(eq(unitPhotos.unitId, unitId))
+    .orderBy(asc(unitPhotos.sortOrder), asc(unitPhotos.createdAt))
+}
+
+/**
+ * Acrescenta fotos no fim da fila.
+ *
+ * A ordem inicial é a ordem em que os arquivos chegaram, e o primeiro número
+ * livre vem do maior que já existe — não da contagem de linhas. Contar linhas
+ * quebraria depois da primeira remoção, quando há cinco fotos numeradas até 7.
+ */
+export async function addUnitPhotos(
+  unitId: string,
+  fotos: readonly { url: string; alt?: string | null }[],
+): Promise<void> {
+  if (fotos.length === 0) return
+
+  await db.transaction(async (tx) => {
+    const [ultima] = await tx
+      .select({ maior: sql<number | null>`max(${unitPhotos.sortOrder})` })
+      .from(unitPhotos)
+      .where(eq(unitPhotos.unitId, unitId))
+
+    const inicio = (ultima?.maior ?? -1) + 1
+    await tx.insert(unitPhotos).values(
+      fotos.map((foto, i) => ({
+        unitId,
+        url: foto.url,
+        alt: foto.alt?.trim() || null,
+        sortOrder: inicio + i,
+      })),
+    )
+  })
+}
+
+export async function updateUnitPhotoAlt(id: string, alt: string): Promise<void> {
+  await db
+    .update(unitPhotos)
+    .set({ alt: alt.trim() || null })
+    .where(eq(unitPhotos.id, id))
+}
+
+/** Devolve a URL apagada para quem chamou poder descartar o arquivo. */
+export async function removeUnitPhoto(id: string): Promise<string | null> {
+  const [row] = await db.delete(unitPhotos).where(eq(unitPhotos.id, id)).returning({
+    url: unitPhotos.url,
+  })
+  return row?.url ?? null
+}
+
+/**
+ * Sobe ou desce uma foto uma posição.
+ *
+ * Renumera a lista inteira de 0 a n-1 em vez de trocar dois `sort_order` entre
+ * si. Trocar dois valores parece mais barato e é errado aqui: a coluna tem
+ * `default 0`, então uma galeria recém-criada tem todas as fotos com o mesmo
+ * número e a troca não move nada — a ordem real, nesse caso, vem do desempate
+ * por `created_at`. Renumerar primeiro transforma essa ordem implícita em
+ * número gravado, e só então a troca significa alguma coisa.
+ */
+export async function moveUnitPhoto(id: string, direcao: 'subir' | 'descer'): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [alvo] = await tx
+      .select({ unitId: unitPhotos.unitId })
+      .from(unitPhotos)
+      .where(eq(unitPhotos.id, id))
+      .limit(1)
+    if (!alvo) return
+
+    const fila = await tx
+      .select({ id: unitPhotos.id })
+      .from(unitPhotos)
+      .where(eq(unitPhotos.unitId, alvo.unitId))
+      .orderBy(asc(unitPhotos.sortOrder), asc(unitPhotos.createdAt))
+
+    const de = fila.findIndex((f) => f.id === id)
+    const para = direcao === 'subir' ? de - 1 : de + 1
+    if (de < 0 || para < 0 || para >= fila.length) return
+
+    const movida = fila.splice(de, 1)[0]!
+    fila.splice(para, 0, movida)
+
+    for (const [i, foto] of fila.entries()) {
+      await tx.update(unitPhotos).set({ sortOrder: i }).where(eq(unitPhotos.id, foto.id))
+    }
+  })
 }

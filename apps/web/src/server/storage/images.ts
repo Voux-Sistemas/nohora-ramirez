@@ -44,6 +44,39 @@ export async function storeUploadedImage(
   scope: UploadScope,
   ownerId: string,
 ): Promise<UploadResult> {
+  return gravar(await conferir(file), scope, ownerId)
+}
+
+/**
+ * Um lote de imagens — tudo ou nada.
+ *
+ * A galeria da loja recebe várias fotos de uma vez, e gravar as três primeiras
+ * antes de descobrir que a quarta é um HEIC deixaria a dona com meia galeria e
+ * uma mensagem de erro. Confere o lote inteiro primeiro; só então grava.
+ *
+ * Segurar todos os bytes em memória de uma vez é aceitável porque o corpo da
+ * requisição já tem teto (`serverActions.bodySizeLimit`, em next.config.ts): o
+ * lote não passa do que aquele limite deixa entrar.
+ */
+export async function storeUploadedImages(
+  files: readonly File[],
+  scope: UploadScope,
+  ownerId: string,
+): Promise<UploadResult[]> {
+  const conferidas: Conferida[] = []
+  for (const file of files) conferidas.push(await conferir(file))
+
+  const guardadas: UploadResult[] = []
+  for (const item of conferidas) guardadas.push(await gravar(item, scope, ownerId))
+  return guardadas
+}
+
+interface Conferida {
+  body: Buffer
+  contentType: string
+}
+
+async function conferir(file: File): Promise<Conferida> {
   if (file.size === 0) throw new UploadError(MESSAGES.empty)
   if (file.size > MAX_IMAGE_BYTES) throw new UploadError(MESSAGES.tooBig)
 
@@ -59,6 +92,14 @@ export async function storeUploadedImage(
     throw new UploadError(MESSAGES.wrongType)
   }
 
+  return { body, contentType }
+}
+
+async function gravar(
+  { body, contentType }: Conferida,
+  scope: UploadScope,
+  ownerId: string,
+): Promise<UploadResult> {
   const key = `${scope}/${safeId(ownerId)}/${randomBytes(8).toString('hex')}.${extensionFor(contentType)}`
   const stored = await imageStore().put({ key, body, contentType })
   return { url: stored.url, key: stored.key }

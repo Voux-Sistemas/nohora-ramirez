@@ -6,7 +6,7 @@ import { ConfirmForm } from '@/components/booking/confirm-form'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Photo } from '@/components/ui/photo'
-import { formatBRL, formatDateLong, formatDuration, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatDuration, formatTime } from '@/lib/format'
 import { describeSlot, planAt } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext } from '@/server/scheduling/context'
 
@@ -145,7 +145,7 @@ export default async function ConfirmarPage({
                   <span className="block font-medium">{item.serviceName}</span>
                   <span className="text-muted block text-sm">com {item.staffName}</span>
                 </span>
-                <span className="tnum shrink-0 text-sm">{formatBRL(item.price)}</span>
+                <span className="tnum shrink-0 text-sm">{formatMoney(item.price)}</span>
               </li>
             ))}
           </ul>
@@ -153,14 +153,14 @@ export default async function ConfirmarPage({
           <div className="mt-5 flex items-baseline justify-between border-t border-(--border-subtle) pt-4">
             <span className="font-medium">Total</span>
             <span className="tnum display text-[1.75rem] leading-none">
-              {formatBRL(slot.totalPrice)}
+              {formatMoney(slot.totalPrice)}
             </span>
           </div>
 
           {deposit > 0 ? (
             <p className="text-body mt-3 text-sm">
               Este procedimento pede sinal de{' '}
-              <span className="tnum font-medium">{formatBRL(deposit)}</span>. A recepção envia o
+              <span className="tnum font-medium">{formatMoney(deposit)}</span>. A recepção envia o
               link de pagamento pelo WhatsApp.
             </p>
           ) : null}

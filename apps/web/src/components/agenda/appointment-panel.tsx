@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { AppointmentView } from '@/server/scheduling/queries'
 import { cancelarAgendamento, mudarStatus } from '@/server/scheduling/actions'
-import { formatBRL, formatPhone, formatTime } from '@/lib/format'
+import { formatMoney, formatPhone, formatTime } from '@/lib/format'
 import { buttonVariants } from '@/components/ui/button'
 import { cn, href } from '@/lib/utils'
 
@@ -116,19 +116,19 @@ export function AppointmentPanel({
               {item.serviceName}
               <span className="text-muted"> · {item.staffName}</span>
             </span>
-            <span className="tnum shrink-0">{formatBRL(item.price)}</span>
+            <span className="tnum shrink-0">{formatMoney(item.price)}</span>
           </li>
         ))}
       </ul>
 
       <p className="mt-3 flex items-baseline justify-between border-t border-(--border-subtle) pt-3 font-medium">
         <span>Total</span>
-        <span className="tnum">{formatBRL(appointment.totalPrice)}</span>
+        <span className="tnum">{formatMoney(appointment.totalPrice)}</span>
       </p>
 
       {appointment.depositRequired > 0 ? (
         <p className="text-muted mt-1 text-sm">
-          Sinal de {formatBRL(appointment.depositRequired)} ·{' '}
+          Sinal de {formatMoney(appointment.depositRequired)} ·{' '}
           {appointment.depositPaidAt ? 'pago' : 'em aberto'}
         </p>
       ) : null}

@@ -4,18 +4,24 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import {
   addUnitException,
+  addUnitPhotos,
   createUnit,
   getUnitAdmin,
   getUnitImage,
+  moveUnitPhoto,
   removeUnitException,
+  removeUnitPhoto,
   replaceUnitHours,
   setUnitImage,
   updateUnit,
+  updateUnitPhotoAlt,
   type HoursInput,
   type UnitInput,
 } from '@/server/admin/units'
+import { pais } from '@/lib/pais'
 import { assertRede, assertSuporte, podeSuporte } from '@/server/auth/permissoes'
 import { resolveImageField } from '@/server/storage/form'
+import { discardImage, storeUploadedImages, UploadError } from '@/server/storage/images'
 
 /*
   Unidade é da rede: nome, endereço, horário de funcionamento e as regras que a
@@ -41,7 +47,7 @@ function parseUnit(formData: FormData): UnitInput {
     city: String(formData.get('city') ?? '').trim() || undefined,
     state: String(formData.get('state') ?? '').trim() || undefined,
     postalCode: String(formData.get('postalCode') ?? '').trim() || undefined,
-    timezone: String(formData.get('timezone') ?? '').trim() || 'America/Sao_Paulo',
+    timezone: String(formData.get('timezone') ?? '').trim() || pais().fusoPadrao,
     active: formData.get('active') === 'on',
     settings: {
       minLeadMin: Number(formData.get('minLeadMin') ?? 120),
@@ -125,5 +131,83 @@ export async function removerExcecao(formData: FormData): Promise<void> {
   if (!id) return
   await assertRede()
   await removeUnitException(id)
+  revalidatePath(`/admin/unidades/${unitId}`)
+}
+
+/*
+  A galeria.
+
+  As telas públicas que consomem estas fotos são `force-dynamic`, então não há
+  o que revalidar além do próprio painel: a página da loja já lê do banco a
+  cada visita.
+*/
+
+export interface EstadoDaGaleria {
+  erro: string | null
+}
+
+/**
+ * Sobe um lote de fotos.
+ *
+ * Única ação do cadastro de unidade com estado de retorno, e por um motivo: é a
+ * única em que a recusa é rotina, não defeito. Um telemóvel manda HEIC, uma
+ * fotografia sai da câmara com 14 MB — e a resposta a isso é uma frase no
+ * formulário, não a página de erro do Next.
+ */
+export async function adicionarFotos(
+  _estado: EstadoDaGaleria,
+  formData: FormData,
+): Promise<EstadoDaGaleria> {
+  const unitId = String(formData.get('unitId') ?? '')
+  if (!unitId) return { erro: null }
+  await assertRede()
+
+  const arquivos = formData
+    .getAll('fotos')
+    .filter((item): item is File => item instanceof File && item.size > 0)
+  if (arquivos.length === 0) return { erro: 'Escolha ao menos uma fotografia.' }
+
+  try {
+    const guardadas = await storeUploadedImages(arquivos, 'unidades', unitId)
+    await addUnitPhotos(
+      unitId,
+      guardadas.map((foto) => ({ url: foto.url })),
+    )
+  } catch (erro) {
+    if (erro instanceof UploadError) return { erro: erro.message }
+    throw erro
+  }
+
+  revalidatePath(`/admin/unidades/${unitId}`)
+  return { erro: null }
+}
+
+/**
+ * Ordenar, legendar e remover — uma ação só, porque é um formulário só.
+ *
+ * A legenda é gravada em qualquer movimento, e não só no botão de guardar: quem
+ * escreve a descrição e depois carrega em "subir" espera que o texto continue
+ * lá. Perder o que a pessoa acabou de escrever é o defeito mais caro de um
+ * formulário, e o mais fácil de evitar.
+ */
+export async function cuidarDaFoto(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '')
+  const unitId = String(formData.get('unitId') ?? '')
+  const acao = String(formData.get('acao') ?? '')
+  if (!id || !unitId) return
+  await assertRede()
+
+  if (acao === 'remover') {
+    /* Apaga a linha primeiro e o arquivo depois: se o arquivo falhar, sobra um
+       objeto órfão no bucket, que ninguém vê. Na ordem contrária sobraria uma
+       linha apontando para um arquivo que já não existe — e isso a cliente vê. */
+    await discardImage(await removeUnitPhoto(id))
+    revalidatePath(`/admin/unidades/${unitId}`)
+    return
+  }
+
+  await updateUnitPhotoAlt(id, String(formData.get('alt') ?? ''))
+  if (acao === 'subir' || acao === 'descer') await moveUnitPhoto(id, acao)
+
   revalidatePath(`/admin/unidades/${unitId}`)
 }

@@ -19,6 +19,14 @@ export const serviceCategories = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    /**
+     * A ressalva comercial do preçário — "cabelos com extensões sob avaliação",
+     * "nail art acresce 5€ ao valor total". No papel ela vive num asterisco ao
+     * pé do bloco, e é o que impede a cliente de chegar ao balcão com um preço
+     * na cabeça e outro na conta. Sem lugar no cadastro ela vira combinado
+     * verbal, que é onde a discussão de preço nasce.
+     */
+    note: text('note'),
     sortOrder: integer('sort_order').notNull().default(0),
     active: boolean('active').notNull().default(true),
     ...timestamps(),

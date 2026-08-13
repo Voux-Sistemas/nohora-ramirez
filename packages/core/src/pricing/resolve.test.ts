@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   cartTotal,
   depositAmount,
-  formatBRL,
   priceRange,
   resolvePrice,
   type PriceOverride,
@@ -166,13 +165,5 @@ describe('depositAmount', () => {
 
   it('nunca cobra mais que o total da visita', () => {
     expect(depositAmount(3_000, { type: 'fixed', cents: 5_000 })).toBe(3_000)
-  })
-})
-
-describe('formatBRL', () => {
-  it('formata no padrão brasileiro', () => {
-    //   é o espaço não separável que o Intl usa depois do R$
-    expect(formatBRL(29_000).replace(/ /g, ' ')).toBe('R$ 290,00')
-    expect(formatBRL(0).replace(/ /g, ' ')).toBe('R$ 0,00')
   })
 })

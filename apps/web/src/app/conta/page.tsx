@@ -3,7 +3,7 @@ import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { requireClientSession } from '@/server/auth/session'
 import { sair } from '@/server/auth/actions'
 import { listClientAppointments } from '@/server/scheduling/queries'
-import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn, href } from '@/lib/utils'
 import { CancelButton } from '@/components/auth/cancel-button'
@@ -53,7 +53,7 @@ export default async function ContaPage() {
                 </span>
               </div>
               <p className="text-muted mt-0.5">
-                {a.items.map((i) => i.serviceName).join(', ')} — {formatBRL(a.totalPrice)}
+                {a.items.map((i) => i.serviceName).join(', ')} — {formatMoney(a.totalPrice)}
               </p>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <span className="text-muted text-xs">{STATUS_LABEL[a.status] ?? a.status}</span>
@@ -79,7 +79,7 @@ export default async function ContaPage() {
                 </span>
               </div>
               <p className="text-muted mt-0.5">
-                {a.items.map((i) => i.serviceName).join(', ')} — {formatBRL(a.totalPrice)}
+                {a.items.map((i) => i.serviceName).join(', ')} — {formatMoney(a.totalPrice)}
               </p>
               <span className="text-muted text-xs">{STATUS_LABEL[a.status] ?? a.status}</span>
             </li>

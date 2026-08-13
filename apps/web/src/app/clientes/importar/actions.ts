@@ -16,6 +16,12 @@ const COLUMN_ALIASES: Record<string, 'name' | 'phone' | 'email'> = {
   telefone: 'phone',
   phone: 'phone',
   celular: 'phone',
+  /* A planilha de um salão português diz "telemóvel" na primeira linha, com e
+     sem acento conforme quem digitou. Coluna não reconhecida faz a importação
+     inteira parecer vazia, e ninguém desconfia do cabeçalho. */
+  telemovel: 'phone',
+  telemóvel: 'phone',
+  contacto: 'phone',
   email: 'email',
   'e-mail': 'email',
 }

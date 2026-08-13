@@ -1,6 +1,6 @@
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
-import { formatBRL } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { listServicesAdmin } from '@/server/admin/services'
 import { listStaffAdmin } from '@/server/admin/staff'
 import { requireRede } from '@/server/auth/permissoes'
@@ -112,8 +112,8 @@ export default async function ComissoesPage() {
               {summary.map((row) => (
                 <tr key={row.staffId} className="border-b border-(--border-subtle) last:border-0">
                   <td className="p-3">{row.staffName}</td>
-                  <td className="p-3 text-right tnum font-medium">{formatBRL(row.pendingAmount)}</td>
-                  <td className="text-muted p-3 text-right tnum">{formatBRL(row.paidAmount)}</td>
+                  <td className="p-3 text-right tnum font-medium">{formatMoney(row.pendingAmount)}</td>
+                  <td className="text-muted p-3 text-right tnum">{formatMoney(row.paidAmount)}</td>
                   <td className="p-3 text-right">
                     {row.pendingAmount > 0 ? (
                       <form action={pagarComissoes}>

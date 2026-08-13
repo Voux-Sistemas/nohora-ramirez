@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Monogram } from '@/components/brand/mark'
 import { buttonVariants } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatPhone, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
 import { getAppointment } from '@/server/scheduling/queries'
 
 export const dynamic = 'force-dynamic'
@@ -64,7 +64,7 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
                   <span className="block font-medium">{item.serviceName}</span>
                   <span className="text-sm text-(--on-ink-muted)">com {item.staffName}</span>
                 </span>
-                <span className="tnum shrink-0 text-sm">{formatBRL(item.price)}</span>
+                <span className="tnum shrink-0 text-sm">{formatMoney(item.price)}</span>
               </li>
             ))}
           </ul>
@@ -72,7 +72,7 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
           <div className="mt-6 flex items-baseline justify-between border-t border-(--border-on-ink) pt-5">
             <span className="font-medium">Total</span>
             <span className="tnum display text-[1.75rem] leading-none">
-              {formatBRL(appointment.totalPrice)}
+              {formatMoney(appointment.totalPrice)}
             </span>
           </div>
 
@@ -80,7 +80,7 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
             <p className="mt-4 text-sm text-(--on-ink-muted)">
               Sinal de{' '}
               <span className="tnum font-medium text-(--on-ink)">
-                {formatBRL(appointment.depositRequired)}
+                {formatMoney(appointment.depositRequired)}
               </span>{' '}
               — o link de pagamento chega no WhatsApp{' '}
               <span className="tnum">{formatPhone(appointment.clientPhone)}</span>.

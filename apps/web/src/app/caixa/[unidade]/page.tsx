@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { getOpenSession, listMovements, listSessionsForUnit } from '@/server/finance/caixa'
@@ -56,7 +56,7 @@ export default async function CaixaUnidadePage({
             </div>
             <p className="mt-2 flex items-baseline justify-between text-sm">
               <span>Valor de abertura</span>
-              <span className="tnum">{formatBRL(session.openingAmount)}</span>
+              <span className="tnum">{formatMoney(session.openingAmount)}</span>
             </p>
 
             <ul className="mt-4 divide-y divide-(--border-subtle) text-sm">
@@ -72,7 +72,7 @@ export default async function CaixaUnidadePage({
                     </span>
                     <span className="tnum">
                       {m.type === 'withdrawal' ? '− ' : ''}
-                      {formatBRL(m.amount)}
+                      {formatMoney(m.amount)}
                     </span>
                   </li>
                 ))
@@ -160,10 +160,10 @@ export default async function CaixaUnidadePage({
                   {h.difference !== null ? (
                     <span className={h.difference === 0 ? 'text-muted' : h.difference > 0 ? 'text-green-600' : 'text-red-600'}>
                       {h.difference > 0 ? '+' : ''}
-                      {formatBRL(h.difference)}
+                      {formatMoney(h.difference)}
                     </span>
                   ) : (
-                    formatBRL(h.openingAmount)
+                    formatMoney(h.openingAmount)
                   )}
                 </span>
               </li>

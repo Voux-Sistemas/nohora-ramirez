@@ -147,7 +147,12 @@ export function depositAmount(
   return Math.max(0, Math.min(amount, total))
 }
 
-/** Formata centavos como moeda brasileira. */
-export function formatBRL(cents: number): string {
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
+/*
+  Aqui existia um `formatBRL` travado em real, exportado pelo pacote e usado por
+  ninguém além do próprio teste. Foi removido em vez de traduzido: formatação de
+  moeda depende do país, o país vem do ambiente, e `packages/core` é domínio
+  puro — não lê ambiente. Quem formata dinheiro é `apps/web/src/lib/format.ts`.
+
+  O risco de deixar era o nome: duas funções iguais, uma delas devolvendo reais
+  para um salão que cobra em euros, e o import errado não dá erro nenhum.
+*/

@@ -5,7 +5,7 @@ import { BookingShell } from '@/components/booking/shell'
 import { Avatar } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import {
-  formatBRL,
+  formatMoney,
   formatDateLong,
   formatDateShort,
   formatDuration,
@@ -318,7 +318,7 @@ export default async function EscolherHorarioPage({
 
             <p className="text-muted tnum mt-6 border-t border-(--border-subtle) pt-4 text-sm">
               {formatDuration(daySlots[0]!.totalDurationMin)} no salão ·{' '}
-              {formatBRL(daySlots[0]!.totalPrice)}
+              {formatMoney(daySlots[0]!.totalPrice)}
               <span className="text-muted"> · pagamento no dia</span>
             </p>
           </>

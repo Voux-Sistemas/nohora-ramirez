@@ -2,7 +2,7 @@ import { priceRange, resolvePrice } from '@studio/core'
 import { notFound } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
 import { ServicePicker, type PickableService } from '@/components/booking/service-picker'
-import { formatBRL } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { todayInUnit } from '@/server/scheduling/availability'
 import {
   deliverableServices,
@@ -90,6 +90,6 @@ function depositLabel(
   price: number,
 ): string | null {
   if (!deposit) return null
-  if (deposit.type === 'fixed') return formatBRL(deposit.cents)
-  return `${deposit.bps / 100}% (${formatBRL(Math.round((price * deposit.bps) / 10_000))})`
+  if (deposit.type === 'fixed') return formatMoney(deposit.cents)
+  return `${deposit.bps / 100}% (${formatMoney(Math.round((price * deposit.bps) / 10_000))})`
 }

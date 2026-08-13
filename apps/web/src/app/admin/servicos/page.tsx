@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
-import { formatBRL, formatDuration } from '@/lib/format'
+import { formatMoney, formatDuration } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listCategories, listServicesAdmin } from '@/server/admin/services'
 import { requireRede } from '@/server/auth/permissoes'
@@ -102,7 +102,7 @@ export default async function ServicosPage() {
                       {formatDuration(s.setupMin + s.processingMin + s.finishMin)}
                     </td>
                     <td className="tnum px-4 py-3 text-right align-top font-medium whitespace-nowrap">
-                      {formatBRL(s.basePrice)}
+                      {formatMoney(s.basePrice)}
                     </td>
                   </tr>
                 ))}

@@ -5,7 +5,7 @@ import { DayGrid, type GridColumn } from '@/components/agenda/day-grid'
 import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { podeGerir, requireAcesso, requireUnidade } from '@/server/auth/permissoes'
 import { todayInUnit } from '@/server/scheduling/availability'
@@ -115,11 +115,11 @@ export default async function AgendaDoDiaPage({
             {gerir ? (
               <>
                 {' · '}
-                <Num>{formatBRL(counters.revenue)}</Num> no caixa
+                <Num>{formatMoney(counters.revenue)}</Num> no caixa
                 {counters.expected > counters.revenue ? (
                   <>
                     {' de '}
-                    <span className="tnum">{formatBRL(counters.expected)}</span> previstos
+                    <span className="tnum">{formatMoney(counters.expected)}</span> previstos
                   </>
                 ) : null}
               </>

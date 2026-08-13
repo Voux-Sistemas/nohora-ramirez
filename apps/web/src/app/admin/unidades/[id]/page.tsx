@@ -1,11 +1,19 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AdminShell, Section, backTo } from '@/components/admin/shell'
+import { GaleriaDaLoja } from '@/components/admin/gallery'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
-import { getUnitAdmin, type HoursRow, type UnitRow } from '@/server/admin/units'
+import { pais } from '@/lib/pais'
+import { getUnitAdmin, listUnitPhotos, type HoursRow, type UnitRow } from '@/server/admin/units'
 import { podeSuporte, requireRede, requireSuporte } from '@/server/auth/permissoes'
-import { adicionarExcecao, removerExcecao, salvarUnidade } from './actions'
+import {
+  adicionarExcecao,
+  adicionarFotos,
+  cuidarDaFoto,
+  removerExcecao,
+  salvarUnidade,
+} from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -20,7 +28,7 @@ const BLANK_UNIT: UnitRow = {
   city: null,
   state: null,
   postalCode: null,
-  timezone: 'America/Sao_Paulo',
+  timezone: pais().fusoPadrao,
   active: true,
   imageUrl: null,
   settings: {
@@ -47,9 +55,12 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
   const data = isNew ? null : await getUnitAdmin(id)
   if (!isNew && !data) notFound()
 
+  const photos = isNew ? [] : await listUnitPhotos(id)
+
   const unit = data?.unit ?? BLANK_UNIT
   const hours = data?.hours ?? []
   const exceptions = data?.exceptions ?? []
+  const { rotulos, maxRegiao, exemploCodigoPostal } = pais()
 
   return (
     <AdminShell
@@ -108,7 +119,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
               <input className="field" name="addressLine" defaultValue={unit.addressLine ?? ''} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Bairro
+              {rotulos.subdivisao}
               <input className="field" name="district" defaultValue={unit.district ?? ''} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
@@ -116,12 +127,22 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
               <input className="field" name="city" defaultValue={unit.city ?? ''} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Estado (UF)
-              <input className="field" name="state" maxLength={2} defaultValue={unit.state ?? ''} />
+              {rotulos.regiao}
+              <input
+                className="field"
+                name="state"
+                maxLength={maxRegiao}
+                defaultValue={unit.state ?? ''}
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              CEP
-              <input className="field" name="postalCode" defaultValue={unit.postalCode ?? ''} />
+              {rotulos.codigoPostal}
+              <input
+                className="field"
+                name="postalCode"
+                placeholder={exemploCodigoPostal}
+                defaultValue={unit.postalCode ?? ''}
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               Fuso horário
@@ -256,6 +277,29 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           Salvar unidade
         </Button>
       </form>
+
+      {/*
+        Fora do formulário de cima, como as exceções: cada fotografia é gravada
+        no momento em que se mexe nela, e não junto com o resto do cadastro. Um
+        `<form>` dentro de outro não é HTML válido, e mesmo que fosse, subir uma
+        foto não devia obrigar a salvar o horário de funcionamento.
+
+        Só numa unidade que já existe: a chave do ficheiro no bucket é montada
+        com o id da unidade, que numa unidade nova ainda não foi gerado.
+      */}
+      {isNew ? null : (
+        <Section
+          title="A casa"
+          hint="O ensaio que aparece na página pública da loja, nesta ordem. A primeira é também a que abre a página quando não há foto de capa."
+        >
+          <GaleriaDaLoja
+            unitId={unit.id}
+            fotos={photos}
+            aoAdicionar={adicionarFotos}
+            aoCuidar={cuidarDaFoto}
+          />
+        </Section>
+      )}
 
       {isNew ? null : (
         <Section

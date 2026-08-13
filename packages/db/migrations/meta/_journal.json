@@ -29,6 +29,27 @@
       "when": 1786383183758,
       "tag": "0003_eager_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786584080656,
+      "tag": "0004_broken_penance",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786584357084,
+      "tag": "0005_right_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786584471085,
+      "tag": "0006_stiff_grandmaster",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,12 @@ export const organizations = pgTable('organizations', {
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
   document: text('document'),
-  timezone: text('timezone').notNull().default('America/Sao_Paulo'),
+  /*
+     Fallback de banco, não decisão de produto: quem manda no fuso é a unidade,
+     e o formulário de cadastro sempre envia um. Isto só cobre linha inserida
+     por SQL direto. Está em Lisboa porque é onde a rede em produção opera.
+  */
+  timezone: text('timezone').notNull().default('Europe/Lisbon'),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
   ...timestamps(),
 })
@@ -54,12 +59,42 @@ export const units = pgTable(
      * coluna de texto, o storage fica atrás da URL.
      */
     imageUrl: text('image_url'),
-    timezone: text('timezone').notNull().default('America/Sao_Paulo'),
+    timezone: text('timezone').notNull().default('Europe/Lisbon'),
     active: boolean('active').notNull().default(true),
     settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
     ...timestamps(),
   },
   (t) => [uniqueIndex('units_org_slug_uq').on(t.organizationId, t.slug)],
+)
+
+/**
+ * As fotografias da sala.
+ *
+ * `units.image_url` continua sendo a capa — a foto única que representa a loja
+ * na vitrine e na pauta do dia. Esta tabela é o resto do ensaio: o que a página
+ * da loja mostra para quem quer ver onde vai passar duas horas.
+ *
+ * Tabela em vez de array em `settings` por um motivo prático: o formulário de
+ * unidade reescreve `settings` inteiro a cada gravação, e uma galeria guardada
+ * lá seria apagada em silêncio no dia em que alguém corrigisse o telefone.
+ *
+ * `sortOrder` existe porque a ordem é a composição. Uma loja com três fotos boas
+ * e uma loja com seis contam a mesma história se a primeira for a certa.
+ */
+export const unitPhotos = pgTable(
+  'unit_photos',
+  {
+    id: pk(),
+    unitId: uuid('unit_id')
+      .notNull()
+      .references(() => units.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    /** Descrição para quem não vê a imagem. Vazio é aceito; mentira não. */
+    alt: text('alt'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    ...timestamps(),
+  },
+  (t) => [index('unit_photos_unit_order_idx').on(t.unitId, t.sortOrder)],
 )
 
 /**

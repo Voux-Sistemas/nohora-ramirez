@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Photo } from '@/components/ui/photo'
-import { formatBRL, formatDuration } from '@/lib/format'
+import { formatMoney, formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export interface PickableService {
@@ -153,7 +153,7 @@ export function ServicePicker({
                                 a partir de
                               </span>
                             ) : null}
-                            <span className="tnum">{formatBRL(service.price)}</span>
+                            <span className="tnum">{formatMoney(service.price)}</span>
                           </span>
                         </span>
                         {service.description ? (
@@ -186,7 +186,7 @@ export function ServicePicker({
                 <span className="tnum block truncate font-medium">
                   {chosen.length} {chosen.length === 1 ? 'serviço' : 'serviços'} ·{' '}
                   {totalVaries ? 'a partir de ' : ''}
-                  {formatBRL(total)}
+                  {formatMoney(total)}
                 </span>
                 <span className="text-muted block text-xs">
                   cerca de {formatDuration(duration)} no salão

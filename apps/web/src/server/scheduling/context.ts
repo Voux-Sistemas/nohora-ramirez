@@ -73,7 +73,10 @@ export interface UnitInfo {
   slug: string
   district: string | null
   addressLine: string | null
+  city: string | null
+  postalCode: string | null
   phone: string | null
+  email: string | null
   /** Foto da loja. Ausente é estado legítimo — a placa desenhada assume. */
   imageUrl: string | null
   timezone: string
@@ -142,7 +145,10 @@ function toUnitInfo(row: typeof units.$inferSelect): UnitInfo {
     slug: row.slug,
     district: row.district,
     addressLine: row.addressLine,
+    city: row.city,
+    postalCode: row.postalCode,
     phone: row.phone,
+    email: row.email,
     imageUrl: row.imageUrl,
     timezone: row.timezone,
     settings: parseSettings(row.settings),

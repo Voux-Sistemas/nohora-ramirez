@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { Button } from '@/components/ui/button'
-import { formatBRL, formatDateLong, formatPhone, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listAssignables } from '@/server/admin/services'
 import { listUnitsAdmin } from '@/server/admin/units'
@@ -190,7 +190,7 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
                 </span>
               </div>
               <p className="text-muted mt-0.5">
-                {a.items.map((i) => i.serviceName).join(', ')} — {formatBRL(a.totalPrice)}
+                {a.items.map((i) => i.serviceName).join(', ')} — {formatMoney(a.totalPrice)}
               </p>
               <span className="text-muted text-xs">{STATUS_LABEL[a.status] ?? a.status}</span>
             </li>

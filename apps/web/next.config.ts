@@ -5,12 +5,18 @@ const config: NextConfig = {
   transpilePackages: ['@studio/core', '@studio/db'],
   experimental: {
     /*
-      Server Actions recebem FormData grande no import do onboarding e, agora,
-      a foto da unidade junto com o cadastro. Tem de ficar acima do teto de 8 MB
-      da imagem: se o limite fosse menor, o Next cortaria o corpo antes da nossa
-      validação rodar e a recepção veria erro de framework em vez do recado.
+      Server Actions recebem FormData grande no import do onboarding, a foto da
+      unidade junto com o cadastro e a galeria da loja em lote. Tem de ficar
+      acima do teto de 8 MB da imagem: se o limite fosse menor, o Next cortaria
+      o corpo antes da nossa validação rodar e a recepção veria erro de
+      framework em vez do recado.
+
+      24 MB é o lote da galeria — quatro ou cinco fotografias saídas de um
+      telemóvel de uma vez. O campo avisa antes de enviar quando o lote passa
+      disso, porque estourar aqui não devolve mensagem nenhuma: é o servidor a
+      recusar o corpo, sem chegar ao nosso código.
     */
-    serverActions: { bodySizeLimit: '12mb' },
+    serverActions: { bodySizeLimit: '24mb' },
   },
   typedRoutes: true,
   images: {

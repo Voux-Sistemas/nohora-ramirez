@@ -406,6 +406,19 @@
       color-mix(in oklab, var(--accent) 20%, transparent) 100%
     );
   }
+
+  /* A mesma régua sobre tinta ou fotografia. O bronze do acento foi escurecido
+     para sobreviver à pedra clara e desaparece no escuro de uma foto; aqui vale
+     o bronze claro, o mesmo que já escreve sobre a faixa de tinta do topo. */
+  .rule-bronze-on-ink {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      var(--on-ink-accent) 0%,
+      var(--on-ink-accent) 28%,
+      color-mix(in oklab, var(--on-ink-accent) 18%, transparent) 100%
+    );
+  }
 }
 
 @layer utilities {

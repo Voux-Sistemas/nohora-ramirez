@@ -91,10 +91,9 @@ Sobre imagem, no estado em que está hoje:
 ## Brand Commitments
 
 **Nome confirmado: NOHORA RAMIREZ — Beauty Studio.** Já substituiu o nome de trabalho
-`Studio Lumine` em todo o produto e no banco. O nome antigo só sobrevive como identificador
-do projeto no Railway (`studio-lumine`), que não aparece em nenhuma tela.
+`Studio Lumine` em todo o produto, no banco e no projeto de produção (`salao-producao`).
 
-Logo entregue pelo usuário em `logo salão.jpg` (raster, 640×640, fundo branco). Elementos da
+Logo entregue pelo usuário em `material/logo.jpg` (raster, 640×640, fundo branco). Elementos da
 identidade, observados do arquivo:
 
 - **Monograma NR** em serifa de altíssimo contraste (didone/moderna), com modulação grossa-fina

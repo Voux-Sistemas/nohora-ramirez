@@ -17,6 +17,7 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "seed": "tsx src/seed/index.ts",
+    "cadastro": "tsx src/cadastro/nohora.ts",
     "inspect": "tsx src/inspect.ts",
     "typecheck": "tsc --noEmit"
   },

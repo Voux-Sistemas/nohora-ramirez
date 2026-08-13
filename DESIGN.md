@@ -205,7 +205,7 @@ reescreva o elemento com outra estrutura.
 
 Estão listadas aqui porque são bloqueios de conteúdo, não de código.
 
-1. **Logo vetorizada.** Hoje existe `logo salão.jpg` (raster, fundo branco).
+1. **Logo vetorizada.** Hoje existe `material/logo.jpg` (raster, fundo branco).
    Falta: **SVG com fundo transparente** + **variante monocromática clara** para
    as superfícies de tinta.
 2. **Fotografia real do salão** para as 10 imagens ilustrativas — 3 unidades

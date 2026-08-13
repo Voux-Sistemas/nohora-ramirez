@@ -170,17 +170,27 @@ Vocabulário compartilhado entre as duas — mudou num lugar, muda nos três:
 
 ## 9. Imagem
 
-Unidades e serviços têm `image_url`. O upload é real
-([`components/admin/image-field.tsx`](apps/web/src/components/admin/image-field.tsx)),
-com costura de storage plugável — a decisão de onde hospedar em produção está em
-aberto e foi deixada para o cliente.
+Unidades e serviços têm `image_url`, e a unidade tem ainda uma **galeria**
+(`unit_photos`) com ordem e texto alternativo próprios. O upload é real
+([`components/admin/image-field.tsx`](apps/web/src/components/admin/image-field.tsx)
+e [`components/admin/gallery.tsx`](apps/web/src/components/admin/gallery.tsx)),
+com costura de storage plugável; em produção o driver ativo grava no bucket
+`imagens` do Railway e serve por `/api/imagens/[...key]`.
 
 **Sem foto não é buraco.** `Photo` cai numa placa de tinta com o monograma
 (`components/ui/photo.tsx`), que é um estado desenhado, não uma falha.
 
-> ⚠️ **As 10 fotografias hoje no banco são ilustrativas** (Unsplash) e existem
-> para o desenho ter matéria. Nenhuma é do salão. A lista de reposição está na
-> seção 11.
+**A capa é sempre paisagem.** O herói é uma banda larga: retrato entra na galeria,
+nunca na capa. É por isso que a capa da Maia é a bancada de lavatórios e não o
+retrato dos espelhos suspensos, que é a fotografia mais bonita das nove.
+
+> ✅ **As 9 fotografias das duas lojas são reais** — a dona mandou, estão em
+> `material/fotos/` e entraram no banco pelo `packages/db/src/cadastro/nohora.ts`.
+> Vieram por WhatsApp, comprimidas a 1600 px: publicam, mas os originais valem ser
+> pedidos.
+>
+> ⚠️ **As 7 fotografias de serviço continuam ilustrativas** (Unsplash) e existem
+> para o desenho ter matéria. A lista de reposição está na seção 11.
 
 ## 10. O que este sistema recusa
 
@@ -208,16 +218,21 @@ Estão listadas aqui porque são bloqueios de conteúdo, não de código.
 1. **Logo vetorizada.** Hoje existe `material/logo.jpg` (raster, fundo branco).
    Falta: **SVG com fundo transparente** + **variante monocromática clara** para
    as superfícies de tinta.
-2. **Fotografia real do salão** para as 10 imagens ilustrativas — 3 unidades
-   (Centro, Jardins, Moema) e 7 serviços (Corte feminino, Escova, Hidratação,
-   Limpeza de pele, Manicure, Mechas / luzes, Progressiva). Duas ressalvas
-   específicas:
-   - **Moema está em preto e branco** enquanto Centro e Jardins estão em cor. A
-     rede não parece a mesma rede.
-   - **A foto de Centro mostra a marca "KEVIN.MURPHY" legível na prateleira** —
-     ela sugere uma parceria de varejo que o salão não declarou.
-3. **Onde hospedar as imagens em produção.** O upload funciona e a costura é
-   plugável; falta escolher o destino.
+2. **Fotografia real de serviço** para as 7 imagens ilustrativas que restam
+   (Corte feminino, Escova, Hidratação, Limpeza de pele, Manicure,
+   Mechas / luzes, Progressiva). As de unidade já foram resolvidas com o material
+   da dona. Ressalva que sobrevive: **uma das fotos de banco mostra a marca
+   "KEVIN.MURPHY" legível na prateleira** — sugere uma parceria de varejo que o
+   salão não declarou.
+3. **Originais das fotos das lojas.** As nove que temos passaram pela compressão
+   do WhatsApp (1600 px, 110–235 KB). Pedir por e-mail ou Drive; reenviar por
+   WhatsApp comprime outra vez.
+4. **Horário de funcionamento das duas lojas** e **duração real de cada serviço**.
+   Sem os horários a agenda não abre nenhum turno; as durações hoje no banco são
+   estimativas nossas, marcadas como tais em `packages/db/src/cadastro/precario.ts`.
+5. **Confirmação de que os preços do talão impresso estão em vigor.**
+6. **O vídeo do Instagram da Maia.** A loja tem poucas fotografias boas e um vídeo
+   bem produzido; falta o link do post para decidir como exibir.
 
 ---
 

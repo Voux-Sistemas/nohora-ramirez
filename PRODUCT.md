@@ -12,18 +12,23 @@ web
 
 ## Users
 
-Cinco papéis confirmados, em duas famílias que não compartilham contexto de uso:
+Quatro papéis confirmados, em duas famílias que não compartilham contexto de uso. **Não existe
+papel de recepcionista** — decisão do dono do produto: quem atende ao balcão entra como
+gerente ou como profissional, e a cena de balcão continua existindo sem login próprio.
 
 - **Cliente do salão** (cena: celular, à noite, fora do horário comercial). Marca sozinha,
   escolhe unidade + serviço + profissional favorita, quer ver preço e duração antes de
   confirmar, quer mandar foto de referência. Não quer ligar. Meta de produto: agendar em < 60s.
 - **Profissional** (celular, entre atendimentos). Agenda do dia, ficha do cliente antes de
   começar, extrato de comissão em tempo real — este último é o item que mais gera confiança.
-- **Recepção / atendente** (tablet ou desktop, em pé, o dia inteiro, mão ocupada, cliente
-  esperando na frente). Vive na tela de agenda. Precisa de velocidade acima de tudo.
-- **Gerente de unidade** (desktop). Ocupação, faturamento, escala, estoque da unidade.
-- **Dona / rede** (desktop). Painel consolidado das 3 unidades, comissão da rede, catálogo
+- **Gerente de unidade** (desktop, e tablet em pé no balcão com cliente esperando na frente).
+  Ocupação, faturamento, escala, estoque da unidade — e a tela de agenda, onde precisa de
+  velocidade acima de tudo.
+- **Dona / rede** (desktop). Painel consolidado das unidades, comissão da rede, catálogo
   e regras padronizados.
+
+A profissional enxerga **só a própria agenda** — sem as colunas das colegas. Também decisão do
+dono do produto.
 
 ## Product Purpose
 
@@ -46,10 +51,15 @@ variáveis por profissional e por unidade.
 
 ## Operating Context
 
-- Rede de **3 unidades**, cliente único com histórico consolidado entre elas.
-- Português do Brasil. Moeda BRL. Todo valor monetário é **inteiro em centavos**.
+- O primeiro cliente real, **NOHORA RAMIREZ — Beauty Studio, tem 2 unidades** (Valongo e Maia)
+  e fica em **Portugal**, distrito do Porto. Cliente único com histórico consolidado entre elas.
+- **Moeda e idioma são variáveis, não constantes** (`apps/web/src/lib/pais.ts`): para este
+  cliente é euro, português europeu e fuso `Europe/Lisbon`; o ambiente de demonstração continua
+  em pt-BR e BRL. Todo valor monetário é **inteiro em centavos**.
+- Vocabulário do que a cliente lê segue o país: *preçário, brushing, maquilhagem, verniz,
+  telemóvel, morada*. As telas de operação ainda estão no registro pt-BR — passagem pendente.
 - Cada unidade tem seu próprio fuso horário no schema.
-- A recepção opera de pé, sob luz de salão, com o cliente presente. A cliente final opera no
+- O balcão opera de pé, sob luz de salão, com o cliente presente. A cliente final opera no
   celular, sozinha, muitas vezes fora do horário comercial.
 - **ADR-008 (decisão do dono do produto):** isto é um produto para vender a salões, não uma
   ferramenta para um único estúdio. O estúdio fictício do seed é o **ambiente de demonstração
@@ -79,14 +89,17 @@ Sobre imagem, no estado em que está hoje:
 - `services.image_url`, `units.image_url` e `staff_profiles.avatar_url` são populados e lidos
   pelas telas. Onde não há foto, o componente `Photo` desenha a placa com monograma — e essa
   é a saída normal, não um erro a corrigir com foto de banco.
+- Cada unidade tem, além da capa, uma **galeria** (`unit_photos`) com ordem e texto
+  alternativo próprios, editável em `/admin/unidades/[id]`.
 - O upload real existe e está em produção: `apps/web/src/server/storage/`, com a costura
-  `imageStore()` isolando o driver. O driver ativo é `local`, gravando fora de `public/` e
-  servindo por `/api/imagens/[...key]`.
-- Em produção o `UPLOAD_DIR` aponta para `/data/uploads`, um volume Railway de 5 GB montado
-  no serviço `web` — foto subida pela recepção sobrevive a deploy. Trocar para bucket é
-  escrever um driver novo e mudar `IMAGE_STORE`; nenhuma tela muda.
-- **Toda a fotografia atual é ilustrativa** e precisa ser substituída por foto real do salão
-  antes de qualquer uso comercial. Ver a lista na seção 9 do DESIGN.md.
+  `imageStore()` isolando o driver. **O driver ativo é `s3`**, gravando no bucket `imagens` do
+  Railway e servindo por `/api/imagens/[...key]` — é o único lugar com backup. O volume
+  `UPLOAD_DIR` continua montado mas não é usado.
+- **As fotos das duas lojas são reais**, mandadas pela dona e versionadas em `material/fotos/`.
+  Chegaram por WhatsApp, então estão comprimidas a 1600 px — publicam bem, mas os originais
+  ainda precisam ser pedidos por e-mail ou Drive.
+- **A fotografia de serviço continua ilustrativa** e precisa ser substituída antes de qualquer
+  uso comercial. Ver a lista na seção 9 do DESIGN.md.
 
 ## Brand Commitments
 
@@ -144,14 +157,19 @@ dourado brilhante que é o rendering automático dessa categoria.
   (unidades, horários, profissionais, escalas, serviços, matriz de habilidades, recursos,
   exceções de preço, comissões). Por ADR-008 são referência de formato, não dado de cliente.
 - `packages/db/src/seed/` — estúdio fictício completo. É o ambiente de demonstração.
+- `material/` — o que a dona **de fato** mandou: as nove fotografias das duas lojas, o
+  preçário impresso (`precario.pdf`) e o logo. É a única fonte de dado real de cliente no
+  repositório, e `material/LEIA-ME.md` explica a convenção. Transcrito em
+  `packages/db/src/cadastro/precario.ts` e aplicado por `cadastro/nohora.ts`.
 
 O que **não** existe e não pode ser fabricado: clientes reais, depoimentos, números de
-resultado, preço de licença do software, prazo de implantação, e qualquer imagem de salão
-real. Fotografia usada na demonstração é ilustrativa e precisa ser rotulada como tal na
-lista de substituição entregue ao usuário.
+resultado, preço de licença do software, prazo de implantação, e qualquer imagem de salão que
+não esteja em `material/`. Fotografia de demonstração é ilustrativa e precisa ser rotulada
+como tal na lista de substituição entregue ao usuário.
 
-Decisão de infraestrutura em aberto: onde o upload de imagem vai guardar arquivo
-(bucket do Railway, S3-compatível, ou volume). Precisa virar ADR antes de escrever o código.
+**A duração de cada serviço no banco é estimativa nossa, não dado da dona.** O talão impresso
+só traz preço. Está marcado no cabeçalho de `precario.ts` e na lista de conferência entregue
+ao usuário — nenhuma tela deve apresentar esses minutos como se viessem do salão.
 
 ## Product Principles
 

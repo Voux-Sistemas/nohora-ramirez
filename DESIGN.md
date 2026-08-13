@@ -130,41 +130,78 @@ círculo** da coroa. É intencional e vem da logo original; não é um traço so
 Derivada gráfica: `.rule-bronze`, o fio que fecha um bloco — vem da coroa
 botânica.
 
-## 7. Assinaturas por área
+## 7. As duas áreas, e o mapa
 
-O sistema tem três áreas com temperaturas diferentes de propósito.
+O sistema tinha oito entradas de topo — `/`, `/agendar`, `/loja`, `/conta`,
+`/agenda`, `/caixa`, `/clientes`, `/admin` — cada uma com casca própria, marca
+própria e uma tela de "escolha a unidade" antes de mostrar seja o que for.
+Quem chegava pelo Instagram caía no painel de faturamento da recepção; quem
+trocava de seção no balcão voltava ao começo. **Hoje são duas áreas e duas
+cascas.**
 
-**Área da cliente** (`/agendar/…`) — fotografia, ar, escala grande. É venda.
-O fluxo é unidade → serviços → horário → confirmar → **selo**. É a única área
-que segue o tema do sistema operacional: à noite, no celular da cliente, pode
-escurecer.
+### A área da cliente — quatro telas
 
-**Área de trabalho** (`/`, `/agenda`, `/avisos`, `/caixa`, `/clientes`) —
-densa, sóbria, sem foto decorativa. É a recepção de pé no tablet, sob luz de
-salão. Barra de tinta no topo, colunas estreitas, números tabulares.
+| Rota | O que é |
+|---|---|
+| `/` | A página. Capa em sangria, as casas, o preçário da rede. |
+| `/casa/[slug]` | A casa. Morada, horário, ensaio fotográfico, preçário dela. |
+| `/marcar` | **A marcação inteira, numa tela.** Casa → serviços → com quem → quando → confirmar, com estado próprio e o extrato sempre à vista. Termina no **selo**. |
+| `/minha-conta` | O que está por vir e o que já foi. Cancelar e marcar outra. |
 
-**Área de gestão** (`/admin`) — a mesma sobriedade, mas sentada e mensal em vez
-de em pé e diária: mais ar, tipografia maior, cartão de métrica em faixa,
-listas de resumo em vez de formulário justo. É onde a dona lê o mês e decide
-o que é estrutural — unidade, catálogo, equipe, comissão.
+A casca é [`app/(site)/layout.tsx`](apps/web/src/app/(site)/layout.tsx) —
+cabeçalho de tinta com as quatro portas, rodapé com a morada de cada casa. A
+marcação fica **fora** dela de propósito: é um fluxo com princípio e fim, e uma
+barra de navegação a meio seria um convite a sair. É a área que segue o tema do
+sistema operativo: à noite, no telemóvel da cliente, pode escurecer.
 
-Trabalho e gestão têm o claro forçado (`data-theme="light"` na raiz de cada
-layout, que o `globals.css` lê como se fosse `:root`) **mesmo com o sistema em
-modo escuro**. O escuro é a temperatura da cliente à noite; a pessoa que
-trabalha aqui está de dia, no balcão ou na mesa, e a informação — preço, caixa,
-comissão — precisa ler-se sem ambiguidade nenhuma. `lang="pt-PT"` na raiz e
-Bodoni só em títulos ≥28px continuam valendo nas três áreas por igual.
+### A área da equipa — uma casca, seis secções
 
-Vocabulário compartilhado entre as três — mudou num lugar, muda em todos:
+[`components/shell/painel-shell.tsx`](apps/web/src/components/shell/painel-shell.tsx) —
+barra lateral de tinta a partir de `lg`, barra de topo com rolagem horizontal
+abaixo disso.
 
-- **A pastilha de horário** (`h-14`, `rounded-plate`, borda sutil, afunda 1px ao
-  clicar) é idêntica em `/agendar/…/horarios`, `/agenda/…/encaixe` e
-  `/agenda/…/remarcar/…`.
-- **O navegador de dia** — `[←] quarta-feira, 5 de agosto [→]` — é o mesmo nas
-  três telas em que se anda no calendário.
-- **Selecionado é tinta** em todo o sistema. Não há um segundo idioma de seleção.
+| Rota | O que é |
+|---|---|
+| `/painel` | **Hoje.** A grade do dia da casa, uma coluna por profissional. |
+| `/painel/agenda` | **A agenda de uma pessoa, em dia · semana · mês.** |
+| `/painel/clientes` | A carteira da rede. |
+| `/painel/caixa` | A gaveta da casa. |
+| `/painel/avisos` | A fila de mensagens. |
+| `/painel/gestao/…` | Casas, catálogo, equipa, recursos, comissões. |
 
-## 8. A grade do dia
+**A casa é estado do painel, não do endereço.** Escolhe-se uma vez no selector
+da barra, mora num cookie
+([`server/painel/contexto.ts`](apps/web/src/server/painel/contexto.ts)) e vale
+para agenda, caixa, clientes e avisos. Era o que obrigava a três telas de
+escolha por turno — e o que fazia sair da agenda do Valongo e cair no índice do
+caixa, sem loja nenhuma.
+
+O painel tem o claro forçado (`data-theme="light"` na casca, que o
+`globals.css` lê como se fosse `:root`) **mesmo com o sistema em modo escuro**.
+O escuro é a temperatura da cliente à noite; quem trabalha aqui está de dia, no
+balcão ou à mesa, e a informação — preço, caixa, comissão — precisa de ler-se
+sem ambiguidade nenhuma. `lang="pt-PT"` na raiz e Bodoni só em títulos ≥28px
+continuam a valer nas duas áreas por igual.
+
+### Vocabulário compartilhado — mudou num lugar, muda em todos
+
+- **A pastilha de horário** (`h-14`, `rounded-plate`, borda subtil, afunda 1px
+  ao clicar) é idêntica em `/marcar`, `/painel/encaixe` e `/painel/remarcar/…`.
+- **O navegador de período** — `[Dia|Semana|Mês]` mais `[←] rótulo [→]` mais
+  "Hoje" — é o mesmo nas telas em que se anda no calendário. "Hoje" só aparece
+  quando já não é hoje: um botão que não faz nada ensina a ignorar a barra.
+- **Seleccionado é tinta** em todo o sistema. Não há um segundo idioma de
+  selecção.
+- **O selector nativo** (`<select>`) para casa e para pessoa: no tablet do
+  balcão o menu do sistema tem alvos grandes e funciona com a mão ocupada.
+
+## 8. As duas leituras do tempo
+
+O produto lê o tempo de duas maneiras, e elas respondem a perguntas diferentes.
+Confundi-las foi o que fez a profissional abrir a grade da recepção sete vezes
+para saber como estava a semana dela.
+
+### A grade do dia — o eixo é a casa
 
 [`components/agenda/day-grid.tsx`](apps/web/src/components/agenda/day-grid.tsx)
 é a tela mais densa do produto e a que mais decisões carrega.
@@ -181,6 +218,26 @@ Vocabulário compartilhado entre as três — mudou num lugar, muda em todos:
   ir para a outra ponta da tela.
 - **A linha do agora** só aparece no dia que está correndo. Em qualquer outra
   data seria mentira.
+
+### A agenda da pessoa — o eixo é quem atende
+
+[`components/painel/minha-agenda.tsx`](apps/web/src/components/painel/minha-agenda.tsx).
+Três escalas, três perguntas:
+
+- **Dia** — "o que faço a seguir?". Linha do tempo, hora à esquerda em coluna
+  fixa e tabular, nome da cliente em corpo grande. É o ecrã que fica aberto no
+  telemóvel entre atendimentos.
+- **Semana** — "quando é que tenho um buraco?". Sete colunas curtas: o que se
+  lê é a *forma* da semana. No telemóvel empilha, porque uma coluna de 50px não
+  mostra nome de cliente nenhum e a semana ali serve para percorrer.
+- **Mês** — "como está a correr o mês?". Grade de calendário, seis semanas
+  sempre (altura fixa: uma grade que encolhe faz o botão fugir do dedo ao mudar
+  de mês), e cada dia mostra **peso** — número de visitas e valor —, nunca uma
+  lista de nomes truncados a meio.
+
+Quem gere escolhe de quem é a agenda pelo selector de pessoa. É a resposta à
+pergunta que a dona faz em voz alta — "o que é que a Juliana tem na quinta?" —
+sem abrir a grade de um dia de cada vez à procura de uma coluna.
 
 ## 9. Imagem
 

@@ -39,5 +39,5 @@ export async function instalar(_state: InstalarState, formData: FormData): Promi
 
   // Direto para as unidades: sem pelo menos uma, nada mais no sistema tem onde
   // acontecer. É o primeiro cadastro de verdade, então é para onde a tela leva.
-  redirect('/admin/unidades')
+  redirect('/painel/gestao/unidades')
 }

@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { definirNovaSenha, pedirCodigoDeSenha, type EsqueciState } from '@/app/entrar/esqueci/actions'
+import { definirNovaSenha, pedirCodigoDeSenha, type EsqueciState } from '@/app/entrar/equipa/esqueci/actions'
 import { Button } from '@/components/ui/button'
 import { PhoneInput } from '@/components/ui/phone-input'
 

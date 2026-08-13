@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
-import { importarCsv, type ImportState } from '@/app/clientes/importar/actions'
+import { importarCsv, type ImportState } from '@/app/painel/clientes/importar/actions'
 
 export function ImportForm() {
   const [state, action] = useActionState<ImportState, FormData>(importarCsv, {})

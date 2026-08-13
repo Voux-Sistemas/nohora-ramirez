@@ -27,6 +27,43 @@ const config: NextConfig = {
     serverActions: { bodySizeLimit: '24mb' },
   },
   typedRoutes: true,
+  /*
+    Os endereços antigos.
+
+    A reorganização juntou oito entradas de topo em duas áreas — a da cliente
+    (`/`, `/casa`, `/marcar`, `/minha-conta`) e a da equipa (`/painel/…`). Só
+    que o link de `/loja/valongo` está na bio do Instagram e em conversas de
+    WhatsApp que não podemos reescrever, e a equipa tem `/agenda` guardado nos
+    favoritos do tablet.
+
+    São 308 (permanente) para os endereços públicos, que interessam ao
+    indexador, e 307 (temporário) para os do painel — o caminho da equipa ainda
+    pode mexer-se enquanto o sistema assenta, e um permanente fica preso no
+    navegador de quem o abriu uma vez.
+  */
+  async redirects() {
+    return [
+      { source: '/loja', destination: '/', permanent: true },
+      { source: '/loja/:slug', destination: '/casa/:slug', permanent: true },
+      { source: '/agendar', destination: '/marcar', permanent: true },
+      { source: '/agendar/:slug', destination: '/marcar?casa=:slug', permanent: true },
+      { source: '/agendar/:slug/:rest*', destination: '/marcar?casa=:slug', permanent: true },
+      { source: '/conta', destination: '/minha-conta', permanent: true },
+      { source: '/conta/entrar', destination: '/entrar', permanent: true },
+      { source: '/conta/verificar', destination: '/entrar/codigo', permanent: true },
+
+      { source: '/agenda', destination: '/painel', permanent: false },
+      { source: '/agenda/:slug', destination: '/painel', permanent: false },
+      { source: '/caixa', destination: '/painel/caixa', permanent: false },
+      { source: '/caixa/:slug', destination: '/painel/caixa', permanent: false },
+      { source: '/clientes', destination: '/painel/clientes', permanent: false },
+      { source: '/clientes/:id', destination: '/painel/clientes/:id', permanent: false },
+      { source: '/avisos', destination: '/painel/avisos', permanent: false },
+      { source: '/avisos/:slug', destination: '/painel/avisos', permanent: false },
+      { source: '/admin', destination: '/painel/gestao', permanent: false },
+      { source: '/admin/:rest*', destination: '/painel/gestao/:rest*', permanent: false },
+    ]
+  },
   images: {
     /*
       As fotos do catálogo de demonstração são hospedadas fora. Quando o salão

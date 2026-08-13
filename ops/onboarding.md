@@ -8,13 +8,13 @@ tela depende da anterior.
 
 | # | Onde | Por que antes do seguinte |
 | --- | --- | --- |
-| 1 | `/comecar` | cria a primeira conta; sem ela ninguém entra no `/admin` |
-| 2 | `/admin/unidades` | tudo pendura em unidade: equipe, agenda, caixa |
-| 3 | `/admin/recursos` | o serviço marca o tipo de recurso que exige |
-| 4 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
-| 5 | `/admin/equipe` | a ficha marca os serviços que a pessoa executa |
+| 1 | `/comecar` | cria a primeira conta; sem ela ninguém entra no `/painel` |
+| 2 | `/painel/gestao/unidades` | tudo pendura em unidade: equipe, agenda, caixa |
+| 3 | `/painel/gestao/recursos` | o serviço marca o tipo de recurso que exige |
+| 4 | `/painel/gestao/servicos` | o preço e a duração vêm daqui para a agenda |
+| 5 | `/painel/gestao/equipe` | a ficha marca os serviços que a pessoa executa |
 | 6 | escala, dentro da ficha | sem escala a profissional não tem coluna na agenda |
-| 7 | `/admin/comissoes` | precisa da equipe e do catálogo já cadastrados |
+| 7 | `/painel/gestao/comissoes` | precisa da equipe e do catálogo já cadastrados |
 
 Dá para voltar e ajustar qualquer um depois. O que não dá é pular o 2 e o 6: sem
 unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipe
@@ -26,7 +26,7 @@ A conta do `/comecar` é de quem instalou o sistema — normalmente não a dona 
 salão. É de propósito: quem monta o ambiente precisa entrar antes de a dona
 existir, e o código de instalação some assim que a primeira conta nasce.
 
-A conta da dona vem depois, em `/admin/equipe`, com o acesso **Dona** marcado —
+A conta da dona vem depois, em `/painel/gestao/equipe`, com o acesso **Dona** marcado —
 o que exige estar em `TELEFONES_SUPORTE`, porque conceder esse degrau é do
 suporte. Ela enxerga a rede inteira e mexe no cadastro, igual à primeira conta.
 As duas convivem sem problema, e o sistema recusa tirar o acesso da última —

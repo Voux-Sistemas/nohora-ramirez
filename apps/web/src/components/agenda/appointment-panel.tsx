@@ -52,16 +52,18 @@ export function AppointmentPanel({
   appointment,
   timezone,
   closeHref,
-  unitSlug,
   gerir = true,
 }: {
   appointment: AppointmentView
   timezone: string
   closeHref: string
-  unitSlug: string
   /** Falso para quem só cuida do próprio atendimento. */
   gerir?: boolean
 }) {
+  /* A loja deixou de fazer parte destes endereços: comanda e remarcação são de
+     um ATENDIMENTO, e o atendimento já sabe em que casa acontece. Carregar o
+     slug até aqui era o que obrigava cada tela a saber de que loja era a
+     agenda que a abriu. */
   const steps = NEXT_STEP[appointment.status] ?? []
   const open = !CLOSED.has(appointment.status)
 
@@ -78,7 +80,7 @@ export function AppointmentPanel({
         <div>
           <h2 className="text-lg font-semibold">
             {gerir ? (
-              <Link href={href(`/clientes/${appointment.clientId}`)} className="hover:underline">
+              <Link href={href(`/painel/clientes/${appointment.clientId}`)} className="hover:underline">
                 {appointment.clientName}
               </Link>
             ) : (
@@ -147,7 +149,7 @@ export function AppointmentPanel({
       {gerir && appointment.status === 'completed' ? (
         <div className="mt-5">
           <Link
-            href={href(`/agenda/${unitSlug}/comanda/${appointment.id}`)}
+            href={href(`/painel/atendimento/${appointment.id}`)}
             className={cn(buttonVariants({ size: 'sm' }))}
           >
             Fechar comanda
@@ -167,7 +169,7 @@ export function AppointmentPanel({
             ))}
             {gerir ? (
               <Link
-                href={`/agenda/${unitSlug}/remarcar/${appointment.id}`}
+                href={href(`/painel/remarcar/${appointment.id}`)}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
               >
                 Remarcar

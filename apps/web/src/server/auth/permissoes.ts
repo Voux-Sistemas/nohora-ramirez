@@ -194,22 +194,25 @@ export function unidadesVisiveis<T extends { id: string }>(
 /**
  * A tela inicial de cada degrau.
  *
- * Para a profissional o início é a agenda: "Hoje na rede" mostra o caixa das
- * três lojas, que não é dela. Mandar para cá também é o destino de quem tenta
- * abrir uma tela que não lhe cabe — sair no próprio começo é menos confuso do
- * que um erro.
+ * Para a profissional o início é a própria agenda: "Hoje" mostra o caixa das
+ * lojas, que não é dela. Mandar para cá também é o destino de quem tenta abrir
+ * uma tela que não lhe cabe — sair no próprio começo é menos confuso do que um
+ * erro.
  */
 export function inicio(acesso: Acesso): Route {
-  return acesso.papel === 'profissional' ? '/agenda' : '/'
+  return (acesso.papel === 'profissional' ? '/painel/agenda' : '/painel') as Route
 }
 
 // ─── porteiros de tela ──────────────────────────────────────────────────────
 
 export async function requireAcesso(): Promise<Acesso> {
   const session = await getSession()
-  if (!session) redirect('/entrar')
+  /* A porta da equipa, não a da cliente: quem chegou a uma tela do painel sem
+     sessão trabalha aqui, e mandá-lo para o formulário de código por e-mail
+     seria mandá-lo esperar por uma mensagem que ele não vai receber. */
+  if (!session) redirect('/entrar/equipa')
   const acesso = await acessoDe(session)
-  if (!acesso) redirect('/entrar')
+  if (!acesso) redirect('/entrar/equipa')
   return acesso
 }
 

@@ -126,6 +126,6 @@ export async function getSession(): Promise<SessionUser | null> {
 /** Redireciona para o login da cliente se não houver sessão com papel de cliente. */
 export async function requireClientSession(): Promise<SessionUser> {
   const session = await getSession()
-  if (!session || !session.clientId) redirect('/conta/entrar')
+  if (!session || !session.clientId) redirect('/entrar')
   return session
 }

@@ -22,7 +22,16 @@ import type { GrupoPrecario } from '@/server/vitrine'
  * mantém o bloco inteiro de um lado só — meia lista de "Mãos e Pés" numa coluna
  * e metade na outra faria a cliente ler o mesmo título duas vezes.
  */
-export function Precario({ grupos }: { grupos: readonly GrupoPrecario[] }) {
+export function Precario({
+  grupos,
+}: {
+  /* `variaPorCasa` só existe no preçário da rede, onde uma linha pode valer
+     números diferentes em cada loja. Na página de uma casa o campo não vem, e
+     o preço é o preço — sem "desde" nenhum a semear dúvida. */
+  grupos: readonly (Omit<GrupoPrecario, 'itens'> & {
+    itens: readonly (GrupoPrecario['itens'][number] & { variaPorCasa?: boolean })[]
+  })[]
+}) {
   if (grupos.length === 0) return null
 
   return (
@@ -49,6 +58,9 @@ export function Precario({ grupos }: { grupos: readonly GrupoPrecario[] }) {
                 {/* `tnum` alinha a coluna de preços; `whitespace-nowrap` impede
                     que "120,00 €" parta entre o número e o símbolo. */}
                 <dd className="tnum shrink-0 text-[0.9375rem] whitespace-nowrap text-(--text-strong)">
+                  {item.variaPorCasa ? (
+                    <span className="text-muted mr-1 text-[0.8125rem] not-italic">desde</span>
+                  ) : null}
                   {formatMoney(item.preco)}
                 </dd>
               </div>

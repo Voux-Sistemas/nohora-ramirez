@@ -2,43 +2,63 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { pedirCodigo, type EstadoTelefone } from '@/app/entrar/actions'
 import { Button } from '@/components/ui/button'
 import { PhoneInput } from '@/components/ui/phone-input'
-import { pedirCodigo, type PhoneState } from '@/app/conta/entrar/actions'
+import { pais } from '@/lib/pais'
 
-export function PhoneForm() {
-  const [state, action] = useActionState<PhoneState, FormData>(pedirCodigo, {})
+/**
+ * `demo` vem do servidor e não de `ehTeste()` aqui dentro: `AMBIENTE` não é
+ * exposta ao navegador (só `PAIS` é, ver `next.config.ts`), então a chamada
+ * daria sempre "produção" e o campo da demonstração desapareceria justamente
+ * no ambiente onde ele é a única forma de entrar.
+ */
+export function PhoneForm({ demo = false }: { demo?: boolean }) {
+  const [estado, accao] = useActionState<EstadoTelefone, FormData>(pedirCodigo, {})
+  const { rotulos } = pais()
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
-        Telefone
-        <PhoneInput className="field" name="telefone" required />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Senha (só para login de teste)
-        <input className="field" name="senha" type="password" autoComplete="off" />
+    <form action={accao} className="flex flex-col gap-4">
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        {rotulos.telemovel}
+        <PhoneInput className="field font-normal" name="telefone" required autoFocus />
       </label>
 
-      {state.error ? (
+      {/*
+        O campo de senha só existe para o atalho da demonstração. Em produção
+        ele seria um campo que não faz nada — e um campo que não faz nada num
+        formulário de entrada é o que faz uma pessoa achar que se esqueceu de
+        uma senha que nunca teve.
+      */}
+      {demo ? (
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Senha
+          <span className="text-muted -mt-1 text-[0.75rem] font-normal">
+            só para as contas de demonstração
+          </span>
+          <input className="field" name="senha" type="password" autoComplete="off" />
+        </label>
+      ) : null}
+
+      {estado.erro ? (
         <p
           role="alert"
-          className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 p-3 text-sm text-(--color-signal-bad)"
+          className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 px-4 py-3 text-sm text-(--color-signal-bad)"
         >
-          {state.error}
+          {estado.erro}
         </p>
       ) : null}
 
-      <SubmitButton />
+      <Enviar rotulo="Receber código" aDecorrer="A enviar…" />
     </form>
   )
 }
 
-function SubmitButton() {
+function Enviar({ rotulo, aDecorrer }: { rotulo: string; aDecorrer: string }) {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? 'Enviando…' : 'Receber código'}
+      {pending ? aDecorrer : rotulo}
     </Button>
   )
 }

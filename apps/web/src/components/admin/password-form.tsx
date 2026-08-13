@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
-import { salvarSenha, type PasswordState } from '@/app/admin/equipe/[id]/actions'
+import { salvarSenha, type PasswordState } from '@/app/painel/gestao/equipe/[id]/actions'
 
 /* Só o `staffId` viaja: de qual conta é a senha é o servidor que decide, olhando
    o cadastro. Com o `userId` no formulário, trocar esse campo trocava a senha de

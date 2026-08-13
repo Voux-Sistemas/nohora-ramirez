@@ -12,8 +12,8 @@ coisa que já deu (ou daria) trabalho descobrir na hora errada.
 ## A primeira conta
 
 Banco novo não tem ninguém, e o sistema não deixa entrar quem não existe:
-`/admin` exige sessão de equipe, e a senha da equipe só se define **dentro** de
-`/admin`. Instalado e inacessível é um estado real — a produção subiu nele.
+`/painel` exige sessão de equipe, e a senha da equipe só se define **dentro** de
+`/painel`. Instalado e inacessível é um estado real — a produção subiu nele.
 
 A saída é `/comecar`, que cria a conta da dona (papel `owner`, escopo de rede) e
 já entra com ela. A tela existe sob duas condições ao mesmo tempo:
@@ -83,7 +83,7 @@ Três coisas que não são óbvias e mordem se esquecidas:
   a quem ninguém decidiu dar. Quando esses papéis existirem de verdade, o caminho
   é entrar na tabela `DEGRAUS` de propósito.
 
-Quem nomeia gerente é a dona, em `/admin/equipe`. O formulário grava uma linha de
+Quem nomeia gerente é a dona, em `/painel/gestao/equipe`. O formulário grava uma linha de
 `unit_manager` por unidade marcada.
 
 ### O que só o suporte faz
@@ -93,10 +93,10 @@ vez e que ninguém desfaz por dentro depois.
 
 | O quê | Onde | Por que não é da dona |
 | --- | --- | --- |
-| Abrir uma unidade | `/admin/unidades/nova` | mexe em cobrança e tudo pendura em unidade |
+| Abrir uma unidade | `/painel/gestao/unidades/nova` | mexe em cobrança e tudo pendura em unidade |
 | Mudar o slug de uma unidade | ficha da unidade | é o link já impresso em cartão e no Instagram |
-| Criar um tipo de recurso | `/admin/recursos` | muda as três lojas e não existe tela de apagar |
-| Dar (ou tirar) acesso de **dona** | `/admin/equipe` | entrega o cadastro da rede e não tem volta fácil |
+| Criar um tipo de recurso | `/painel/gestao/recursos` | muda as três lojas e não existe tela de apagar |
+| Dar (ou tirar) acesso de **dona** | `/painel/gestao/equipe` | entrega o cadastro da rede e não tem volta fácil |
 
 O quarto vale nas duas direções de propósito: sem isso, a dona que abrisse a
 ficha da sócia e salvasse qualquer outro campo a rebaixaria sem querer, porque a
@@ -107,7 +107,7 @@ escala, comissão, horário de funcionamento, feriado, foto, endereço, telefone
 as regras de agendamento de cada loja. Adicionar mais uma cabine do tipo que já
 existe também é dela — o que passa por nós é inventar um tipo novo.
 
-As telas de rede (`/admin/unidades`, `/admin/servicos`, `/admin/comissoes`) somem
+As telas de rede (`/painel/gestao/unidades`, `/painel/gestao/servicos`, `/painel/gestao/comissoes`) somem
 da navegação do gerente e recusam a ação no servidor. As ações de operação
 (caixa, comanda, encaixe, remarcar, avisos) descobrem a unidade **lendo a linha
 do banco**, nunca o campo escondido do formulário — é o que impede um id trocado
@@ -183,7 +183,7 @@ Mudar a variável exige redeploy, que o Railway faz sozinho ao salvar.
 ### Ligar a área da cliente
 
 A cliente entra com o telefone e recebe um código de seis dígitos por e-mail.
-Enquanto não houver por onde enviar, `/conta/entrar` não mostra formulário
+Enquanto não houver por onde enviar, `/entrar` não mostra formulário
 nenhum — diz que a área está em preparo e manda falar com o salão. Para abrir:
 
 1. Registrar o domínio `.com.br` e verificá-lo no [Resend](https://resend.com)

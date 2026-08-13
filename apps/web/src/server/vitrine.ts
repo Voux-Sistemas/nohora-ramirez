@@ -112,6 +112,57 @@ export async function rede(): Promise<Rede | null> {
   return { nome: org.nome, instagram }
 }
 
+/**
+ * O preçário da rede, para a página inicial.
+ *
+ * Não é o preçário de uma loja repetido: cada casa pode ter a sua excepção de
+ * preço, e imprimir o número do Valongo numa página que fala das duas seria
+ * mentir para metade de quem lê. Quando as casas divergem, o item passa a
+ * dizer "desde" com o menor dos valores — que é o que um preçário de rede pode
+ * prometer sem se desdizer na tela seguinte.
+ *
+ * A duração mostrada é a maior encontrada, pela mesma razão ao contrário:
+ * quem reserva a tarde precisa do pior caso, não do melhor.
+ */
+export interface ItemPrecarioRede extends ItemPrecario {
+  /** As casas não cobram o mesmo — o número é um piso, não o preço. */
+  variaPorCasa: boolean
+}
+
+export interface GrupoPrecarioRede extends Omit<GrupoPrecario, 'itens'> {
+  itens: ItemPrecarioRede[]
+}
+
+export async function precarioDaRede(
+  unidades: readonly UnitInfo[],
+): Promise<GrupoPrecarioRede[]> {
+  if (unidades.length === 0) return []
+
+  const porCasa = await Promise.all(unidades.map((unidade) => precarioDaLoja(unidade.id)))
+
+  const grupos = new Map<string, GrupoPrecarioRede>()
+  for (const lista of porCasa) {
+    for (const grupo of lista) {
+      const alvo = grupos.get(grupo.id) ?? { ...grupo, itens: [] }
+      for (const item of grupo.itens) {
+        const existente = alvo.itens.find((candidato) => candidato.id === item.id)
+        if (!existente) {
+          alvo.itens.push({ ...item, variaPorCasa: false })
+          continue
+        }
+        if (existente.preco !== item.preco) {
+          existente.variaPorCasa = true
+          existente.preco = Math.min(existente.preco, item.preco)
+        }
+        existente.duracaoMin = Math.max(existente.duracaoMin, item.duracaoMin)
+      }
+      grupos.set(grupo.id, alvo)
+    }
+  }
+
+  return [...grupos.values()]
+}
+
 export async function fotosDaLoja(unitId: string): Promise<FotoDaLoja[]> {
   const rows = await db
     .select({ url: unitPhotos.url, alt: unitPhotos.alt })

@@ -2,44 +2,54 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { entrarComoEquipa, type EstadoLogin } from '@/app/entrar/actions'
 import { Button } from '@/components/ui/button'
 import { PhoneInput } from '@/components/ui/phone-input'
-import { entrarComoEquipe, type LoginState } from '@/app/entrar/actions'
+import { pais } from '@/lib/pais'
 
-export function StaffLoginForm({ next }: { next: string }) {
-  const [state, action] = useActionState<LoginState, FormData>(entrarComoEquipe, {})
+export function StaffLoginForm({ destino }: { destino: string }) {
+  const [estado, accao] = useActionState<EstadoLogin, FormData>(entrarComoEquipa, {})
+  const { rotulos } = pais()
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <input type="hidden" name="next" value={next} />
-      <label className="flex flex-col gap-1 text-sm">
-        Telefone
-        <PhoneInput className="field" name="telefone" required />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Senha
-        <input className="field" name="senha" type="password" autoComplete="current-password" required />
+    <form action={accao} className="flex flex-col gap-4">
+      <input type="hidden" name="destino" value={destino} />
+
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        {rotulos.telemovel}
+        <PhoneInput className="field font-normal" name="telefone" required autoFocus />
       </label>
 
-      {state.error ? (
+      <label className="flex flex-col gap-1.5 text-sm font-medium">
+        Senha
+        <input
+          className="field"
+          name="senha"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
+      </label>
+
+      {estado.erro ? (
         <p
           role="alert"
-          className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 p-3 text-sm text-(--color-signal-bad)"
+          className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 px-4 py-3 text-sm text-(--color-signal-bad)"
         >
-          {state.error}
+          {estado.erro}
         </p>
       ) : null}
 
-      <SubmitButton />
+      <Enviar />
     </form>
   )
 }
 
-function SubmitButton() {
+function Enviar() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? 'Entrando…' : 'Entrar'}
+      {pending ? 'A entrar…' : 'Entrar'}
     </Button>
   )
 }

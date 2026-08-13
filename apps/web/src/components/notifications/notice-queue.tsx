@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { desfazerAviso, marcarComoAvisado } from '@/app/avisos/actions'
+import { desfazerAviso, marcarComoAvisado } from '@/app/painel/avisos/actions'
 import { buttonVariants } from '@/components/ui/button'
 import { formatTime } from '@/lib/format'
 import { cn } from '@/lib/utils'

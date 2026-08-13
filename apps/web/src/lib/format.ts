@@ -16,6 +16,21 @@ export function formatMoney(cents: number): string {
   return (cents / 100).toLocaleString(locale, { style: 'currency', currency: moeda })
 }
 
+/**
+ * O símbolo da moeda do país configurado — "€", "R$".
+ *
+ * Existe porque havia "R$" escrito à mão no rótulo de cinco campos do caixa,
+ * num salão português. `formatMoney` já respeitava o país; os rótulos ao lado
+ * dos campos é que continuavam a dizer real, e ninguém repara num rótulo até
+ * lançar o valor errado.
+ */
+export function simboloMoeda(): string {
+  const { locale, moeda } = pais()
+  return (0)
+    .toLocaleString(locale, { style: 'currency', currency: moeda, maximumFractionDigits: 0 })
+    .replace(/[\d\s .,]/g, '')
+}
+
 /** Sem cêntimos — para números grandes de painel. */
 export function formatMoneyShort(cents: number): string {
   const { locale, moeda } = pais()

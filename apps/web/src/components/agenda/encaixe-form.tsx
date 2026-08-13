@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { criarEncaixe, type EncaixeState } from '@/app/agenda/[unidade]/encaixe/actions'
+import { criarEncaixe, type EncaixeState } from '@/app/painel/encaixe/actions'
 import { Button } from '@/components/ui/button'
 import { PhoneInput } from '@/components/ui/phone-input'
 

@@ -56,7 +56,7 @@ export default async function EquipePage() {
                 <td className="text-muted p-3">{s.papel}</td>
                 <td className="p-3">{s.acceptsOnlineBooking ? 'sim' : 'não'}</td>
                 <td className="p-3">
-                  <span className={s.active ? 'text-green-700 dark:text-green-400' : 'text-muted'}>
+                  <span className={s.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                     {s.active ? 'ativo' : 'inativo'}
                   </span>
                 </td>

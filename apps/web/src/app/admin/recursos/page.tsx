@@ -71,7 +71,7 @@ export default async function RecursosPage() {
                   <td className="text-muted p-3">{r.resourceTypeName}</td>
                   <td className="text-muted p-3">{r.priority}</td>
                   <td className="p-3">
-                    <span className={r.active ? 'text-green-700 dark:text-green-400' : 'text-muted'}>
+                    <span className={r.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                       {r.active ? 'ativo' : 'inativo'}
                     </span>
                   </td>

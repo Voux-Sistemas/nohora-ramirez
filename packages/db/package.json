@@ -18,6 +18,7 @@
     "studio": "drizzle-kit studio",
     "seed": "tsx src/seed/index.ts",
     "cadastro": "tsx src/cadastro/nohora.ts",
+    "equipe-temporaria": "tsx src/cadastro/equipe-temporaria.ts",
     "inspect": "tsx src/inspect.ts",
     "typecheck": "tsc --noEmit"
   },

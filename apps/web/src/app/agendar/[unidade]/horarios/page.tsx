@@ -2,6 +2,7 @@ import { addDaysInZone, isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
+import { UnitContextCard } from '@/components/booking/unit-context-card'
 import { Avatar } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -107,6 +108,23 @@ export default async function EscolherHorarioPage({
       subtitle={chosen.map((service) => service.name).join(' + ')}
       back={`/agendar/${unidade}`}
       backLabel="Mudar os serviços"
+      rail={
+        <div className="flex flex-col gap-6">
+          <UnitContextCard unit={unit} />
+          <div className="plate p-5">
+            <p className="label-caps text-muted">Serviços escolhidos</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {chosen.map((service) => (
+                <li key={service.id}>{service.name}</li>
+              ))}
+            </ul>
+            <p className="text-muted tnum mt-4 border-t border-(--border-subtle) pt-3 text-sm">
+              {formatDuration(chosen.reduce((sum, service) => sum + service.clientDurationMin, 0))}{' '}
+              no salão
+            </p>
+          </div>
+        </div>
+      }
     >
       <section aria-labelledby="profissional">
         <SectionHead id="profissional">Profissional</SectionHead>

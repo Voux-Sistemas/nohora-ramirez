@@ -18,6 +18,11 @@ import { listClientsDirectory, type ClientDirectoryRow } from '@/server/people/c
  * letra é a busca que não exige digitar.
  */
 
+/* A aba de índice na margem do desktop precisa do alfabeto inteiro, não só
+   das letras que aparecem — senão "faltam" letras em vez de aparecerem
+   apagadas, e a régua muda de tamanho a cada busca. */
+const ALFABETO = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#']
+
 /** Fatia a lista já ordenada em blocos por inicial, preservando a ordem. */
 function porInicial(clients: ClientDirectoryRow[]): [string, ClientDirectoryRow[]][] {
   const blocos: [string, ClientDirectoryRow[]][] = []
@@ -65,9 +70,40 @@ export default async function ClientesPage({
   const { q } = await searchParams
   const clients = await listClientsDirectory(q ?? '')
   const blocos = porInicial(clients)
+  const presentes = new Set(blocos.map(([letra]) => letra))
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      {/* A aba do índice: mesma ideia da unha recortada na lateral de uma
+          agenda telefônica de papel, só que sem recortar nada. Some abaixo de
+          lg — no celular o polegar já rola o próprio dedo pela lista. */}
+      {blocos.length > 1 ? (
+        <nav
+          aria-label="Ir para a letra"
+          className="fixed top-1/2 right-3 z-(--z-sticky) hidden -translate-y-1/2 flex-col items-center xl:flex"
+        >
+          {ALFABETO.map((letra) =>
+            presentes.has(letra) ? (
+              <a
+                key={letra}
+                href={`#bloco-${letra}`}
+                className="text-muted flex h-4 w-4 items-center justify-center text-[0.625rem] leading-none font-medium transition-colors hover:text-(--accent)"
+              >
+                {letra}
+              </a>
+            ) : (
+              <span
+                key={letra}
+                aria-hidden
+                className="flex h-4 w-4 items-center justify-center text-[0.625rem] leading-none text-(--border-strong)"
+              >
+                {letra}
+              </span>
+            ),
+          )}
+        </nav>
+      ) : null}
+
       {/* Sem "← início": a barra de cima já leva a Hoje, e dois caminhos iguais
           a um palmo um do outro só fazem parar para escolher. */}
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -124,7 +160,8 @@ export default async function ClientesPage({
           {blocos.map(([letra, linhas]) => (
             <section
               key={letra}
-              className="mt-5 grid grid-cols-[1.75rem_1fr] gap-x-3 first:mt-3 sm:grid-cols-[2.5rem_1fr] sm:gap-x-4"
+              id={`bloco-${letra}`}
+              className="mt-5 scroll-mt-6 grid grid-cols-[1.75rem_1fr] gap-x-3 first:mt-3 sm:grid-cols-[2.5rem_1fr] sm:gap-x-4"
             >
               {/*
                 A letra mora na margem, não numa faixa própria. Como faixa, um

@@ -50,7 +50,7 @@ export default async function UnidadesPage() {
                 <td className="p-3">{u.city ?? '—'}</td>
                 <td className="p-3">{u.phone ?? '—'}</td>
                 <td className="p-3">
-                  <span className={u.active ? 'text-green-700 dark:text-green-400' : 'text-muted'}>
+                  <span className={u.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                     {u.active ? 'ativa' : 'inativa'}
                   </span>
                 </td>

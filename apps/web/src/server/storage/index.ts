@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { Readable } from 'node:stream'
+
 /*
   Costura de storage.
 
@@ -132,7 +134,6 @@ function localStore(): ImageStore {
       const { createReadStream } = await import('node:fs')
       const { stat } = await import('node:fs/promises')
       const { join, normalize, sep } = await import('node:path')
-      const { Readable } = await import('node:stream')
 
       /*
         Cinto e suspensório: a rota já recusa chave com `..` ou barra invertida,

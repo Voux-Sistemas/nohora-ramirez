@@ -24,8 +24,10 @@ export function PasswordForm({ staffId }: { staffId: string }) {
           <input className="field" type="password" name="confirmar" minLength={8} required />
         </label>
       </div>
-      {state.error ? <p className="text-sm text-red-700 dark:text-red-300">{state.error}</p> : null}
-      {state.success ? <p className="text-sm text-green-700 dark:text-green-400">Senha atualizada.</p> : null}
+      {state.error ? <p className="text-sm text-(--color-signal-bad)">{state.error}</p> : null}
+      {state.success ? (
+        <p className="text-sm text-(--color-signal-good)">Senha atualizada.</p>
+      ) : null}
       <div>
         <SubmitButton />
       </div>

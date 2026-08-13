@@ -48,7 +48,9 @@ export default async function ComissoesPage() {
                   <td className="p-3 text-right">
                     <form action={excluirRegra}>
                       <input type="hidden" name="id" value={r.id} />
-                      <button className="text-muted text-xs hover:text-red-700 hover:underline">excluir</button>
+                      <button className="text-muted text-xs hover:text-(--color-signal-bad) hover:underline">
+                        excluir
+                      </button>
                     </form>
                   </td>
                 </tr>

@@ -15,6 +15,13 @@ const STEPS = ['Unidade', 'Serviços', 'Horário', 'Confirmar'] as const
  *
  * O rodapé é pedra clara, não tinta: a ação principal é um botão de tinta, e
  * tinta sobre tinta não existe.
+ *
+ * `rail`: no celular o passo continua uma coluna só — é o desenho que já
+ * funciona com o polegar. A partir de `lg` sobra largura de verdade, e uma
+ * tela de decisão com uma coluna de 672px cercada de nada não é "adaptada
+ * para computador", é a tela do celular esticada. O rail é onde mora o que
+ * ancora a decisão em telas grandes — a casa em fotografia, o que já foi
+ * escolhido — fixo enquanto a coluna principal rola.
  */
 export function BookingShell({
   step,
@@ -23,6 +30,8 @@ export function BookingShell({
   back,
   backLabel = 'Voltar',
   width = 'narrow',
+  rail,
+  railFirst = false,
   children,
   footer,
 }: {
@@ -34,17 +43,46 @@ export function BookingShell({
   backLabel?: string
   /** `wide` para as telas que mostram fotografia em grade. */
   width?: 'narrow' | 'wide'
+  /** Coluna de contexto, só a partir de `lg`. Ignorada com `width="wide"`. */
+  rail?: React.ReactNode
+  /**
+   * No celular o rail nasce depois do conteúdo — é apoio, não a decisão. A
+   * confirmação inverte: ali o rail é o extrato que a cliente precisa ver
+   * antes de datilografar o telefone, então ele vem primeiro nos dois tamanhos.
+   */
+  railFirst?: boolean
   children: React.ReactNode
   /** Barra fixa no rodapé — é onde mora a ação principal. */
   footer?: React.ReactNode
 }) {
   const shell = width === 'wide' ? 'max-w-5xl' : 'max-w-2xl'
+  const hasRail = Boolean(rail) && width !== 'wide'
+  const outer = hasRail ? 'max-w-[68rem]' : shell
   const pct = (step / STEPS.length) * 100
+
+  const body = (
+    <>
+      {back ? (
+        <Link
+          href={back as never}
+          className="text-muted mb-5 inline-flex items-center gap-1.5 text-sm transition-colors hover:text-(--text-strong)"
+        >
+          <span aria-hidden>←</span>
+          {backLabel}
+        </Link>
+      ) : null}
+
+      <h1 className="display display-lg">{title}</h1>
+      {subtitle ? <p className="text-body measure mt-3 text-[1.0625rem]">{subtitle}</p> : null}
+
+      <div className="mt-9 sm:mt-11">{children}</div>
+    </>
+  )
 
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="bg-(--surface-ink) text-(--on-ink)">
-        <div className={cn('mx-auto flex w-full items-center gap-4 px-5 py-4 sm:px-8', shell)}>
+        <div className={cn('mx-auto flex w-full items-center gap-4 px-5 py-4 sm:px-8', outer)}>
           <Link href="/" className="shrink-0 rounded-plate">
             <Wordmark size="sm" align="left" />
           </Link>
@@ -69,26 +107,22 @@ export function BookingShell({
         </div>
       </header>
 
-      <main className={cn('mx-auto w-full flex-1 px-5 pt-7 pb-36 sm:px-8 sm:pt-12', shell)}>
-        {back ? (
-          <Link
-            href={back as never}
-            className="text-muted mb-5 inline-flex items-center gap-1.5 text-sm transition-colors hover:text-(--text-strong)"
-          >
-            <span aria-hidden>←</span>
-            {backLabel}
-          </Link>
-        ) : null}
-
-        <h1 className="display display-lg">{title}</h1>
-        {subtitle ? <p className="text-body measure mt-3 text-[1.0625rem]">{subtitle}</p> : null}
-
-        <div className="mt-9 sm:mt-11">{children}</div>
+      <main className={cn('mx-auto w-full flex-1 px-5 pt-7 pb-36 sm:px-8 sm:pt-12', outer)}>
+        {hasRail ? (
+          <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-16">
+            <div className={cn('mx-auto w-full', shell, 'lg:mx-0', railFirst && 'order-2 lg:order-1')}>
+              {body}
+            </div>
+            <aside className={cn('lg:sticky lg:top-28', railFirst && 'order-1 lg:order-2')}>{rail}</aside>
+          </div>
+        ) : (
+          body
+        )}
       </main>
 
       {footer ? (
         <div className="fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-(--border-subtle) bg-(--surface-raised)/95 shadow-(--shadow-lift) backdrop-blur-md">
-          <div className={cn('mx-auto w-full px-5 py-3 sm:px-8', shell)}>{footer}</div>
+          <div className={cn('mx-auto w-full px-5 py-3 sm:px-8', outer)}>{footer}</div>
         </div>
       ) : null}
     </div>

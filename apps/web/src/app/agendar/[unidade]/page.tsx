@@ -2,6 +2,7 @@ import { priceRange, resolvePrice } from '@studio/core'
 import { notFound } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
 import { ServicePicker, type PickableService } from '@/components/booking/service-picker'
+import { UnitContextCard } from '@/components/booking/unit-context-card'
 import { formatMoney } from '@/lib/format'
 import { todayInUnit } from '@/server/scheduling/availability'
 import {
@@ -72,6 +73,7 @@ export default async function EscolherServicosPage({
       title="O que você vai fazer hoje?"
       subtitle={`${unit.name}${unit.district ? ` · ${unit.district}` : ''}`}
       back="/agendar"
+      rail={<UnitContextCard unit={unit} />}
     >
       {services.length === 0 ? (
         <p className="text-muted">

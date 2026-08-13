@@ -10,7 +10,7 @@ function Erro({ mensagem }: { mensagem?: string }) {
   return (
     <p
       role="alert"
-      className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 p-3 text-sm text-(--color-signal-bad)"
     >
       {mensagem}
     </p>

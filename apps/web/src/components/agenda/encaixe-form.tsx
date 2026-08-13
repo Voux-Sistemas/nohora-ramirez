@@ -58,7 +58,7 @@ export function EncaixeForm({
       </Field>
 
       {state.error ? (
-        <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <p className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 px-3 py-2 text-sm text-(--color-signal-bad)">
           {state.error}
         </p>
       ) : null}

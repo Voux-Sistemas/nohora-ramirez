@@ -132,16 +132,30 @@ botânica.
 
 ## 7. Assinaturas por área
 
-O sistema tem duas áreas com temperaturas diferentes de propósito.
+O sistema tem três áreas com temperaturas diferentes de propósito.
 
 **Área da cliente** (`/agendar/…`) — fotografia, ar, escala grande. É venda.
-O fluxo é unidade → serviços → horário → confirmar → **selo**.
+O fluxo é unidade → serviços → horário → confirmar → **selo**. É a única área
+que segue o tema do sistema operacional: à noite, no celular da cliente, pode
+escurecer.
 
-**Área de operação** (`/`, `/agenda`, `/caixa`, `/clientes`, `/admin`) — densa,
-sóbria, sem foto decorativa. É trabalho. Barra de tinta no topo, colunas
-estreitas, números tabulares.
+**Área de trabalho** (`/`, `/agenda`, `/avisos`, `/caixa`, `/clientes`) —
+densa, sóbria, sem foto decorativa. É a recepção de pé no tablet, sob luz de
+salão. Barra de tinta no topo, colunas estreitas, números tabulares.
 
-Vocabulário compartilhado entre as duas — mudou num lugar, muda nos três:
+**Área de gestão** (`/admin`) — a mesma sobriedade, mas sentada e mensal em vez
+de em pé e diária: mais ar, tipografia maior, cartão de métrica em faixa,
+listas de resumo em vez de formulário justo. É onde a dona lê o mês e decide
+o que é estrutural — unidade, catálogo, equipe, comissão.
+
+Trabalho e gestão têm o claro forçado (`data-theme="light"` na raiz de cada
+layout, que o `globals.css` lê como se fosse `:root`) **mesmo com o sistema em
+modo escuro**. O escuro é a temperatura da cliente à noite; a pessoa que
+trabalha aqui está de dia, no balcão ou na mesa, e a informação — preço, caixa,
+comissão — precisa ler-se sem ambiguidade nenhuma. `lang="pt-PT"` na raiz e
+Bodoni só em títulos ≥28px continuam valendo nas três áreas por igual.
+
+Vocabulário compartilhado entre as três — mudou num lugar, muda em todos:
 
 - **A pastilha de horário** (`h-14`, `rounded-plate`, borda sutil, afunda 1px ao
   clicar) é idêntica em `/agendar/…/horarios`, `/agenda/…/encaixe` e

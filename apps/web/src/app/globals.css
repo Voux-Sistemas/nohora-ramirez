@@ -116,7 +116,15 @@
   Papéis semânticos. Componente nunca chama cor bruta — chama papel. É o que faz
   o white-label funcionar sem tocar em componente.
 */
-:root {
+/*
+  `[data-theme='light']` além de `:root`: o mesmo claro precisa poder ser
+  aplicado numa sub-árvore (a área de gestão, que fica clara mesmo com o
+  sistema em escuro — ver DESIGN.md secção 7), não só no documento inteiro.
+  Um atributo direto no elemento sempre vence o valor herdado do :root escuro,
+  então isto basta — sem precisar duplicar o bloco embaixo.
+*/
+:root,
+[data-theme='light'] {
   color-scheme: light;
 
   --surface: var(--color-stone-100);

@@ -52,30 +52,30 @@ export default async function RecursosPage() {
 
       <Section title="Instâncias" hint="Cada linha é um recurso físico de verdade — duas cabines são duas linhas.">
         <div className="surface rounded-card mb-4 overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-[0.9375rem]">
             <thead className="text-muted border-b border-(--border-subtle) text-left">
               <tr>
-                <th className="p-3 font-medium">Nome</th>
-                <th className="p-3 font-medium">Unidade</th>
-                <th className="p-3 font-medium">Tipo</th>
-                <th className="p-3 font-medium">Prioridade</th>
-                <th className="p-3 font-medium">Status</th>
-                <th className="p-3" />
+                <th className="p-3.5 font-medium">Nome</th>
+                <th className="p-3.5 font-medium">Unidade</th>
+                <th className="p-3.5 font-medium">Tipo</th>
+                <th className="p-3.5 font-medium">Prioridade</th>
+                <th className="p-3.5 font-medium">Status</th>
+                <th className="p-3.5" />
               </tr>
             </thead>
             <tbody>
               {resources.map((r) => (
                 <tr key={r.id} className="border-b border-(--border-subtle) last:border-0">
-                  <td className="p-3 font-medium">{r.name}</td>
-                  <td className="text-muted p-3">{r.unitName}</td>
-                  <td className="text-muted p-3">{r.resourceTypeName}</td>
-                  <td className="text-muted p-3">{r.priority}</td>
-                  <td className="p-3">
+                  <td className="p-3.5 font-medium">{r.name}</td>
+                  <td className="text-muted p-3.5">{r.unitName}</td>
+                  <td className="text-muted p-3.5">{r.resourceTypeName}</td>
+                  <td className="text-muted p-3.5">{r.priority}</td>
+                  <td className="p-3.5">
                     <span className={r.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                       {r.active ? 'ativo' : 'inativo'}
                     </span>
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3.5 text-right">
                     <form action={alternarRecurso}>
                       <input type="hidden" name="id" value={r.id} />
                       <input type="hidden" name="name" value={r.name} />

@@ -6,9 +6,9 @@ import { requireAcesso } from '@/server/auth/permissoes'
 export default async function AgendaLayout({ children }: { children: React.ReactNode }) {
   const acesso = await requireAcesso()
   return (
-    <>
+    <div data-theme="light" className="contents">
       <OperateTopbar acesso={acesso} active="agenda" />
       {children}
-    </>
+    </div>
   )
 }

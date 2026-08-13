@@ -26,13 +26,13 @@ export default async function UnidadesPage() {
       }
     >
       <div className="surface rounded-card overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-[0.9375rem]">
           <thead className="text-muted border-b border-(--border-subtle) text-left">
             <tr>
-              <th className="p-3 font-medium">Nome</th>
-              <th className="p-3 font-medium">Cidade</th>
-              <th className="p-3 font-medium">Telefone</th>
-              <th className="p-3 font-medium">Status</th>
+              <th className="p-3.5 font-medium">Nome</th>
+              <th className="p-3.5 font-medium">Cidade</th>
+              <th className="p-3.5 font-medium">Telefone</th>
+              <th className="p-3.5 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -41,15 +41,15 @@ export default async function UnidadesPage() {
                 key={u.id}
                 className="border-b border-(--border-subtle) last:border-0 hover:bg-(--surface-sunken)"
               >
-                <td className="p-3">
+                <td className="p-3.5">
                   <Link href={href(`/admin/unidades/${u.id}`)} className="font-medium hover:underline">
                     {u.name}
                   </Link>
                   <div className="text-muted text-xs">/{u.slug}</div>
                 </td>
-                <td className="p-3">{u.city ?? '—'}</td>
-                <td className="p-3">{u.phone ?? '—'}</td>
-                <td className="p-3">
+                <td className="p-3.5">{u.city ?? '—'}</td>
+                <td className="p-3.5">{u.phone ?? '—'}</td>
+                <td className="p-3.5">
                   <span className={u.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                     {u.active ? 'ativa' : 'inativa'}
                   </span>

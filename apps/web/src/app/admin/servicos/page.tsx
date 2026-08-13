@@ -49,7 +49,7 @@ export default async function ServicosPage() {
         <p className="text-muted">Nenhum serviço cadastrado ainda.</p>
       ) : (
         <div className="surface rounded-card mb-5 overflow-x-auto">
-          <table className="w-full min-w-3xl text-sm">
+          <table className="w-full min-w-3xl text-[0.9375rem]">
             {/*
               O preço fecha a linha. Ele era a terceira de quatro colunas, com
               as ressalvas depois — e uma tabela de preços em que o preço não é
@@ -86,7 +86,7 @@ export default async function ServicosPage() {
                     key={s.id}
                     className="border-b border-(--border-subtle) last:border-0 hover:bg-(--surface-sunken)"
                   >
-                    <td className="px-4 py-3 align-top">
+                    <td className="px-4 py-3.5 align-top">
                       <Link
                         href={href(`/admin/servicos/${s.id}`)}
                         className="font-medium hover:underline"
@@ -98,10 +98,10 @@ export default async function ServicosPage() {
                         <p className="text-muted mt-0.5 text-xs">{ressalvas(s).join(' · ')}</p>
                       ) : null}
                     </td>
-                    <td className="text-muted tnum px-4 py-3 align-top whitespace-nowrap">
+                    <td className="text-muted tnum px-4 py-3.5 align-top whitespace-nowrap">
                       {formatDuration(s.setupMin + s.processingMin + s.finishMin)}
                     </td>
-                    <td className="tnum px-4 py-3 text-right align-top font-medium whitespace-nowrap">
+                    <td className="tnum px-4 py-3.5 text-right align-top font-medium whitespace-nowrap">
                       {formatMoney(s.basePrice)}
                     </td>
                   </tr>

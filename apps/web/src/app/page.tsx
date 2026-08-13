@@ -114,7 +114,7 @@ export default async function HomePage() {
   })
 
   return (
-    <>
+    <div data-theme="light" className="contents">
       <OperateTopbar acesso={acesso} active="hoje" />
 
       {/*
@@ -185,7 +185,7 @@ export default async function HomePage() {
           ) : null}
         </div>
       </main>
-    </>
+    </div>
   )
 }
 

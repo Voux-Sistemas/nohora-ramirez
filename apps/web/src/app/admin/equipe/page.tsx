@@ -25,15 +25,15 @@ export default async function EquipePage() {
       }
     >
       <div className="surface rounded-card overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-[0.9375rem]">
           <thead className="text-muted border-b border-(--border-subtle) text-left">
             <tr>
-              <th className="p-3 font-medium">Nome</th>
-              <th className="p-3 font-medium">Telefone</th>
-              <th className="p-3 font-medium">Unidades</th>
-              <th className="p-3 font-medium">Acesso</th>
-              <th className="p-3 font-medium">Online</th>
-              <th className="p-3 font-medium">Status</th>
+              <th className="p-3.5 font-medium">Nome</th>
+              <th className="p-3.5 font-medium">Telefone</th>
+              <th className="p-3.5 font-medium">Unidades</th>
+              <th className="p-3.5 font-medium">Acesso</th>
+              <th className="p-3.5 font-medium">Online</th>
+              <th className="p-3.5 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -42,7 +42,7 @@ export default async function EquipePage() {
                 key={s.id}
                 className="border-b border-(--border-subtle) last:border-0 hover:bg-(--surface-sunken)"
               >
-                <td className="p-3">
+                <td className="p-3.5">
                   <Link href={href(`/admin/equipe/${s.id}`)} className="flex items-center gap-2 font-medium hover:underline">
                     <span
                       className="inline-block h-2.5 w-2.5 rounded-full"
@@ -51,11 +51,11 @@ export default async function EquipePage() {
                     {s.name}
                   </Link>
                 </td>
-                <td className="p-3">{formatPhone(s.phone)}</td>
-                <td className="text-muted p-3">{s.unitNames.join(', ') || '—'}</td>
-                <td className="text-muted p-3">{s.papel}</td>
-                <td className="p-3">{s.acceptsOnlineBooking ? 'sim' : 'não'}</td>
-                <td className="p-3">
+                <td className="p-3.5">{formatPhone(s.phone)}</td>
+                <td className="text-muted p-3.5">{s.unitNames.join(', ') || '—'}</td>
+                <td className="text-muted p-3.5">{s.papel}</td>
+                <td className="p-3.5">{s.acceptsOnlineBooking ? 'sim' : 'não'}</td>
+                <td className="p-3.5">
                   <span className={s.active ? 'text-(--color-signal-good)' : 'text-muted'}>
                     {s.active ? 'ativo' : 'inativo'}
                   </span>

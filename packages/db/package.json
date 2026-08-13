@@ -19,6 +19,7 @@
     "seed": "tsx src/seed/index.ts",
     "cadastro": "tsx src/cadastro/nohora.ts",
     "equipe-temporaria": "tsx src/cadastro/equipe-temporaria.ts",
+    "dona-temporaria": "tsx src/cadastro/dona-temporaria.ts",
     "inspect": "tsx src/inspect.ts",
     "typecheck": "tsc --noEmit"
   },

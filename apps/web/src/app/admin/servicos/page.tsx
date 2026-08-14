@@ -15,6 +15,20 @@ function ressalvas(s: { onlineBookable: boolean; requiresAssessment: boolean }):
   return lista
 }
 
+/**
+ * Âncora para saltar da lista de categorias para o trecho da tabela.
+ *
+ * Acento vira hífen em vez de ser desacentuado: o alvo é um `id` de HTML que
+ * só precisa de ser determinístico dentro da própria página, e uma tabela de
+ * regex de diacríticos aqui seria peso para não resolver nada.
+ */
+function ancora(nome: string): string {
+  return `cat-${nome
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')}`
+}
+
 export default async function ServicosPage() {
   const acesso = await requireRede()
   const [services, categories] = await Promise.all([listServicesAdmin(), listCategories()])
@@ -24,13 +38,18 @@ export default async function ServicosPage() {
     const key = service.categoryName ?? 'Sem categoria'
     byCategory.set(key, [...(byCategory.get(key) ?? []), service])
   }
+  const ativos = services.filter((s) => s.active).length
 
   return (
     <AdminShell
       acesso={acesso}
       active="/admin/servicos"
       title="Serviços"
-      subtitle="Catálogo da rede: preço, duração composta, sinal e quem pode executar."
+      meta={
+        services.length > 0
+          ? `${services.length} serviços · ${ativos} ativos · ${byCategory.size} categorias`
+          : undefined
+      }
       actions={
         <Link href="/admin/servicos/novo">
           <Button size="sm">+ novo serviço</Button>
@@ -38,97 +57,120 @@ export default async function ServicosPage() {
       }
     >
       {/*
-        Uma tabela só para o catálogo inteiro, e não uma por categoria.
-        Cada tabela dimensiona as próprias colunas: com cinco tabelas
-        empilhadas, o preço de "Escova" caía num lugar e o de "Mechas" em
-        outro, e a tabela de preços de um salão existe justamente para ser
-        lida na vertical. A categoria vira uma linha de intertítulo dentro da
-        mesma grade — a coluna continua sendo uma coluna.
+        O catálogo à esquerda e as categorias à direita, lado a lado. Antes as
+        categorias eram um bloco no fim de quarenta linhas de tabela — para
+        acrescentar uma, a dona rolava o catálogo inteiro. Agora são também o
+        índice: cada uma salta para o seu trecho da tabela.
       */}
-      <Section title="Catálogo" hint="Preço e duração já compostos; ressalvas como legenda sob o nome.">
-        {services.length === 0 ? (
-          <p className="text-muted">Nenhum serviço cadastrado ainda.</p>
-        ) : (
-          <div className="surface rounded-card overflow-x-auto">
-          <table className="w-full min-w-3xl text-[0.9375rem]">
-            {/*
-              O preço fecha a linha. Ele era a terceira de quatro colunas, com
-              as ressalvas depois — e uma tabela de preços em que o preço não é
-              a última coisa da linha obriga a voltar o olho para achá-lo. As
-              ressalvas ("só recepção", "avaliação") pertencem ao serviço, não
-              a uma coluna própria: viraram legenda embaixo do nome, onde só
-              ocupam altura nas poucas linhas que as têm.
-            */}
-            <colgroup>
-              <col />
-              <col className="w-44" />
-              <col className="w-32" />
-            </colgroup>
-            <thead className="sr-only">
-              <tr>
-                <th>Serviço</th>
-                <th>Duração</th>
-                <th>Preço</th>
-              </tr>
-            </thead>
-            {[...byCategory.entries()].map(([categoryName, rows]) => (
-              <tbody key={categoryName}>
-                <tr>
-                  <th
-                    colSpan={3}
-                    scope="colgroup"
-                    className="text-muted border-y border-(--border-subtle) bg-(--surface-sunken) px-4 py-2 text-left text-xs font-medium"
-                  >
-                    {categoryName}
-                  </th>
-                </tr>
-                {rows.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="border-b border-(--border-subtle) last:border-0 hover:bg-(--surface-sunken)"
-                  >
-                    <td className="px-4 py-3.5 align-top">
-                      <Link
-                        href={href(`/admin/servicos/${s.id}`)}
-                        className="font-medium hover:underline"
-                      >
-                        {s.name}
-                      </Link>
-                      {!s.active ? <span className="text-muted ml-2 text-xs">inativo</span> : null}
-                      {ressalvas(s).length > 0 ? (
-                        <p className="text-muted mt-0.5 text-xs">{ressalvas(s).join(' · ')}</p>
-                      ) : null}
-                    </td>
-                    <td className="text-muted tnum px-4 py-3.5 align-top whitespace-nowrap">
-                      {formatDuration(s.setupMin + s.processingMin + s.finishMin)}
-                    </td>
-                    <td className="tnum px-4 py-3.5 text-right align-top font-medium whitespace-nowrap">
-                      {formatMoney(s.basePrice)}
-                    </td>
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_16rem] xl:items-start">
+        <Section title="Catálogo" className="mb-0">
+          {services.length === 0 ? (
+            <p className="text-muted plate p-10 text-center text-sm">
+              Nenhum serviço cadastrado ainda.
+            </p>
+          ) : (
+            <div className="plate overflow-x-auto">
+              {/*
+                Uma tabela só para o catálogo inteiro, e não uma por categoria.
+                Cada tabela dimensiona as próprias colunas: com cinco tabelas
+                empilhadas, o preço de "Escova" caía num lugar e o de "Mechas"
+                em outro, e a tabela de preços de um salão existe justamente
+                para ser lida na vertical. A categoria vira uma linha de
+                intertítulo dentro da mesma grade.
+              */}
+              <table className="w-full min-w-2xl text-[0.9375rem]">
+                {/*
+                  O preço fecha a linha. As ressalvas ("só recepção",
+                  "avaliação") pertencem ao serviço, não a uma coluna própria:
+                  são legenda debaixo do nome, onde só ocupam altura nas poucas
+                  linhas que as têm.
+                */}
+                <colgroup>
+                  <col />
+                  <col className="w-40" />
+                  <col className="w-36" />
+                </colgroup>
+                <thead className="sr-only">
+                  <tr>
+                    <th>Serviço</th>
+                    <th>Duração</th>
+                    <th>Preço</th>
                   </tr>
+                </thead>
+                {[...byCategory.entries()].map(([categoryName, rows]) => (
+                  <tbody key={categoryName}>
+                    <tr>
+                      <th
+                        colSpan={3}
+                        scope="colgroup"
+                        id={ancora(categoryName)}
+                        className="text-muted label-caps border-y border-(--border-subtle) bg-(--surface-sunken) px-5 py-2 text-left scroll-mt-6"
+                      >
+                        {categoryName}
+                      </th>
+                    </tr>
+                    {rows.map((s) => (
+                      <tr
+                        key={s.id}
+                        className="border-b border-(--border-subtle) transition-colors last:border-0 hover:bg-(--surface-sunken)"
+                      >
+                        <td className="px-5 py-3.5 align-top">
+                          <Link
+                            href={href(`/admin/servicos/${s.id}`)}
+                            className="font-medium hover:underline"
+                          >
+                            {s.name}
+                          </Link>
+                          {!s.active ? (
+                            <span className="text-muted ml-2 text-xs">inativo</span>
+                          ) : null}
+                          {ressalvas(s).length > 0 ? (
+                            <p className="text-muted mt-0.5 text-xs">{ressalvas(s).join(' · ')}</p>
+                          ) : null}
+                        </td>
+                        <td className="text-muted tnum px-5 py-3.5 align-top whitespace-nowrap">
+                          {formatDuration(s.setupMin + s.processingMin + s.finishMin)}
+                        </td>
+                        <td className="tnum px-5 py-3.5 text-right align-top font-medium whitespace-nowrap">
+                          {formatMoney(s.basePrice)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 ))}
-              </tbody>
-            ))}
-          </table>
-        </div>
-      )}
-      </Section>
+              </table>
+            </div>
+          )}
+        </Section>
 
-      <Section title="Categorias" hint="Organizam o catálogo na tela de agendamento.">
-        <ul className="mb-4 flex flex-wrap gap-2">
-          {categories.map((c) => (
-            <li key={c.id} className="rounded-full border border-(--border-subtle) px-3 py-1 text-sm">
-              {c.name}
-            </li>
-          ))}
-        </ul>
-        <form action={criarCategoria} className="flex gap-2">
-          <input className="field max-w-xs" name="name" placeholder="Nome da categoria" required />
-          <Button type="submit" variant="outline" size="sm">
-            + adicionar
-          </Button>
-        </form>
-      </Section>
+        <Section title="Categorias" className="mb-0 xl:sticky xl:top-8">
+          <ul className="mb-4 flex flex-col">
+            {categories.map((c) => {
+              const quantos = byCategory.get(c.name)?.length ?? 0
+              return (
+                <li key={c.id}>
+                  <a
+                    href={`#${ancora(c.name)}`}
+                    className="text-muted hover:text-(--text-strong) flex items-baseline justify-between gap-3 border-b border-(--border-subtle) py-2 text-sm transition-colors"
+                  >
+                    <span className="min-w-0 truncate">{c.name}</span>
+                    <span className="tnum shrink-0 text-xs">{quantos}</span>
+                  </a>
+                </li>
+              )
+            })}
+            {categories.length === 0 ? (
+              <li className="text-muted text-sm">Nenhuma categoria ainda.</li>
+            ) : null}
+          </ul>
+          <form action={criarCategoria} className="flex flex-col gap-2">
+            <input className="field" name="name" placeholder="Nome da categoria" required />
+            <Button type="submit" variant="outline" size="sm">
+              + adicionar
+            </Button>
+          </form>
+        </Section>
+      </div>
     </AdminShell>
   )
 }

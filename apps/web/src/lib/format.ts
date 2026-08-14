@@ -50,6 +50,14 @@ export function formatDateLong(isoDate: string): string {
   })
 }
 
+/** "agosto" — para o painel dizer, por extenso, que mês está a ler. */
+export function formatMonthLong(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
+    month: 'long',
+    timeZone: 'UTC',
+  })
+}
+
 export function formatDateShort(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
     day: '2-digit',

@@ -73,7 +73,10 @@ export function OperateTopbar({
       o bronze sem que nenhum filho precise saber que está sobre tinta.
     */
     <header className="bg-(--surface-ink) text-(--on-ink) [--focus:var(--on-ink-accent)]">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 sm:px-6">
+      {/* A mesma moldura de 90rem da gestão: a barra é a chapa de cima da
+          aplicação, e uma chapa mais estreita do que o conteúdo que segura
+          denuncia que a tela foi desenhada para outro ecrã. */}
+      <div className="mx-auto flex w-full max-w-[90rem] items-center gap-4 px-4 sm:px-6 lg:px-8">
         {/*
           O mesmo logotipo da vitrine, no mesmo tamanho, sobre a mesma faixa de
           tinta: é o que faz a oficina e a tela da cliente serem a mesma casa.

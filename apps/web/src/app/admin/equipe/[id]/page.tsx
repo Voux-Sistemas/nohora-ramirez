@@ -1,6 +1,5 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { AdminShell, Section, backTo } from '@/components/admin/shell'
+import { AdminShell, Ficha, Section } from '@/components/admin/shell'
 import { FormActions } from '@/components/admin/form-actions'
 import { PasswordForm } from '@/components/admin/password-form'
 import { Button } from '@/components/ui/button'
@@ -20,7 +19,11 @@ const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sext
 
 /* Do mais fraco para o mais forte: a leitura de cima para baixo é a de quem
    vai subindo alguém de degrau, que é o movimento comum. */
-const ACESSOS: readonly { papel: StaffDetail['papel']; titulo: string; explica: string }[] = [
+const ACESSOS: readonly {
+  papel: StaffDetail['papel']
+  titulo: string
+  explica: string
+}[] = [
   {
     papel: 'profissional',
     titulo: 'Profissional',
@@ -55,7 +58,11 @@ const BLANK_STAFF: StaffDetail = {
   papel: 'profissional',
 }
 
-export default async function ProfissionalFormPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProfissionalFormPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const acesso = await requireGestao()
   const rede = podeRede(acesso)
   const suporte = podeSuporte(acesso)
@@ -85,178 +92,232 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
   const scheduleByWeekday = new Map(schedule.map((s) => [s.weekday, s]))
 
   return (
-    <AdminShell acesso={acesso} active="/admin/equipe" title={isNew ? 'Novo profissional' : staff.name}>
-      <Link href={backTo('/admin/equipe')} className="text-muted mb-4 inline-block text-sm hover:underline">
-        ← equipe
-      </Link>
+    <AdminShell
+      acesso={acesso}
+      active="/admin/equipe"
+      title={isNew ? 'Novo profissional' : staff.name}
+      meta={
+        isNew
+          ? undefined
+          : [
+              ACESSOS.find((opcao) => opcao.papel === staff.papel)?.titulo,
+              todasUnidades
+                .filter((u) => unitIds.has(u.id))
+                .map((u) => u.name)
+                .join(', '),
+            ]
+              .filter(Boolean)
+              .join(' · ')
+      }
+    >
+      <Ficha voltarPara="/admin/equipe" voltarLabel="equipe">
+        <form action={salvarProfissional}>
+          <input type="hidden" name="id" value={id} />
 
-      <form action={salvarProfissional}>
-        <input type="hidden" name="id" value={id} />
-
-        <Section title="Dados">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              Nome
-              <input className="field" name="name" defaultValue={staff.name} required />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Telefone
-              <input className="field" name="phone" defaultValue={staff.phone} required />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              E-mail
-              <input className="field" name="email" type="email" defaultValue={staff.email ?? ''} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Cor na agenda
-              <input className="field h-11" type="color" name="color" defaultValue={staff.color} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              Bio
-              <textarea className="field" name="bio" rows={2} defaultValue={staff.bio ?? ''} />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="acceptsOnlineBooking" defaultChecked={staff.acceptsOnlineBooking} />
-              Pode ser escolhido no agendamento online
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="active" defaultChecked={staff.active} />
-              Ativo
-            </label>
-          </div>
-        </Section>
-
-        <Section title="Unidades" hint="Onde este profissional atende.">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {units.map((u) => (
-              <label key={u.id} className="flex items-center gap-2 text-sm">
-                {/* Quem só responde por uma loja está cadastrando para ela: a
-                    caixa já vem marcada, senão o cadastro nasce sem lotação e
-                    some da lista de quem acabou de criá-lo. */}
+          <Section title="Dados">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm">
+                Nome
+                <input className="field" name="name" defaultValue={staff.name} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Telefone
+                <input className="field" name="phone" defaultValue={staff.phone} required />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                E-mail
+                <input
+                  className="field"
+                  name="email"
+                  type="email"
+                  defaultValue={staff.email ?? ''}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Cor na agenda
+                <input
+                  className="field h-11"
+                  type="color"
+                  name="color"
+                  defaultValue={staff.color}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                Bio
+                <textarea className="field" name="bio" rows={2} defaultValue={staff.bio ?? ''} />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  name="unitIds"
-                  value={u.id}
-                  defaultChecked={unitIds.has(u.id) || (isNew && units.length === 1)}
+                  name="acceptsOnlineBooking"
+                  defaultChecked={staff.acceptsOnlineBooking}
                 />
-                {u.name}
+                Pode ser escolhido no agendamento online
               </label>
-            ))}
-          </div>
-        </Section>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="active" defaultChecked={staff.active} />
+                Ativo
+              </label>
+            </div>
+          </Section>
 
-        {/* Nomear gerente ou dona é decisão de quem já é dona: o gerente que
-            pudesse promover a si mesmo tornaria o degrau enfeite. */}
-        {rede ? (
-          <Section title="Acesso ao sistema">
-            <div className="flex flex-col gap-3">
-              {ACESSOS.filter((opcao) => opcao.papel !== 'dona' || ehDona || suporte).map((opcao) => (
-                <label key={opcao.papel} className="flex items-start gap-2 text-sm">
+          <Section title="Unidades" hint="Onde este profissional atende.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {units.map((u) => (
+                <label key={u.id} className="flex items-center gap-2 text-sm">
+                  {/* Quem só responde por uma loja está cadastrando para ela: a
+                    caixa já vem marcada, senão o cadastro nasce sem lotação e
+                    some da lista de quem acabou de criá-lo. */}
                   <input
-                    className="mt-1"
-                    type="radio"
-                    name="papel"
-                    value={opcao.papel}
-                    defaultChecked={staff.papel === opcao.papel}
-                    disabled={!podeMexerNoPapel}
+                    type="checkbox"
+                    name="unitIds"
+                    value={u.id}
+                    defaultChecked={unitIds.has(u.id) || (isNew && units.length === 1)}
                   />
-                  <span>
-                    {opcao.titulo}
-                    <span className="text-muted block text-xs">{opcao.explica}</span>
-                  </span>
+                  {u.name}
                 </label>
               ))}
             </div>
-            {podeMexerNoPapel ? null : (
-              <p className="text-muted mt-3 text-sm">
-                Quem é dona só muda de degrau pelo suporte — nem para cima nem para baixo. É
-                o acesso que abre o cadastro da rede inteira, e tirar de volta não é algo que
-                dê para desfazer sozinha aqui de dentro.
-              </p>
-            )}
           </Section>
-        ) : null}
 
-        <Section title="Serviços que executa">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {services.map((s) => (
-              <label key={s.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="serviceIds" value={s.id} defaultChecked={serviceIds.has(s.id)} />
-                {s.name}
-              </label>
-            ))}
-            {services.length === 0 ? (
-              <p className="text-muted text-sm">Nenhum serviço cadastrado ainda.</p>
-            ) : null}
-          </div>
-        </Section>
+          {/* Nomear gerente ou dona é decisão de quem já é dona: o gerente que
+            pudesse promover a si mesmo tornaria o degrau enfeite. */}
+          {rede ? (
+            <Section title="Acesso ao sistema">
+              <div className="flex flex-col gap-3">
+                {ACESSOS.filter((opcao) => opcao.papel !== 'dona' || ehDona || suporte).map(
+                  (opcao) => (
+                    <label key={opcao.papel} className="flex items-start gap-2 text-sm">
+                      <input
+                        className="mt-1"
+                        type="radio"
+                        name="papel"
+                        value={opcao.papel}
+                        defaultChecked={staff.papel === opcao.papel}
+                        disabled={!podeMexerNoPapel}
+                      />
+                      <span>
+                        {opcao.titulo}
+                        <span className="text-muted block text-xs">{opcao.explica}</span>
+                      </span>
+                    </label>
+                  ),
+                )}
+              </div>
+              {podeMexerNoPapel ? null : (
+                <p className="text-muted mt-3 text-sm">
+                  Quem é dona só muda de degrau pelo suporte — nem para cima nem para baixo. É o
+                  acesso que abre o cadastro da rede inteira, e tirar de volta não é algo que dê
+                  para desfazer sozinha aqui de dentro.
+                </p>
+              )}
+            </Section>
+          ) : null}
 
-        <FormActions label="Salvar profissional" />
-      </form>
+          <Section title="Serviços que executa">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {services.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="serviceIds"
+                    value={s.id}
+                    defaultChecked={serviceIds.has(s.id)}
+                  />
+                  {s.name}
+                </label>
+              ))}
+              {services.length === 0 ? (
+                <p className="text-muted text-sm">Nenhum serviço cadastrado ainda.</p>
+              ) : null}
+            </div>
+          </Section>
 
-      {isNew ? null : (
-        <Section
-          title="Escala semanal"
-          hint="Um turno por dia. Trocar aqui fecha a escala anterior a partir de hoje e abre esta — a agenda já marcada no passado não muda."
-        >
-          <form action={salvarEscala} className="flex flex-col gap-3">
-            <input type="hidden" name="staffId" value={staff.id} />
-            {WEEKDAY_LABEL.map((label, weekday) => {
-              const row = scheduleByWeekday.get(weekday)
+          <FormActions label="Salvar profissional" />
+        </form>
 
-              /* Dia escalado numa loja fora do alcance de quem edita: mostra, mas
+        {isNew ? null : (
+          <Section
+            title="Escala semanal"
+            hint="Um turno por dia. Trocar aqui fecha a escala anterior a partir de hoje e abre esta — a agenda já marcada no passado não muda."
+          >
+            <form action={salvarEscala} className="flex flex-col gap-3">
+              <input type="hidden" name="staffId" value={staff.id} />
+              {WEEKDAY_LABEL.map((label, weekday) => {
+                const row = scheduleByWeekday.get(weekday)
+
+                /* Dia escalado numa loja fora do alcance de quem edita: mostra, mas
                  não deixa mexer. Se virasse um "Folga" no formulário, salvar a
                  escala apagaria em silêncio um dia de trabalho de outra unidade. */
-              if (row && !veUnidade(acesso, row.unitId)) {
+                if (row && !veUnidade(acesso, row.unitId)) {
+                  return (
+                    <div
+                      key={weekday}
+                      className="grid grid-cols-1 gap-1 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                    >
+                      <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">
+                        {label}
+                      </span>
+                      <span className="text-muted">
+                        escalada em outra unidade — {row.startsAt} às {row.endsAt}
+                      </span>
+                    </div>
+                  )
+                }
+
                 return (
                   <div
                     key={weekday}
-                    className="grid grid-cols-1 gap-1 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                    className="grid grid-cols-1 gap-2 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr_1fr_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
                   >
-                    <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">{label}</span>
-                    <span className="text-muted">
-                      escalada em outra unidade — {row.startsAt} às {row.endsAt}
+                    <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">
+                      {label}
                     </span>
+                    <select
+                      className="field"
+                      name={`sc${weekday}_unit`}
+                      defaultValue={row?.unitId ?? ''}
+                    >
+                      <option value="">Folga</option>
+                      {units.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="field"
+                      type="time"
+                      name={`sc${weekday}_start`}
+                      defaultValue={row?.startsAt ?? ''}
+                    />
+                    <input
+                      className="field"
+                      type="time"
+                      name={`sc${weekday}_end`}
+                      defaultValue={row?.endsAt ?? ''}
+                    />
                   </div>
                 )
-              }
+              })}
+              <div>
+                <Button type="submit" variant="outline">
+                  Salvar escala
+                </Button>
+              </div>
+            </form>
+          </Section>
+        )}
 
-              return (
-                <div
-                  key={weekday}
-                  className="grid grid-cols-1 gap-2 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr_1fr_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
-                >
-                  <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">{label}</span>
-                  <select className="field" name={`sc${weekday}_unit`} defaultValue={row?.unitId ?? ''}>
-                    <option value="">Folga</option>
-                    {units.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input className="field" type="time" name={`sc${weekday}_start`} defaultValue={row?.startsAt ?? ''} />
-                  <input className="field" type="time" name={`sc${weekday}_end`} defaultValue={row?.endsAt ?? ''} />
-                </div>
-              )
-            })}
-            <div>
-              <Button type="submit" variant="outline">
-                Salvar escala
-              </Button>
-            </div>
-          </form>
-        </Section>
-      )}
-
-      {isNew ? null : (
-        <Section
-          title="Senha de acesso"
-          hint="Senha para esta pessoa entrar em /entrar com o telefone cadastrado."
-        >
-          <PasswordForm staffId={staff.id} />
-        </Section>
-      )}
+        {isNew ? null : (
+          <Section
+            title="Senha de acesso"
+            hint="Senha para esta pessoa entrar em /entrar com o telefone cadastrado."
+          >
+            <PasswordForm staffId={staff.id} />
+          </Section>
+        )}
+      </Ficha>
     </AdminShell>
   )
 }

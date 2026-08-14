@@ -3,61 +3,105 @@ import { cn, href } from '@/lib/utils'
 import { podeRede, type Acesso } from '@/server/auth/permissoes'
 
 /**
- * Casca dos cadastros e do painel de gestão.
+ * Casca da gestão — e ela é de computador, de propósito.
  *
- * A dona entra aqui todo dia, não uma vez por mês: é onde ela lê o mês e mexe
- * no que é estrutural (unidade, catálogo, equipe, comissão). Por isso é clara,
- * espaçosa e legível de relance — o oposto de uma tela de configuração rara.
- * O que continua valendo do desenho original: nada de assistente de várias
- * etapas nos formulários — uma lista, um formulário, salvar.
+ * A dona gere o salão sentada, num ecrã largo. Quem trabalha de pé, no telemóvel
+ * ou no tablet, é a profissional (a agenda dela) e a cliente (o agendamento) —
+ * essas telas continuam a ser desenhadas primeiro para a mão. Aqui é o
+ * contrário: a medida é a mesa, e o que existe abaixo de `lg` é uma queda
+ * digna, não o desenho principal.
  *
- * As seis seções dependem de quem entrou. Painel, unidades, catálogo e
- * comissões mudam ou resumem as três lojas de uma vez: são da dona. Equipe e
- * recursos são o que "gerenciar a unidade" quer dizer na prática, então o
- * gerente vê essas duas — recortadas para as lojas dele.
+ * Foi a queixa concreta dela: a área de gestão estava numa coluna estreita ao
+ * centro, com margens vazias dos dois lados e tudo empilhado — a forma de um
+ * telemóvel esticado. O que muda: a moldura passa a 90rem, o rail vira uma
+ * coluna fixa com fio próprio, e o conteúdo ganha largura para se organizar em
+ * colunas em vez de fila indiana.
  *
- * A navegação vive à esquerda em telas largas, sempre visível — é o desenho
- * de um sistema de gestão de verdade (a mesma casa de Mangomint e Boulevard,
- * as referências fixadas em `PRODUCT.md`), e tira uma das três faixas
- * horizontais que ficavam entre a barra de cima e o primeiro número. Abaixo
- * de `lg` ela desce para o rolador horizontal que já existia.
+ * O rail agrupa por quem manda no quê, não por ordem alfabética. "A rede" muda
+ * as lojas todas de uma vez e é assunto da dona; "A loja" é o que gerir uma
+ * unidade quer dizer na prática, e por isso o gerente também vê. Para ele o
+ * primeiro grupo não aparece — o rail é o rosto da permissão, como sempre foi.
  */
 
-const TABS = [
-  { path: '/admin', label: 'Painel', rede: false },
-  { path: '/admin/unidades', label: 'Unidades', rede: true },
-  { path: '/admin/servicos', label: 'Serviços', rede: true },
-  { path: '/admin/equipe', label: 'Equipe', rede: false },
-  { path: '/admin/recursos', label: 'Recursos', rede: false },
-  { path: '/admin/comissoes', label: 'Comissões', rede: true },
+const GRUPOS = [
+  {
+    titulo: null,
+    tabs: [{ path: '/admin', label: 'Painel', rede: false }],
+  },
+  {
+    titulo: 'A rede',
+    tabs: [
+      { path: '/admin/unidades', label: 'Unidades', rede: true },
+      { path: '/admin/servicos', label: 'Serviços', rede: true },
+      { path: '/admin/comissoes', label: 'Comissões', rede: true },
+    ],
+  },
+  {
+    titulo: 'A loja',
+    tabs: [
+      { path: '/admin/equipe', label: 'Equipe', rede: false },
+      { path: '/admin/recursos', label: 'Recursos', rede: false },
+    ],
+  },
 ] as const
 
-export type AbaAdmin = (typeof TABS)[number]['path']
+type Tab = (typeof GRUPOS)[number]['tabs'][number]
+export type AbaAdmin = Tab['path']
 
-function NavLateral({ tabs, active }: { tabs: readonly (typeof TABS)[number][]; active?: AbaAdmin }) {
+function visiveis(acesso: Acesso) {
+  const rede = podeRede(acesso)
+  return GRUPOS.map((grupo) => ({
+    titulo: grupo.titulo,
+    tabs: grupo.tabs.filter((tab) => rede || !tab.rede) as readonly Tab[],
+  })).filter((grupo) => grupo.tabs.length > 0)
+}
+
+/** O rail de computador: sempre à vista, agrupado, e acompanha a rolagem. */
+function Rail({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?: AbaAdmin }) {
   return (
-    <ul className="flex flex-col gap-0.5">
-      {tabs.map((tab) => (
-        <li key={tab.path}>
-          <Link
-            href={href(tab.path)}
-            aria-current={active === tab.path ? 'page' : undefined}
-            className={cn(
-              'block rounded-plate border-l-2 py-2 pr-3 pl-3.5 text-sm transition-colors',
-              active === tab.path
-                ? 'border-(--accent) text-(--text-strong) font-medium'
-                : 'text-muted hover:text-(--text-strong) border-transparent',
-            )}
-          >
-            {tab.label}
-          </Link>
-        </li>
+    <div className="flex flex-col gap-7">
+      {grupos.map((grupo, i) => (
+        <div key={grupo.titulo ?? `grupo-${i}`}>
+          {grupo.titulo ? <p className="label-caps text-muted mb-2 pl-3">{grupo.titulo}</p> : null}
+          <ul className="flex flex-col gap-0.5">
+            {grupo.tabs.map((tab) => {
+              const atual = active === tab.path
+              return (
+                <li key={tab.path}>
+                  <Link
+                    href={href(tab.path)}
+                    aria-current={atual ? 'page' : undefined}
+                    className={cn(
+                      'rounded-plate relative block py-1.5 pr-3 pl-3 text-sm transition-colors',
+                      atual
+                        ? 'bg-(--surface-raised) text-(--text-strong) font-medium'
+                        : 'text-muted hover:text-(--text-strong) hover:bg-(--surface-raised)/60',
+                    )}
+                  >
+                    {/* A régua de bronze, de pé: a mesma marca de trecho ativo
+                        que a barra de cima usa deitada. */}
+                    {atual ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-(--accent)"
+                      />
+                    ) : null}
+                    {tab.label}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       ))}
-    </ul>
+    </div>
   )
 }
 
-function NavRolador({ tabs, active }: { tabs: readonly (typeof TABS)[number][]; active?: AbaAdmin }) {
+/** Abaixo de `lg`: os mesmos destinos numa fita que rola. Sem os títulos de
+ *  grupo, que a essa largura custariam mais altura do que orientam. */
+function Fita({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?: AbaAdmin }) {
+  const tabs = grupos.flatMap((grupo) => grupo.tabs)
   return (
     <ul className="flex min-w-max gap-1 border-b border-(--border-subtle)">
       {tabs.map((tab) => (
@@ -84,46 +128,48 @@ export function AdminShell({
   acesso,
   active,
   title,
-  subtitle,
+  /** Um facto curto, não uma frase de manual: "7 pessoas · 6 ativas". O rail já
+   *  diz onde ela está; o cabeçalho diz o tamanho do que está a olhar. */
+  meta,
   actions,
   children,
 }: {
   acesso: Acesso
   active?: AbaAdmin
   title: string
-  subtitle?: string
+  meta?: string
   actions?: React.ReactNode
   children: React.ReactNode
 }) {
-  const tabs = podeRede(acesso) ? TABS : TABS.filter((tab) => !tab.rede)
+  const grupos = visiveis(acesso)
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl gap-10 px-4 py-8 sm:px-6 lg:py-10">
-      {/*
-        Só em `lg+`: sempre à vista, porque são seis destinos fixos que a dona
-        troca o dia inteiro — esconder atrás de um menu custaria um toque a
-        cada troca. `sticky` para acompanhar a rolagem de fichas longas sem
-        desaparecer.
-      */}
-      <nav aria-label="Secções da gestão" className="hidden w-44 shrink-0 lg:block">
-        <div className="sticky top-8">
-          <NavLateral tabs={tabs} active={active} />
+    <div className="mx-auto flex w-full max-w-[90rem]">
+      <nav
+        aria-label="Secções da gestão"
+        className="hidden shrink-0 border-r border-(--border-subtle) lg:block lg:w-48 xl:w-56"
+      >
+        {/* `pl-5` + os 12px de dentro do link põem o texto do rail nos mesmos
+            32px da esquerda em que a barra de cima assenta o logótipo. */}
+        <div className="sticky top-0 py-9 pr-5 pl-5">
+          <Rail grupos={grupos} active={active} />
         </div>
       </nav>
 
-      <div className="min-w-0 flex-1">
-        {/* Abaixo de `lg`: o rolador horizontal, com a régua de bronze que já
-            marca o trecho ativo no resto do sistema. */}
-        <nav aria-label="Secções da gestão" className="-mx-4 mb-8 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:hidden">
-          <NavRolador tabs={tabs} active={active} />
+      <div className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-9 xl:px-10">
+        <nav
+          aria-label="Secções da gestão"
+          className="-mx-4 mb-7 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:hidden"
+        >
+          <Fita grupos={grupos} active={active} />
         </nav>
 
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="display text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
+        <header className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h1 className="display text-[1.625rem] leading-none font-normal sm:text-3xl">
               {title}
             </h1>
-            {subtitle ? <p className="text-muted mt-1 text-sm">{subtitle}</p> : null}
+            {meta ? <p className="text-muted tnum text-sm">{meta}</p> : null}
           </div>
           {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
         </header>
@@ -135,36 +181,72 @@ export function AdminShell({
 }
 
 /**
- * Cabeçalho de uma seção do formulário ou da lista — o "porquê" mora aqui,
- * não no código.
+ * O corpo de uma ficha (unidade, profissional, serviço).
  *
- * Título e régua de bronze fecham a linha, a mesma assinatura gráfica que
- * separa categoria de serviço no agendamento da cliente (`ServicePicker`).
- * Deixou de ser uma caixa (`surface rounded-card`): dentro de `AdminShell`,
- * que já não tem parede nenhuma, uma seção-caixa só existia para desenhar
- * card dentro de card — a régua faz a mesma separação sem duplicar moldura.
+ * Uma lista quer toda a largura da mesa; um formulário, não. Com a moldura a
+ * 90rem, um campo "Telefone" esticado a 700px fica ridículo e a pessoa perde
+ * o rótulo de vista ao chegar ao fim do campo. A ficha tem por isso medida
+ * própria — larga o suficiente para duas ou três colunas de campos, curta o
+ * suficiente para se ler de uma vez.
+ *
+ * O caminho de volta vem junto: é sempre o mesmo gesto no topo de qualquer
+ * ficha, e tê-lo aqui evita que cada tela o escreva à sua maneira.
+ */
+export function Ficha({
+  voltarPara,
+  voltarLabel,
+  children,
+}: {
+  voltarPara: AbaAdmin
+  voltarLabel: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="max-w-4xl">
+      <Link
+        href={href(voltarPara)}
+        className="text-muted mb-5 inline-block text-sm transition-colors hover:text-(--text-strong)"
+      >
+        ← {voltarLabel}
+      </Link>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Cabeçalho de um bloco: título, régua de bronze e — quando faz sentido — o
+ * atalho para o assunto inteiro, na mesma linha.
+ *
+ * A `hint` continua a existir, mas passou a ser exceção. Uma frase explicativa
+ * debaixo de cada bloco, em todas as telas, era metade da sensação de
+ * "informação a mais": texto a competir com o número que a dona veio ler. Onde
+ * o título já diz, o título basta.
  */
 export function Section({
   title,
   hint,
+  actions,
+  className,
   children,
 }: {
   title: string
   hint?: string
+  actions?: React.ReactNode
+  className?: string
   children: React.ReactNode
 }) {
   return (
-    <section className="mb-10">
+    /* O respiro entre blocos vive aqui e não em cada tela — quem monta um
+       bloco dentro de uma grelha, que já tem `gap`, passa `mb-0`. */
+    <section className={cn('mb-9', className)}>
       <div className="flex items-baseline gap-4">
-        <h2 className="shrink-0 text-lg font-medium">{title}</h2>
+        <h2 className="shrink-0 text-base font-medium">{title}</h2>
         <span className="rule-bronze min-w-0 flex-1" aria-hidden />
+        {actions ? <div className="shrink-0 text-sm">{actions}</div> : null}
       </div>
-      {hint ? <p className="text-muted mt-2 mb-5 text-sm">{hint}</p> : <div className="mb-5" />}
-      {children}
+      {hint ? <p className="text-muted mt-2 text-sm">{hint}</p> : null}
+      <div className="mt-4">{children}</div>
     </section>
   )
-}
-
-export function backTo(path: string) {
-  return href(path)
 }

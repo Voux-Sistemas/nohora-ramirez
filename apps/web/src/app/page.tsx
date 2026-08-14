@@ -1,4 +1,4 @@
-import { isoDateInZone, zonedDateTime } from '@studio/core'
+import { addDaysInZone, isoDateInZone, zonedDateTime } from '@studio/core'
 import { LIVE_APPOINTMENT_STATUSES, appointments, units } from '@studio/db'
 import { and, asc, count, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
@@ -6,9 +6,9 @@ import { OperateTopbar } from '@/components/operate/topbar'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { Photo } from '@/components/ui/photo'
 import { db } from '@/lib/db'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatMoneyShort } from '@/lib/format'
 import { pais } from '@/lib/pais'
-import { href } from '@/lib/utils'
+import { cn, href } from '@/lib/utils'
 import { requireGestao, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
 export const dynamic = 'force-dynamic'
@@ -78,6 +78,77 @@ async function loadToday(acesso: Acesso): Promise<UnitToday[]> {
   return result
 }
 
+interface MesResumo {
+  faturamento: number
+  faturamentoAnterior: number
+  atendimentos: number
+  atendimentosAnterior: number
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/**
+ * O mês em duas somas, para a placa ao lado da pauta.
+ *
+ * Reaproveita as mesmas unidades que `loadToday` já carregou — não abre outra
+ * consulta a `units` nem repete o corte de visibilidade. Mesma janela "mesmo
+ * trecho do mês anterior" do painel em `/admin`, porque é a mesma pergunta
+ * respondida em miniatura.
+ */
+async function loadMesResumo(unidades: { id: string; timezone: string }[]): Promise<MesResumo> {
+  const total: MesResumo = { faturamento: 0, faturamentoAnterior: 0, atendimentos: 0, atendimentosAnterior: 0 }
+  if (unidades.length === 0) return total
+
+  const porFuso = new Map<string, string[]>()
+  for (const unit of unidades) {
+    const grupo = porFuso.get(unit.timezone) ?? []
+    grupo.push(unit.id)
+    porFuso.set(unit.timezone, grupo)
+  }
+
+  for (const [timezone, ids] of porFuso) {
+    const hoje = isoDateInZone(new Date(), timezone)
+    const [year, month, diaAtual] = hoje.split('-').map(Number) as [number, number, number]
+    const monthStartIso = `${year}-${pad2(month)}-01`
+    const [nextYear, nextMonth] = month === 12 ? [year + 1, 1] : [year, month + 1]
+    const nextMonthStartIso = `${nextYear}-${pad2(nextMonth)}-01`
+    const [prevYear, prevMonth] = month === 1 ? [year - 1, 12] : [year, month - 1]
+    const prevMonthStartIso = `${prevYear}-${pad2(prevMonth)}-01`
+    const cutoffCandidate = addDaysInZone(prevMonthStartIso, diaAtual)
+    const prevPeriodEndIso = cutoffCandidate < monthStartIso ? cutoffCandidate : monthStartIso
+
+    const monthStart = zonedDateTime(monthStartIso, '00:00', timezone)
+    const monthEnd = zonedDateTime(nextMonthStartIso, '00:00', timezone)
+    const prevMonthStart = zonedDateTime(prevMonthStartIso, '00:00', timezone)
+    const prevPeriodEnd = zonedDateTime(prevPeriodEndIso, '00:00', timezone)
+
+    const [row] = await db
+      .select({
+        atendimentos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd})::int`,
+        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd}), 0)::int`,
+        atendimentosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd})::int`,
+        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd}), 0)::int`,
+      })
+      .from(appointments)
+      .where(
+        and(
+          inArray(appointments.unitId, ids),
+          gte(appointments.startsAt, prevMonthStart),
+          lt(appointments.startsAt, monthEnd),
+        ),
+      )
+
+    total.faturamento += row?.faturamento ?? 0
+    total.faturamentoAnterior += row?.faturamentoAnterior ?? 0
+    total.atendimentos += row?.atendimentos ?? 0
+    total.atendimentosAnterior += row?.atendimentosAnterior ?? 0
+  }
+
+  return total
+}
+
 /**
  * O dia da rede.
  *
@@ -97,6 +168,7 @@ export default async function HomePage() {
      é levado para a própria agenda, que é o "hoje" dela. */
   const acesso = await requireGestao()
   const today = await loadToday(acesso)
+  const mes = await loadMesResumo(today)
 
   const total = today.reduce(
     (acc, unit) => ({
@@ -119,74 +191,131 @@ export default async function HomePage() {
       <OperateTopbar acesso={acesso} active="hoje" />
 
       {/*
-        A pauta é mais estreita que a barra de propósito. Numa tela de 1440 a
-        largura cheia jogava o nome da unidade num canto e os números no outro,
-        com um metro de nada no meio: ninguém liga uma ponta à outra de relance.
-        Coluna curta, olho anda pouco, comparação entre linhas fica imediata.
+        A pauta continua estreita — coluna curta, olho anda pouco, comparação
+        entre linhas fica imediata — mas a página inteira não é mais só ela:
+        numa tela larga a pauta sozinha em `max-w-3xl` deixava um vazio sem
+        função nas duas margens. A placa do mês ocupa esse lado, sticky, com o
+        atalho para o painel completo — a mesma pergunta que a pauta responde
+        para hoje, respondida aqui para o mês.
       */}
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         {/* A pauta do dia é o painel que fica aberto num canto da recepção o dia
             inteiro. Congelado no estado das nove da manhã ele mente. */}
         <AtualizaSozinho />
 
-        <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <div>
-            {/* "na rede" só é verdade para quem tem a rede. Para o gerente de
-                uma loja o título seria uma promessa que a pauta não cumpre. */}
-            <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">
-              {acesso.papel === 'dona' ? 'Hoje na rede' : 'Hoje'}
-            </h1>
-            <p className="text-muted mt-1 text-sm first-letter:uppercase">{agora}</p>
+        <div
+          className={cn(
+            'lg:items-start lg:gap-16',
+            today.length > 0 && 'lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]',
+          )}
+        >
+          <div className="max-w-2xl">
+            <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+              <div>
+                {/* "na rede" só é verdade para quem tem a rede. Para o gerente de
+                    uma loja o título seria uma promessa que a pauta não cumpre. */}
+                <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">
+                  {acesso.papel === 'dona' ? 'Hoje na rede' : 'Hoje'}
+                </h1>
+                <p className="text-muted mt-1 text-sm first-letter:uppercase">{agora}</p>
+              </div>
+
+              {/*
+                O resumo da rede é uma frase, não um mostrador. Quatro números
+                grandes no topo seriam o template de métrica que toda ferramenta
+                faz; aqui eles moram na linha de baixo do título, do tamanho do
+                texto, e quem manda no espaço é a pauta.
+              */}
+              <p className="text-body text-sm">
+                <strong className="tnum text-(--text-strong) font-medium">{total.agendados}</strong>{' '}
+                {total.agendados === 1 ? 'visita' : 'visitas'} ·{' '}
+                <strong className="tnum text-(--text-strong) font-medium">
+                  {formatMoney(total.faturamento)}
+                </strong>{' '}
+                no caixa
+                {total.previsto > total.faturamento ? (
+                  <>
+                    {' '}
+                    de{' '}
+                    <span className="tnum">{formatMoney(total.previsto)}</span> previstos
+                  </>
+                ) : null}
+              </p>
+            </header>
+
+            <div className="mt-7 border-t border-(--border-strong)">
+              {today.map((unit) => (
+                <UnitRow key={unit.id} unit={unit} />
+              ))}
+              {today.length === 0 ? (
+                <p className="text-muted border-b border-(--border-subtle) px-1 py-8 text-sm">
+                  {acesso.papel === 'dona' ? (
+                    <>
+                      Nenhuma unidade ativa. Cadastre a primeira em{' '}
+                      <Link
+                        href="/admin/unidades"
+                        className="text-(--text-strong) underline underline-offset-4"
+                      >
+                        Cadastros
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    /* Mandar o gerente para uma tela que ele não abre seria pior do
+                       que não dizer nada. Quem cadastra unidade é a dona. */
+                    'Nenhuma loja atribuída a você ainda. Fale com a administração.'
+                  )}
+                </p>
+              ) : null}
+            </div>
           </div>
 
-          {/*
-            O resumo da rede é uma frase, não um mostrador. Quatro números
-            grandes no topo seriam o template de métrica que toda ferramenta
-            faz; aqui eles moram na linha de baixo do título, do tamanho do
-            texto, e quem manda no espaço é a pauta.
-          */}
-          <p className="text-body text-sm">
-            <strong className="tnum text-(--text-strong) font-medium">{total.agendados}</strong>{' '}
-            {total.agendados === 1 ? 'visita' : 'visitas'} ·{' '}
-            <strong className="tnum text-(--text-strong) font-medium">{formatMoney(total.faturamento)}</strong>{' '}
-            no caixa
-            {total.previsto > total.faturamento ? (
-              <>
-                {' '}
-                de{' '}
-                <span className="tnum">{formatMoney(total.previsto)}</span> previstos
-              </>
-            ) : null}
-          </p>
-        </header>
-
-        <div className="mt-7 border-t border-(--border-strong)">
-          {today.map((unit) => (
-            <UnitRow key={unit.id} unit={unit} />
-          ))}
-          {today.length === 0 ? (
-            <p className="text-muted border-b border-(--border-subtle) px-1 py-8 text-sm">
-              {acesso.papel === 'dona' ? (
-                <>
-                  Nenhuma unidade ativa. Cadastre a primeira em{' '}
-                  <Link
-                    href="/admin/unidades"
-                    className="text-(--text-strong) underline underline-offset-4"
-                  >
-                    Cadastros
-                  </Link>
-                  .
-                </>
-              ) : (
-                /* Mandar o gerente para uma tela que ele não abre seria pior do
-                   que não dizer nada. Quem cadastra unidade é a dona. */
-                'Nenhuma loja atribuída a você ainda. Fale com a administração.'
-              )}
-            </p>
+          {today.length > 0 ? (
+            <MesCard mes={mes} rede={acesso.papel === 'dona'} />
           ) : null}
         </div>
       </main>
     </>
+  )
+}
+
+function MesCard({ mes, rede }: { mes: MesResumo; rede: boolean }) {
+  const pct =
+    mes.faturamentoAnterior > 0
+      ? ((mes.faturamento - mes.faturamentoAnterior) / mes.faturamentoAnterior) * 100
+      : null
+
+  return (
+    <aside className="mt-10 lg:sticky lg:top-10 lg:mt-0">
+      <div className="plate p-6">
+        <p className="text-muted text-xs font-medium tracking-wide uppercase">
+          {rede ? 'O mês da rede' : 'Este mês'}
+        </p>
+        <p className="display tnum mt-2 text-[2rem] leading-none">{formatMoneyShort(mes.faturamento)}</p>
+        <p className="mt-2.5 text-xs">
+          {pct === null ? (
+            <span className="text-muted">sem comparação — mês passado zerado</span>
+          ) : (
+            <span className={cn('font-medium', pct >= 0 ? 'text-(--estado-bom)' : 'text-(--estado-mau)')}>
+              {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(0)}%{' '}
+              <span className="text-muted font-normal">vs. mês passado até hoje</span>
+            </span>
+          )}
+        </p>
+
+        <div className="mt-5 border-t border-(--border-subtle) pt-4">
+          <p className="tnum text-(--text-strong) text-lg leading-none font-medium">{mes.atendimentos}</p>
+          <p className="text-muted mt-1 text-xs">atendimentos concluídos</p>
+        </div>
+
+        <Link
+          href={href('/admin')}
+          className="mt-5 inline-flex items-center gap-1 text-sm text-(--text-strong) underline underline-offset-4"
+        >
+          Ver painel completo →
+        </Link>
+      </div>
+    </aside>
   )
 }
 

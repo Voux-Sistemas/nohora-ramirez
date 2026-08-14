@@ -38,8 +38,9 @@ interface Secao {
  * O que cada degrau vê na barra.
  *
  * A profissional tem um destino só, e ele leva o nome do que é: a agenda dela.
- * "Cadastros" muda de porta conforme quem abre — a dona começa pelas unidades,
- * o gerente pela equipe, porque unidade ele não cadastra.
+ * "Gestão" sempre abre no Painel — o mês em números, com variação contra o mês
+ * anterior — porque é a primeira coisa que quem gere quer ver, antes de mexer
+ * em unidade, equipe ou catálogo. A navegação lateral de dentro leva ao resto.
  */
 function secoesDe(acesso: Acesso): Secao[] {
   if (acesso.papel === 'profissional') {
@@ -52,11 +53,7 @@ function secoesDe(acesso: Acesso): Secao[] {
     { id: 'avisos', path: '/avisos', label: 'Avisos' },
     { id: 'caixa', path: '/caixa', label: 'Caixa' },
     { id: 'clientes', path: '/clientes', label: 'Clientes' },
-    {
-      id: 'cadastros',
-      path: acesso.papel === 'dona' ? '/admin/unidades' : '/admin/equipe',
-      label: 'Cadastros',
-    },
+    { id: 'cadastros', path: '/admin', label: 'Gestão' },
   ]
 }
 

@@ -5,7 +5,7 @@ Toda decisão técnica relevante entra aqui, com data e motivo. Nunca apagar uma
 ---
 
 ## ADR-001 · Infraestrutura no Railway
-**Data:** 2026-08-04 · **Status:** aceita
+**Data:** 2026-08-04 · **Status:** aceita · **Parcialmente revogada pelo ADR-009** (o banco sai do Railway; o resto vale)
 
 Todo o stack roda no Railway: app Next.js, PostgreSQL gerenciado, worker de jobs e servidor de realtime.
 
@@ -88,3 +88,25 @@ O sistema é um **produto para vender a clientes**, não uma ferramenta para um 
 - Os CSVs em `dados/` deixam de ser pré-requisito. Viram **material de referência do formato de importação** — o onboarding vai ler exatamente esse formato.
 - A comanda e o caixa deixam de ser "Fase 2 depois do piloto" (ADR-002) e entram na construção contínua do produto, porque um sistema sem fechamento de caixa não é vendável.
 - O seed passa a ser infraestrutura de primeira classe: é o ambiente de demonstração comercial e a base dos testes de integração. Tem que ser realista, não três linhas de exemplo.
+
+---
+
+## ADR-009 · Banco no Supabase, site no Railway, tudo na Europa
+**Data:** 2026-08-14 · **Status:** aceita · **Revoga do ADR-001 apenas a parte de infraestrutura de banco**
+
+O PostgreSQL sai do Railway e passa a ser um projeto Supabase (PG17, região Frankfurt, plano Free). O site Next.js continua no Railway, e **muda de San Jose para Amsterdã**.
+
+O Supabase entra aqui **como Postgres gerenciado, não como plataforma**. Sem RLS, sem Supabase Auth, sem `supabase-js`. As permissões continuam em `server/auth/permissoes.ts`, em TypeScript, testáveis fora do banco.
+
+**Motivo:** operação. O trabalho de inspecionar e corrigir o banco hoje passa por escrever script temporário, porque o Postgres do Railway não tem endereço público — só existe dentro da rede privada. Com o Supabase há painel, editor de SQL e acesso por ferramenta. É ganho de velocidade de manutenção, não de arquitetura.
+
+**Por que a região muda junto.** O `web` estava em San Jose e as clientes estão no Porto: cada visita já atravessava o Atlântico. Deixar o banco na Europa com o site na Califórnia somaria uma travessia **por query** — as páginas são todas `force-dynamic` e várias fazem quatro ou cinco. Mover as duas peças para a Europa é o que faz a migração sair mais rápida do que o estado anterior, em vez de apenas menos lenta do que a alternativa ruim.
+
+**O argumento do ADR-001 que continua de pé:** regra multi-unidade × multi-papel não vai para RLS. Ele descartava o Supabase por causa disso, e isso não mudou — o que mudou é que dá para usar o Postgres do Supabase sem usar o RLS dele.
+
+**Consequências:**
+- **Duas URLs, não uma.** `DATABASE_URL` no pooler de transação (6543, sem prepared statements) para o site; `DIRECT_URL` no pooler de sessão (5432) para migration, constraints e seed. Nunca o endereço "Direct connection": é IPv6-only e a saída do Railway é IPv4. Detalhes e motivo em `packages/db/src/index.ts` e no `.env.example`.
+- **O banco ganha superfície pública.** Antes era inalcançável fora da rede do Railway. Compensação: o site deixa de conectar como dono do banco e passa a usar um papel só com DML — se houver injeção de SQL em algum canto, ela não derruba tabela. É uma melhoria que não existia antes e que a migração paga.
+- **Plano Free significa que o backup próprio deixa de ser redundância e vira a única rede.** O `ops/backup` continua, repontado para o Supabase, e a prova semanal de restore passa a importar mais do que importava, não menos. O Free também suspende após 7 dias sem tráfego — o salão em funcionamento não chega lá, mas é uma condição a monitorar, não uma garantia.
+- **Latência sobe.** De ~0,5 ms na rede privada para dezenas de ms entre fornecedores, mesmo com as duas peças na Europa. Multiplica por query. Se alguma tela ficar lenta, a causa provável é número de queries por página, e a correção é agrupar consulta — não voltar atrás.
+- **O rollback tem prazo.** O Postgres do Railway fica de pé e intocado por ~14 dias, e voltar é repor duas variáveis. Mas escrita feita no Supabase depois do corte não existe lá atrás: o rollback é limpo na primeira hora e, passado o primeiro dia, significa perder marcações reais.

@@ -124,12 +124,21 @@ async function loadMesResumo(unidades: { id: string; timezone: string }[]): Prom
     const prevMonthStart = zonedDateTime(prevMonthStartIso, '00:00', timezone)
     const prevPeriodEnd = zonedDateTime(prevPeriodEndIso, '00:00', timezone)
 
+    /* `sql` template interpolation não passa pelo mapeamento de tipo da coluna
+       que `gte`/`lt` fazem — o driver recebe o `Date` cru e quebra ao
+       serializar o pacote ("must be of type string or an instance of Buffer").
+       Dentro de `filter (where …)` isso só se resolve com string ISO. */
+    const monthStartTs = monthStart.toISOString()
+    const monthEndTs = monthEnd.toISOString()
+    const prevMonthStartTs = prevMonthStart.toISOString()
+    const prevPeriodEndTs = prevPeriodEnd.toISOString()
+
     const [row] = await db
       .select({
-        atendimentos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd})::int`,
-        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd}), 0)::int`,
-        atendimentosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd})::int`,
-        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd}), 0)::int`,
+        atendimentos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs})::int`,
+        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs}), 0)::int`,
+        atendimentosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs})::int`,
+        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs}), 0)::int`,
       })
       .from(appointments)
       .where(

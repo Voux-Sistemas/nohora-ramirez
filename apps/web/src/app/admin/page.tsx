@@ -103,17 +103,28 @@ async function loadDashboard(acesso: Acesso): Promise<UnitStat[]> {
     const prevPeriodEnd = zonedDateTime(prevPeriodEndIso, '00:00', timezone)
     const em7Dias = zonedDateTime(em7DiasIso, '00:00', timezone)
 
+    /* `sql` template interpolation não passa pelo mapeamento de tipo da coluna
+       que `gte`/`lt` fazem — o driver recebe o `Date` cru e quebra ao
+       serializar o pacote ("must be of type string or an instance of Buffer").
+       Dentro de `filter (where …)` isso só se resolve com string ISO. */
+    const monthStartTs = monthStart.toISOString()
+    const monthEndTs = monthEnd.toISOString()
+    const prevMonthStartTs = prevMonthStart.toISOString()
+    const prevPeriodEndTs = prevPeriodEnd.toISOString()
+    const agoraTs = agora.toISOString()
+    const em7DiasTs = em7Dias.toISOString()
+
     const ids = unidadesDoFuso.map((u) => u.id)
 
     const linhas = await db
       .select({
         unitId: appointments.unitId,
-        concluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd})::int`,
-        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStart} and ${appointments.startsAt} < ${monthEnd}), 0)::int`,
-        concluidosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd})::int`,
-        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStart} and ${appointments.startsAt} < ${prevPeriodEnd}), 0)::int`,
-        marcadosCount: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agora} and ${appointments.startsAt} < ${em7Dias})::int`,
-        marcadosFaturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agora} and ${appointments.startsAt} < ${em7Dias}), 0)::int`,
+        concluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs})::int`,
+        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs}), 0)::int`,
+        concluidosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs})::int`,
+        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs}), 0)::int`,
+        marcadosCount: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs})::int`,
+        marcadosFaturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs}), 0)::int`,
       })
       .from(appointments)
       .where(

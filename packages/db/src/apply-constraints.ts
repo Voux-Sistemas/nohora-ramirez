@@ -11,6 +11,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import postgres from 'postgres'
+import { urlDireta } from './index'
 
 const sqlDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'sql')
 
@@ -43,10 +44,46 @@ async function marcarAmbiente(client: postgres.Sql): Promise<void> {
   console.log(`→ ambiente: banco marcado como ${declarado}`)
 }
 
+/**
+ * Confere que as travas anti-overbooking existem mesmo, depois de aplicadas.
+ *
+ * Não é paranoia: o `EXCLUDE USING gist` depende do btree_gist estar
+ * alcançável pelo search_path, e num banco gerenciado ele mora num schema à
+ * parte. O modo de falha ruim não é o comando dar erro — é a constraint não
+ * nascer e o deploy seguir verde, com o salão a marcar duas clientes na mesma
+ * cadeira até alguém reparar no balcão.
+ *
+ * Barato de conferir, caro de descobrir tarde. Fica aqui.
+ */
+async function conferirTravas(client: postgres.Sql): Promise<void> {
+  const esperadas = [
+    'appointment_staff_blocks_no_overlap',
+    'appointment_resource_blocks_no_overlap',
+  ]
+
+  const achadas = await client<{ conname: string }[]>`
+    select conname from pg_constraint
+    where contype = 'x' and conname = any(${esperadas})
+  `
+  const faltando = esperadas.filter((nome) => !achadas.some((r) => r.conname === nome))
+
+  if (faltando.length > 0) {
+    throw new Error(
+      `trava anti-overbooking ausente: ${faltando.join(', ')}. ` +
+        'O btree_gist provavelmente não está no search_path deste banco.',
+    )
+  }
+  console.log(`→ travas anti-overbooking: ${esperadas.length} confirmadas`)
+}
+
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL
-  if (!url) {
-    console.error('DATABASE_URL não definida — veja .env.example')
+  /* DDL pede sessão, não pooler de transação — o mesmo motivo do
+     drizzle.config.ts. `urlDireta` cai no DATABASE_URL quando não há as duas. */
+  let url: string
+  try {
+    url = urlDireta()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error)
     process.exit(1)
   }
 
@@ -65,6 +102,7 @@ async function main(): Promise<void> {
       await client.unsafe(statements)
       console.log('ok')
     }
+    await conferirTravas(client)
     await marcarAmbiente(client)
     console.log('\nConstraints aplicadas.')
   } catch (error) {

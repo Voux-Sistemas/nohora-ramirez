@@ -9,6 +9,22 @@
 --     npm run db:constraints --workspace=@studio/db
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- Onde procurar o `btree_gist`.
+--
+-- Num Postgres instalado por nós a extensão cai no `public` e isto não faz
+-- diferença. Num Postgres gerenciado — Supabase é o caso — as extensões moram
+-- num schema `extensions` à parte, fora do search_path padrão.
+--
+-- A diferença importa porque o `EXCLUDE USING gist (staff_id WITH =, ...)`
+-- logo abaixo precisa da classe de operadores que o btree_gist dá ao `=` de
+-- uuid dentro de um índice GiST. Sem achá-la, ou o comando falha, ou — pior —
+-- a constraint não nasce e ninguém repara: o salão volta a poder marcar duas
+-- clientes na mesma cadeira, no mesmo horário, sem nada reclamar.
+--
+-- Schema inexistente no search_path é ignorado sem erro, então a linha é
+-- inofensiva onde `extensions` não existe.
+SET search_path = public, extensions;
+
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ─── profissional ───────────────────────────────────────────────────────────

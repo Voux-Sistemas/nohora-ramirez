@@ -35,13 +35,13 @@ const ACESSOS: readonly {
     papel: 'gerente',
     titulo: 'Gerente da unidade',
     explica:
-      'Toca a operação das lojas marcadas acima: agenda da equipe, caixa, clientes e avisos.',
+      'Toca a operação das lojas marcadas acima: agenda da equipa, caixa, clientes e avisos.',
   },
   {
     papel: 'dona',
     titulo: 'Dona',
     explica:
-      'Enxerga a rede inteira e mexe no cadastro: unidades, serviços, comissões e o acesso das outras pessoas.',
+      'Vê a rede inteira e mexe no registo: unidades, serviços, comissões e o acesso das outras pessoas.',
   },
 ]
 
@@ -82,6 +82,17 @@ export default async function ProfissionalFormPage({
      existe — dizer "sem permissão" já entregaria que a pessoa trabalha na rede. */
   if (data && !data.staff.unitIds.some((unitId) => veUnidade(acesso, unitId))) notFound()
 
+  /* E ficha de quem manda em alguma coisa é de quem manda na rede — a mesma
+     regra que `autorizarStaff` aplica do lado das ações, aqui à entrada.
+     Faltava: o gerente partilha unidade com a patroa, portanto passava no teste
+     de cima e abria a ficha dela. Não conseguia gravar (a ação recusa), mas
+     lia-lhe o telemóvel e o e-mail com o formulário de palavra-passe à frente —
+     e são esses dois campos que a recuperação de acesso usa. A própria ficha
+     continua aberta a quem quer que seja: não é degrau acima do dele. */
+  if (data && !rede && data.staff.papel !== 'profissional') {
+    if (data.staff.userId !== acesso.session.userId) notFound()
+  }
+
   const units = unidadesVisiveis(acesso, todasUnidades)
   const staff = data?.staff ?? BLANK_STAFF
   /* Conceder e retirar o degrau de dona é do suporte, então para a dona a ficha
@@ -112,7 +123,7 @@ export default async function ProfissionalFormPage({
               .join(' · ')
       }
     >
-      <Ficha voltarPara="/admin/equipe" voltarLabel="equipe">
+      <Ficha voltarPara="/admin/equipe" voltarLabel="equipa">
         <StaffForm id={id}>
           {(state) => (
             <>
@@ -167,7 +178,7 @@ export default async function ProfissionalFormPage({
                       name="acceptsOnlineBooking"
                       defaultChecked={staff.acceptsOnlineBooking}
                     />
-                    Pode ser escolhido no agendamento online
+                    Pode ser escolhido na marcação online
                   </label>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" name="active" defaultChecked={staff.active} />
@@ -243,7 +254,7 @@ export default async function ProfissionalFormPage({
                     </label>
                   ))}
                   {services.length === 0 ? (
-                    <p className="text-muted text-sm">Nenhum serviço cadastrado ainda.</p>
+                    <p className="text-muted text-sm">Nenhum serviço registado ainda.</p>
                   ) : null}
                 </div>
               </Section>
@@ -254,7 +265,7 @@ export default async function ProfissionalFormPage({
                 </p>
               ) : null}
 
-              <FormActions label="Salvar profissional" />
+              <FormActions label="Guardar profissional" />
             </>
           )}
         </StaffForm>
@@ -282,7 +293,7 @@ export default async function ProfissionalFormPage({
                         {label}
                       </span>
                       <span className="text-muted">
-                        escalada em outra unidade — {row.startsAt} às {row.endsAt}
+                        escalada noutra unidade — {row.startsAt} às {row.endsAt}
                       </span>
                     </div>
                   )
@@ -325,7 +336,7 @@ export default async function ProfissionalFormPage({
               })}
               <div>
                 <Button type="submit" variant="outline">
-                  Salvar escala
+                  Guardar escala
                 </Button>
               </div>
             </form>
@@ -334,8 +345,8 @@ export default async function ProfissionalFormPage({
 
         {isNew ? null : (
           <Section
-            title="Senha de acesso"
-            hint="Senha para esta pessoa entrar em /entrar com o telefone cadastrado."
+            title="Palavra-passe de acesso"
+            hint="Palavra-passe para esta pessoa entrar em /entrar com o telefone registado."
           >
             <PasswordForm staffId={staff.id} />
           </Section>

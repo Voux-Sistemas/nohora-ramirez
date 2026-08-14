@@ -7,22 +7,22 @@ Objetivo: entender modelo, features e logística antes de projetar o nosso.
 
 ## 1. Os dois modelos de mercado
 
-Existem duas famílias de produto, e elas resolvem problemas diferentes. Quase todo mundo confunde.
+Existem duas famílias de produto, e elas resolvem problemas diferentes. Quase toda a gente confunde.
 
 ### A) Marketplace + Agendamento (Booksy, Fresha)
-O produto vende **descoberta de clientes**. O salão vira um "perfil" dentro de um app de consumidor com milhões de usuários; o cliente busca "manicure perto de mim" e acha você.
+O produto vende **descoberta de clientes**. O salão passa a ser um "perfil" dentro de um app de consumidor com milhões de utilizadores; o cliente procura "manicure perto de mim" e encontra-o.
 
-- Booksy: marketplace com 35M+ consumidores, foco em captação e recompra. Plano pago a partir de US$ 29,99/mês por usuário.
-- Fresha: se posiciona primeiro como sistema de gestão, descoberta é benefício secundário. Plano gratuito + cobrança sobre transação (~1,29% + €0,20).
-- Ambos: microsite de agendamento, botão de "Agendar" no Instagram/Facebook/Google, widget copiar-e-colar para o site, lembretes automáticos, maquininha própria / Tap to Pay, depósito antecipado contra no-show, marketing (aniversário, campanhas), relatórios em tempo real.
+- Booksy: marketplace com 35M+ consumidores, foco em captação e recompra. Plano pago a partir de US$ 29,99/mês por utilizador.
+- Fresha: posiciona-se primeiro como sistema de gestão, descoberta é benefício secundário. Plano gratuito + cobrança sobre transação (~1,29% + €0,20).
+- Ambos: microsite de agendamento, botão de "Agendar" no Instagram/Facebook/Google, widget copiar-e-colar para o site, lembretes automáticos, terminal de pagamento próprio / Tap to Pay, depósito antecipado contra no-show, marketing (aniversário, campanhas), relatórios em tempo real.
 
-**Trade-off:** você ganha tráfego, mas paga taxa, entrega a marca e o dado do cliente à plataforma, e concorre com o salão da esquina dentro do mesmo app.
+**Trade-off:** ganha-se tráfego, mas paga-se taxa, entrega-se a marca e o dado do cliente à plataforma, e concorre-se com o salão da esquina dentro do mesmo app.
 
 ### B) ERP de salão / gestão operacional (Trinks, Avec, Meevo, Zenoti)
-O produto vende **operação**: agenda, comanda, caixa, comissão, estoque, financeiro, fiscal, multi-unidade.
+O produto vende **operação**: agenda, comanda, caixa, comissão, stock, financeiro, fiscal, multi-unidade.
 
-- Trinks: gestão centralizada de rede, transferência de estoque entre unidades, comissão automatizada com repasse via Pix, emissão de NF para profissional parceiro, app do colaborador, **130+ relatórios** (financeiro, agendamento, comissão, desempenho por unidade, estoque), terminal de autoatendimento/check-in, app white-label da marca, clube de assinaturas.
-- Avec: mesma pegada — controle centralizado de agenda/finanças/estoque/equipe, gestão de franquias, comissões, NF.
+- Trinks: gestão centralizada de rede, transferência de stock entre unidades, comissão automatizada com repasse via Pix, emissão de NF para profissional parceiro, app do colaborador, **130+ relatórios** (financeiro, agendamento, comissão, desempenho por unidade, stock), terminal de autoatendimento/check-in, app white-label da marca, clube de assinaturas.
+- Avec: mesma pegada — controlo centralizado de agenda/finanças/stock/equipa, gestão de franquias, comissões, NF.
 
 **Trade-off:** resolve o negócio de verdade, mas não traz cliente novo — o tráfego é seu (Instagram, indicação, Google).
 
@@ -33,28 +33,28 @@ Estúdio próprio com **3 unidades** → o que interessa é a **família B com a
 
 ## 2. Glossário operacional (o vocabulário do negócio)
 
-Estes são os conceitos que precisam existir no sistema. Cada um vira entidade ou regra.
+Estes são os conceitos que precisam de existir no sistema. Cada um torna-se entidade ou regra.
 
 | Conceito | O que é | Por que importa no software |
 |---|---|---|
-| **Unidade** | Cada uma das 3 lojas | Horário, equipe, estoque, caixa e preço podem ser diferentes por unidade |
+| **Unidade** | Cada uma das 3 lojas | Horário, equipa, stock, caixa e preço podem ser diferentes por unidade |
 | **Profissional** | Quem executa | Tem matriz de habilidades (quais serviços faz), escala própria, regra de comissão, pode atuar em mais de uma unidade |
 | **Serviço** | Item do catálogo | Duração, preço, categoria, se aceita agendamento online, se exige sinal, se exige anamnese, qual recurso consome |
-| **Duração composta** | Aplicação → **processamento** → finalização | Em química/coloração o profissional fica livre durante o processamento. Sistema bom libera a agenda dele nesse intervalo (gap booking) |
+| **Duração composta** | Aplicação → **processamento** → finalização | Em química/coloração o profissional fica livre durante o processamento. Sistema bom liberta a agenda dele nesse intervalo (gap booking) |
 | **Buffer** | Folga entre atendimentos | Limpeza, troca de sala, higienização. Ex.: 15 min entre colorações |
 | **Recurso** | Cadeira, cabine, lavatório, equipamento | Um agendamento reserva profissional **e** recurso. Agenda genérica não vê isso e gera conflito de sala |
-| **Encaixe** | Cliente colocado fora da grade | Precisa de override manual com registro de quem autorizou |
-| **Lista de espera** | Fila para horário lotado | Quando alguém cancela, o sistema oferece a vaga automaticamente |
+| **Encaixe** | Cliente colocado fora da grade | Precisa de override manual com registo de quem autorizou |
+| **Lista de espera** | Fila para horário cheio | Quando alguém cancela, o sistema oferece a vaga automaticamente |
 | **Comanda** | Ficha aberta da visita | Acumula serviços executados, profissional de cada item, produtos vendidos, descontos. Fecha no caixa gerando pagamento + comissão |
-| **Caixa** | Sessão de operação financeira | Abertura, sangria, suprimento, fechamento, conferência por forma de pagamento |
-| **Comissão** | Repasse ao profissional | % por serviço/produto, variável por profissional, com ou sem desconto de material e de taxa de cartão; fechamento por período |
-| **Pacote / sessões** | Cliente compra 10, usa aos poucos | Controle de saldo, validade, consumo por atendimento |
+| **Caixa** | Sessão de operação financeira | Abertura, sangria, reforço, fecho, conferência por forma de pagamento |
+| **Comissão** | Repasse ao profissional | % por serviço/produto, variável por profissional, com ou sem desconto de material e de taxa de cartão; fecho por período |
+| **Pacote / sessões** | Cliente compra 10, usa aos poucos | Controlo de saldo, validade, consumo por atendimento |
 | **Assinatura / clube** | Mensalidade com benefícios | Cobrança recorrente + regras de uso |
-| **Fidelidade** | Pontos ou cashback | Acúmulo e resgate na comanda |
-| **Anamnese / ficha técnica** | Formulário clínico-estético | Alergias, histórico químico, contraindicação, consentimento. Fotos antes/depois. **Dado sensível → LGPD** |
+| **Fidelidade** | Pontos ou cashback | Acumulação e resgate na comanda |
+| **Anamnese / ficha técnica** | Formulário clínico-estético | Alergias, histórico químico, contraindicação, consentimento. Fotos antes/depois. **Categoria especial de dados → RGPD, art. 9.º** |
 | **Sinal / pré-pagamento** | Valor pago para segurar o horário | Reduz no-show; exige política de cancelamento e regra de reembolso |
 | **No-show** | Cliente que não apareceu | Métrica-chave; alimenta bloqueio de reincidente e cobrança de taxa |
-| **Estoque** | Revenda + consumo interno | Baixa automática por serviço (ex.: 1 tubo de tinta por coloração), estoque mínimo, inventário, **transferência entre unidades** |
+| **Stock** | Revenda + consumo interno | Saída automática por serviço (ex.: 1 tubo de tinta por coloração), stock mínimo, inventário, **transferência entre unidades** |
 | **Ocupação de cadeira** | % da agenda preenchida | O KPI mais importante da operação |
 | **Ticket médio** | Receita / atendimentos | Mede upsell e venda de produto |
 | **Taxa de retorno** | % que volta em X dias | Mede saúde do relacionamento |
@@ -108,9 +108,9 @@ Regras de negócio que sempre aparecem nesse fluxo:
 - Desliza uma janela do tamanho total do serviço na granularidade escolhida
 - Valida que os **segmentos ativos** (aplicação + finalização) cabem no tempo livre do profissional
 - Valida que o **recurso** está livre durante o serviço inteiro, inclusive no processamento
-- Durante o processamento o profissional é liberado → o mesmo slot pode receber um segundo cliente rápido (gap booking / double booking controlado)
+- Durante o processamento o profissional é libertado → o mesmo slot pode receber um segundo cliente rápido (gap booking / double booking controlado)
 
-**Cuidado crítico:** dois clientes confirmando o mesmo horário ao mesmo tempo. A reserva precisa ser transacional com trava (constraint de exclusão por intervalo no Postgres ou advisory lock). Sem isso, overbooking é questão de tempo.
+**Cuidado crítico:** dois clientes a confirmar o mesmo horário ao mesmo tempo. A reserva precisa de ser transacional com trava (constraint de exclusão por intervalo no Postgres ou advisory lock). Sem isso, overbooking é questão de tempo.
 
 ---
 
@@ -120,7 +120,7 @@ Regras de negócio que sempre aparecem nesse fluxo:
 - **Custo (WhatsApp Cloud API, Brasil, modelo por mensagem vigente desde 2026):** template de categoria *utility* (lembrete/confirmação) é gratuito dentro da janela de atendimento de 24h e sai por volta de R$ 0,03 fora dela. Marketing custa mais caro. Para 3 unidades isso é irrelevante no orçamento — vale usar a API oficial.
 - **Regra da janela de 24h:** depois de 24h sem resposta do cliente, só é possível iniciar conversa por *template* aprovado. Isso molda o design do chat.
 - **Chat com o estúdio:** o pedido do cliente aqui é quase sempre "mandar foto de referência de cabelo" e "tirar dúvida antes de marcar". Então o chat precisa de anexo de imagem, contexto do agendamento na conversa e respostas rápidas.
-- **Caixa de entrada unificada:** o ideal é que a mensagem que chega pelo WhatsApp caia na mesma tela do chat interno do app, para a recepção não trabalhar em dois lugares.
+- **Caixa de entrada unificada:** o ideal é que a mensagem que chega pelo WhatsApp caia no mesmo ecrã do chat interno do app, para a receção não trabalhar em dois sítios.
 
 ---
 
@@ -129,11 +129,11 @@ Regras de negócio que sempre aparecem nesse fluxo:
 Pontos onde um sistema próprio ganha:
 
 1. **Multi-unidade de verdade** — a maioria trata filial como conta separada. Queremos visão consolidada + operação isolada.
-2. **Preço e duração por profissional** — o júnior e o sênior não cobram nem demoram o mesmo. Poucos sistemas modelam isso bem.
+2. **Preço e duração por profissional** — o júnior e o sénior não cobram nem demoram o mesmo. Poucos sistemas modelam isso bem.
 3. **Processamento/gap booking** — muitos ignoram e a cadeira fica ociosa 40 minutos por coloração.
-4. **Consumo interno de estoque por serviço** — sem isso não existe custo real por atendimento nem margem por serviço.
-5. **Comissão com regra composta** — desconto de material, desconto de taxa de cartão, faixas por meta. É onde nasce o atrito com a equipe.
-6. **Chat integrado ao histórico do cliente** — conversa solta no WhatsApp pessoal do salão é perda de informação e risco de LGPD.
+4. **Consumo interno de stock por serviço** — sem isso não existe custo real por atendimento nem margem por serviço.
+5. **Comissão com regra composta** — desconto de material, desconto de taxa de cartão, faixas por meta. É onde nasce o atrito com a equipa.
+6. **Chat integrado ao histórico do cliente** — conversa solta no WhatsApp pessoal do salão é perda de informação e risco de RGPD.
 
 ---
 

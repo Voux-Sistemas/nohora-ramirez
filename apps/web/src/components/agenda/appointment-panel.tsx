@@ -21,9 +21,9 @@ import { cn, href } from '@/lib/utils'
 
 export const STATUS_LABEL: Record<string, string> = {
   draft: 'rascunho',
-  scheduled: 'agendado',
+  scheduled: 'marcado',
   confirmed: 'confirmado',
-  checked_in: 'na recepção',
+  checked_in: 'na receção',
   in_progress: 'em atendimento',
   completed: 'concluído',
   cancelled_by_client: 'cancelado pela cliente',

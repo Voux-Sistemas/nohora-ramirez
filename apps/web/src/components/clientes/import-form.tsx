@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { importarCsv, type ImportState } from '@/app/clientes/importar/actions'
 
 export function ImportForm() {
@@ -11,18 +12,11 @@ export function ImportForm() {
   return (
     <form action={action} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
-        Arquivo CSV
+        Ficheiro CSV
         <input className="field" name="file" type="file" accept=".csv,text/csv" required />
       </label>
 
-      {state.error ? (
-        <p
-          role="alert"
-          className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3 text-sm text-(--estado-mau)"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      <Erro>{state.error}</Erro>
 
       {state.result ? (
         <div className="rounded-lg border border-(--border-subtle) p-3 text-sm">
@@ -51,7 +45,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? 'Importando…' : 'Importar'}
+      {pending ? 'A importar…' : 'Importar'}
     </Button>
   )
 }

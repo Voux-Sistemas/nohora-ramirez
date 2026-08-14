@@ -25,7 +25,7 @@ export default async function ComecarPage() {
       <h1 className="text-2xl font-semibold">Começar</h1>
       <p className="text-muted mt-1 mb-6 text-sm">
         Esta é a primeira conta do sistema — a conta da dona, com acesso a tudo.
-        Depois de criada, esta tela deixa de existir.
+        Depois de criada, este ecrã deixa de existir.
       </p>
       <div className="surface rounded-card p-5">
         <InstallForm />

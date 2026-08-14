@@ -26,7 +26,7 @@ export default async function EquipePage() {
     <AdminShell
       acesso={acesso}
       active="/admin/equipe"
-      title="Equipe"
+      title="Equipa"
       meta={staff.length > 0 ? `${staff.length} pessoas · ${ativos} ativas` : undefined}
       actions={
         <Link href="/admin/equipe/novo">
@@ -36,7 +36,7 @@ export default async function EquipePage() {
     >
       {staff.length === 0 ? (
         <p className="text-muted plate p-10 text-center text-sm">
-          Nenhum profissional cadastrado ainda.
+          Nenhum profissional registado ainda.
         </p>
       ) : (
         <div className="plate overflow-x-auto">

@@ -118,7 +118,7 @@ export default async function EncaixePage({
       return (
         <Shell unit={unit.name} date={date} slug={unit.slug} title="Horário ocupado">
           <p className="text-muted">
-            Esse horário não está mais livre. Escolha outro.
+            Este horário já não está livre. Escolha outro.
           </p>
           <Link
             href={href(`${base}&s=${serviceIds.join(',')}`)}
@@ -178,10 +178,10 @@ export default async function EncaixePage({
           <input
             name="q"
             defaultValue={query.q ?? ''}
-            placeholder="buscar cliente por nome ou telefone"
+            placeholder="procurar cliente por nome ou telefone"
             className="field h-11"
           />
-          <button className={cn(buttonVariants({ variant: 'outline' }))}>Buscar</button>
+          <button className={cn(buttonVariants({ variant: 'outline' }))}>Procurar</button>
         </form>
 
         {matches.length > 0 ? (
@@ -258,7 +258,7 @@ export default async function EncaixePage({
       </div>
 
       {slots.length === 0 ? (
-        <p className="text-muted">Nenhum horário livre neste dia com essa combinação.</p>
+        <p className="text-muted">Nenhum horário livre neste dia com esta combinação.</p>
       ) : (
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {slots.map((slot) => (

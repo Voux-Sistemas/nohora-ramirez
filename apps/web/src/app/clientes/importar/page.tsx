@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ImportForm } from '@/components/clients/import-form'
+import { ImportForm } from '@/components/clientes/import-form'
 import { href } from '@/lib/utils'
 
 export const metadata = { title: 'Importar clientes' }
@@ -15,7 +15,7 @@ export default function ImportarClientesPage() {
         <h1 className="text-2xl font-semibold">Importar clientes</h1>
         <p className="text-muted mt-1 text-sm">
           Envie um CSV com as colunas <strong>nome</strong> e <strong>telefone</strong> (e opcionalmente{' '}
-          <strong>email</strong>). Quem já tem cadastro pelo telefone só recebe o e-mail, se estiver
+          <strong>email</strong>). Quem já tem registo pelo telefone só recebe o e-mail, se estiver
           faltando.
         </p>
       </header>

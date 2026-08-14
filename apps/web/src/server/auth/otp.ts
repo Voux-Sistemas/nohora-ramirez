@@ -36,15 +36,40 @@ export function loginClienteDisponivel(): boolean {
   return canalEmailAtivo() || ehTeste()
 }
 
-const SEM_EMAIL =
-  'Sua conta não tem e-mail cadastrado, e é por ele que mandamos o código. Fale com o salão para cadastrar o seu.'
+/**
+ * A única resposta que a tela dá quando não houve envio — conta que não
+ * existe, ficha sem e-mail, pedido repetido dentro do minuto.
+ *
+ * Antes cada um desses becos tinha a sua frase, e "Não encontramos conta com
+ * esse telefone" respondia, a quem escrevesse números no formulário público,
+ * quais deles são de clientes deste salão. Isso é dado pessoal por dedução: a
+ * lista de quem frequenta uma casa de beleza não é do público, mesmo que cada
+ * número, isolado, não seja segredo. A frase agora é a mesma em todos os
+ * casos, e quem é da casa e não recebeu nada tem o caminho de sempre — ligar
+ * para o salão.
+ *
+ * Fica de fora um sinal fraco, e de propósito: quando o envio corre bem a tela
+ * seguinte mostra o e-mail mascarado, e quando não corre não mostra. É o mesmo
+ * compromisso que `recuperacao.ts` já fazia, pela mesma razão — a cliente
+ * precisa de saber que caixa abrir.
+ */
+const RESPOSTA_UNICA =
+  'Se houver conta com este número, o código já foi para o e-mail registado na ficha. ' +
+  'Não chegou nada? Fale com o salão — pode não haver e-mail na sua ficha ainda.'
 const FALHOU =
   'Não conseguimos enviar o código agora. Tente de novo em alguns minutos ou fale com o salão.'
 
 async function entregarCodigo(destino: string | null, code: string): Promise<boolean> {
-  /* Sem canal configurado o código vai para o log do servidor. Só serve em
-     desenvolvimento — em produção `requestOtp` nem chega aqui sem canal. */
+  /*
+    Sem canal configurado o código vai para o log do servidor — mas **só fora
+    de produção**. O log do Railway fica legível a quem tiver o painel, e um
+    código de acesso impresso lá é uma credencial viva à espera de ser lida.
+    `loginClienteDisponivel` já fecha a porta em produção sem canal; o
+    `ehTeste()` aqui é a segunda tranca, para o dia em que alguém abrir a
+    primeira sem reparar nesta.
+  */
   if (!canalEmailAtivo() || !destino) {
+    if (!ehTeste()) return false
     // eslint-disable-next-line no-console
     console.log(`[otp] código para ${destino ?? 'sem destino'}: ${code} (expira em ${VALIDADE_MIN}min)`)
     return true
@@ -54,16 +79,15 @@ async function entregarCodigo(destino: string | null, code: string): Promise<boo
     para: destino,
     assunto: `${code} é o seu código de acesso`,
     texto: [
-      `Seu código de acesso é ${code}.`,
+      `O seu código de acesso é ${code}.`,
       '',
       `Ele vale por ${VALIDADE_MIN} minutos e só pode ser usado uma vez.`,
       '',
-      'Se não foi você que pediu, ignore este e-mail — ninguém entra na sua conta sem este código.',
+      'Se o pedido não partiu de si, ignore este e-mail — ninguém entra na sua conta sem este código.',
     ].join('\n'),
   })
 
   if (!resultado.ok) {
-    // eslint-disable-next-line no-console
     console.error('[otp] falha ao enviar:', resultado.erro)
   }
   return resultado.ok
@@ -84,17 +108,12 @@ export async function requestOtp(phone: string): Promise<RequestOtpResult> {
     .from(users)
     .where(eq(users.phone, phone))
     .limit(1)
-  if (!user) {
-    return { ok: false, message: 'Não encontramos conta com esse telefone. Agende um horário para criar a sua.' }
-  }
-
-  /* Antes de gravar código nenhum: sem envelope não há envio, e uma linha em
-     `auth_otps` que ninguém vai poder usar é lixo com data de validade. */
-  if (canalEmailAtivo() && !user.email) return { ok: false, message: SEM_EMAIL }
-
-  if (await emEspera(phone, 'login')) {
-    return { ok: false, message: 'Aguarde um minuto antes de pedir outro código.' }
-  }
+  /* Antes de gravar código nenhum: sem conta e sem envelope não há envio, e
+     uma linha em `auth_otps` que ninguém vai poder usar é lixo com data de
+     validade. Os três becos respondem igual — ver `RESPOSTA_UNICA`. */
+  if (!user) return { ok: true, message: RESPOSTA_UNICA }
+  if (canalEmailAtivo() && !user.email) return { ok: true, message: RESPOSTA_UNICA }
+  if (await emEspera(phone, 'login')) return { ok: true, message: RESPOSTA_UNICA }
 
   const code = await criarCodigo(phone, 'login')
 

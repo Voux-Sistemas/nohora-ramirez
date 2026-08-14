@@ -5,7 +5,7 @@ import 'server-only'
 import { userRoles, users } from '@studio/db'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { hashSecret, verifySecret } from './crypto'
+import { hashSecret, precisaRehash, verifySecret } from './crypto'
 import { temPapelDeEquipe } from './permissoes'
 import { createSession } from './session'
 
@@ -21,7 +21,7 @@ export interface StaffLoginResult {
 
 export async function verifyStaffLogin(phone: string, plain: string): Promise<StaffLoginResult> {
   const [user] = await db.select().from(users).where(eq(users.phone, phone)).limit(1)
-  if (!user || !user.passwordHash) return { ok: false, message: 'Telefone ou senha incorretos.' }
+  if (!user || !user.passwordHash) return { ok: false, message: 'Telefone ou palavra-passe incorretos.' }
 
   /*
     A pergunta é a mesma que os porteiros de tela fazem, e por isso vem do mesmo
@@ -30,12 +30,20 @@ export async function verifyStaffLogin(phone: string, plain: string): Promise<St
     devolvido para o login na tela seguinte — um laço sem explicação.
   */
   const roles = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, user.id))
-  if (!temPapelDeEquipe(roles)) return { ok: false, message: 'Telefone ou senha incorretos.' }
+  if (!temPapelDeEquipe(roles)) return { ok: false, message: 'Telefone ou palavra-passe incorretos.' }
 
   const valid = await verifySecret(plain, user.passwordHash)
-  if (!valid) return { ok: false, message: 'Telefone ou senha incorretos.' }
+  if (!valid) return { ok: false, message: 'Telefone ou palavra-passe incorretos.' }
 
   if (user.status !== 'active') return { ok: false, message: 'Conta desativada. Fale com a administração.' }
+
+  /*
+    Único instante em que a senha em claro existe e a pessoa já provou ser dona
+    dela: é aqui, e só aqui, que dá para regravar um hash antigo com o custo de
+    hoje sem lhe pedir nada. Quem não voltar a entrar fica com o hash fraco —
+    mas quem não volta a entrar também não tem conta a proteger.
+  */
+  if (precisaRehash(user.passwordHash)) await setStaffPassword(user.id, plain)
 
   await createSession(user.id)
   return { ok: true }

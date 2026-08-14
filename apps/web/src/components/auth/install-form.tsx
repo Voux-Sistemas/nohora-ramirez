@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { instalar, type InstalarState } from '@/app/comecar/actions'
 
@@ -25,11 +26,11 @@ export function InstallForm() {
         {/* Não é cadastro de contato: é a única saída se esta senha se perder.
             Esta conta não tem a quem recorrer — é ela que cria as outras. */}
         <span className="text-muted text-xs">
-          Se você esquecer a senha, o código para trocá-la vai para cá.
+          Se se esquecer da palavra-passe, o código para a trocar vem para aqui.
         </span>
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Senha
+        Palavra-passe
         {/*
           `new-password` faz o gerenciador de senhas oferecer uma senha forte em
           vez de tentar preencher com a do login da equipe, que ainda não existe.
@@ -45,7 +46,7 @@ export function InstallForm() {
         <span className="text-muted text-xs">Pelo menos 8 caracteres.</span>
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Repita a senha
+        Repita a palavra-passe
         <input
           className="field"
           name="confirmar"
@@ -70,14 +71,7 @@ export function InstallForm() {
         </span>
       </label>
 
-      {state.error ? (
-        <p
-          role="alert"
-          className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3 text-sm text-(--estado-mau)"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      <Erro>{state.error}</Erro>
 
       <SubmitButton />
     </form>
@@ -88,7 +82,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? 'Criando…' : 'Criar minha conta'}
+      {pending ? 'A criar…' : 'Criar a minha conta'}
     </Button>
   )
 }

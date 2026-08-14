@@ -154,22 +154,6 @@ export async function importClients(rows: ImportRow[]): Promise<ImportResult> {
   return result
 }
 
-export async function getClientById(clientId: string): Promise<ClientIdentity | null> {
-  const [row] = await db
-    .select({
-      clientId: clientProfiles.id,
-      userId: users.id,
-      name: users.name,
-      phone: users.phone,
-    })
-    .from(clientProfiles)
-    .innerJoin(users, eq(users.id, clientProfiles.userId))
-    .where(eq(clientProfiles.id, clientId))
-    .limit(1)
-
-  return row ? { ...row, returning: true } : null
-}
-
 /** Busca por nome ou telefone — é o campo de busca da recepção. */
 export async function searchClients(term: string, limit = 12): Promise<ClientIdentity[]> {
   const clean = term.trim()

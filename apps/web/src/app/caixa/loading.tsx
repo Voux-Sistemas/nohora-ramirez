@@ -6,7 +6,7 @@ export default function CarregandoCaixa() {
   return (
     <div aria-busy="true" className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
       <span className="sr-only" role="status">
-        Carregando o caixa…
+        A carregar o caixa…
       </span>
       <div aria-hidden className="flex flex-col gap-3">
         <Barra className="h-8 w-44" />

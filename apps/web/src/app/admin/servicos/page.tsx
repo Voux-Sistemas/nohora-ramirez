@@ -10,7 +10,7 @@ import { criarCategoria } from './actions'
 /** As ressalvas de um serviço, em ordem de quem tropeça nelas primeiro. */
 function ressalvas(s: { onlineBookable: boolean; requiresAssessment: boolean }): string[] {
   const lista: string[] = []
-  if (!s.onlineBookable) lista.push('só recepção')
+  if (!s.onlineBookable) lista.push('só receção')
   if (s.requiresAssessment) lista.push('avaliação')
   return lista
 }
@@ -66,7 +66,7 @@ export default async function ServicosPage() {
         <Section title="Catálogo" className="mb-0">
           {services.length === 0 ? (
             <p className="text-muted plate p-10 text-center text-sm">
-              Nenhum serviço cadastrado ainda.
+              Nenhum serviço registado ainda.
             </p>
           ) : (
             <div className="plate overflow-x-auto">
@@ -80,7 +80,7 @@ export default async function ServicosPage() {
               */}
               <table className="w-full min-w-2xl text-[0.9375rem]">
                 {/*
-                  O preço fecha a linha. As ressalvas ("só recepção",
+                  O preço fecha a linha. As ressalvas ("só receção",
                   "avaliação") pertencem ao serviço, não a uma coluna própria:
                   são legenda debaixo do nome, onde só ocupam altura nas poucas
                   linhas que as têm.

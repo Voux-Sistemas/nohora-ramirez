@@ -34,7 +34,16 @@ export default async function VerificarPage({
             {formatPhone(telefone)}. Ele vale por 5 minutos.
           </>
         ) : (
-          <>Enviamos um código para a conta {formatPhone(telefone)}.</>
+          /*
+            Sem destino é o caminho em que pode não ter havido envio nenhum —
+            número sem conta, ficha sem e-mail, pedido repetido dentro do
+            minuto. A frase é a mesma nos três, senão esta tela devolvia por
+            omissão o que `RESPOSTA_UNICA` esconde por escrito.
+          */
+          <>
+            Se houver conta em {formatPhone(telefone)}, o código já foi para o e-mail registado
+            nela. Não chegou nada? Fale com o salão.
+          </>
         )}
       </p>
       {dev ? (

@@ -29,7 +29,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
     própria tela e ninguém depende de mensagem nenhuma.
   */
   if (!loginClienteDisponivel()) {
-    return { error: 'A área da cliente ainda não está disponível. Fale com o salão para ver ou remarcar seus horários.' }
+    return { error: 'A área da cliente ainda não está disponível. Fale com o salão para ver ou remarcar as suas marcações.' }
   }
 
   /*
@@ -53,7 +53,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
 
   if (aliasPhone) {
     const senha = String(formData.get('senha') ?? '')
-    if (senha !== TEST_PASSWORD) return { error: 'Senha incorreta.' }
+    if (senha !== TEST_PASSWORD) return { error: 'Palavra-passe incorreta.' }
     const result = await loginTestClient(aliasPhone)
     if (!result.ok) return { error: result.message }
     redirect('/conta' as never)

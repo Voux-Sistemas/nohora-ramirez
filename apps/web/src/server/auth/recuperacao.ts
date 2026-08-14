@@ -46,7 +46,7 @@ export function recuperacaoDisponivel(): boolean {
  * segue em frente; a errada não aprende nada.
  */
 const RESPOSTA_UNICA =
-  'Se esse telefone for de alguém da equipe, o código está a caminho do e-mail cadastrado.'
+  'Se este telefone for de alguém da equipa, o código está a caminho do e-mail registado.'
 
 export interface PedidoRecuperacao {
   ok: boolean
@@ -85,26 +85,33 @@ export async function pedirRecuperacao(phone: string): Promise<PedidoRecuperacao
   const code = await criarCodigo(phone, 'recovery')
 
   if (!canalEmailAtivo()) {
+    /* Imprimir o código no log só se faz fora de produção: lá ele é uma
+       credencial viva à vista de quem abrir o painel do Railway. Em produção
+       sem canal não há por onde recuperar senha — e dizê-lo é melhor do que
+       fingir que o e-mail saiu. */
+    if (!ehTeste()) {
+      await queimarCodigos(phone, 'recovery')
+      return { ok: false, message: 'Não conseguimos enviar o código agora. Fale com quem cuida do sistema.' }
+    }
     // eslint-disable-next-line no-console
     console.log(`[recuperacao] código para ${user.email}: ${code} (expira em ${VALIDADE_MIN}min)`)
-    return { ok: true, destino: mascararEmail(user.email), devCode: ehTeste() ? code : undefined }
+    return { ok: true, destino: mascararEmail(user.email), devCode: code }
   }
 
   const envio = await enviarEmail({
     para: user.email,
-    assunto: `${code} — código para trocar sua senha`,
+    assunto: `${code} — código para trocar a sua palavra-passe`,
     texto: [
-      `Alguém pediu para trocar a senha de acesso da equipe. O código é ${code}.`,
+      `Alguém pediu para trocar a palavra-passe de acesso da equipa. O código é ${code}.`,
       '',
       `Ele vale por ${VALIDADE_MIN} minutos e só pode ser usado uma vez.`,
       '',
-      'Se não foi você, ignore este e-mail: sua senha continua a mesma e ninguém',
-      'consegue trocá-la sem este código.',
+      'Se o pedido não partiu de si, ignore este e-mail: a sua palavra-passe continua',
+      'a mesma e ninguém consegue trocá-la sem este código.',
     ].join('\n'),
   })
 
   if (!envio.ok) {
-    // eslint-disable-next-line no-console
     console.error('[recuperacao] falha ao enviar:', envio.erro)
     await queimarCodigos(phone, 'recovery')
     return { ok: false, message: 'Não conseguimos enviar o código agora. Tente de novo em alguns minutos.' }
@@ -132,7 +139,7 @@ export async function trocarSenhaComCodigo(
   senha: string,
 ): Promise<TrocaDeSenha> {
   if (senha.length < SENHA_MINIMA) {
-    return { ok: false, message: `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.` }
+    return { ok: false, message: `A palavra-passe tem de ter pelo menos ${SENHA_MINIMA} caracteres.` }
   }
 
   const conferido = await consumirCodigo(phone, 'recovery', code)

@@ -2,13 +2,13 @@
 #
 # Backup diário do banco de produção.
 #
-# Roda como cron service na Railway: sobe, dumpa, manda para o bucket e sai.
-# Nada fica de pé entre uma execução e outra, então o custo é alguns segundos
-# de CPU por dia mais centavos de armazenamento.
+# Corre como cron service na Railway: sobe, faz o dump, manda para o bucket e
+# sai. Nada fica de pé entre uma execução e outra, portanto o custo é alguns
+# segundos de CPU por dia mais cêntimos de armazenamento.
 #
-# O dump é lógico (pg_dump), não snapshot de disco. Ele restaura em qualquer
+# O dump é lógico (pg_dump), não snapshot de disco. Restaura em qualquer
 # Postgres 18, dentro ou fora da Railway — e isso importa mais do que parece:
-# backup que só restaura na plataforma de origem deixa você refém dela no pior
+# backup que só restaura na plataforma de origem deixa-nos reféns dela no pior
 # dia possível.
 set -eu
 

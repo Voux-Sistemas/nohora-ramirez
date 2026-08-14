@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { NovaSenhaForm } from '@/components/auth/recuperacao-forms'
 import { formatPhone } from '@/lib/format'
 
-export const metadata = { title: 'Nova senha' }
+export const metadata = { title: 'Nova palavra-passe' }
 
 /*
   `para` vem da URL, e URL qualquer um escreve. Só passa o que tem a cara do
@@ -26,7 +26,7 @@ export default async function NovaSenhaPage({
 
   return (
     <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-      <h1 className="text-2xl font-semibold">Nova senha</h1>
+      <h1 className="text-2xl font-semibold">Nova palavra-passe</h1>
       <p className="text-muted mt-1 mb-6 text-sm">
         {destino ? (
           <>
@@ -35,8 +35,8 @@ export default async function NovaSenhaPage({
           </>
         ) : (
           <>
-            Se {formatPhone(telefone)} for de alguém da equipe, o código já está a caminho do e-mail
-            cadastrado. Não chegou nada? Fale com quem cuida do sistema.
+            Se {formatPhone(telefone)} for de alguém da equipa, o código já está a caminho do e-mail
+            registado. Não chegou nada? Fale com quem cuida do sistema.
           </>
         )}
       </p>
@@ -52,7 +52,7 @@ export default async function NovaSenhaPage({
       </div>
 
       <p className="text-muted mt-6 text-xs leading-relaxed">
-        Trocar a senha desconecta todos os aparelhos que estavam usando a antiga.
+        Trocar a palavra-passe desliga todos os aparelhos que estavam a usar a antiga.
       </p>
     </div>
   )

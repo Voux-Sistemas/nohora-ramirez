@@ -28,8 +28,9 @@ export const auditLogs = pgTable(
 )
 
 /**
- * Consentimento LGPD, versionado. Anamnese e foto antes/depois são dado
- * pessoal sensível — sem consentimento registrado, não se usa.
+ * Consentimento RGPD, versionado. Anamnese e fotografia antes/depois são
+ * categoria especial de dados (art. 9.º) — sem consentimento registado, não
+ * se usa.
  */
 export const consentRecords = pgTable(
   'consent_records',

@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     default: `${STUDIO} · Beauty Studio`,
     template: `%s · ${STUDIO}`,
   },
-  description: 'Agendamento e gestão do Nohora Ramirez Beauty Studio.',
+  description: 'Marcações e gestão do Nohora Ramirez Beauty Studio.',
 }
 
 /*

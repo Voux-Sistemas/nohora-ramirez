@@ -27,9 +27,9 @@ export class UploadError extends Error {}
   entre uma cliente e outra, não um desenvolvedor lendo stack trace.
 */
 const MESSAGES = {
-  empty: 'Nenhum arquivo escolhido.',
+  empty: 'Nenhum ficheiro escolhido.',
   tooBig: `A imagem passa de ${Math.round(MAX_IMAGE_BYTES / 1024 / 1024)} MB. Reduza e tente de novo.`,
-  wrongType: 'Formato não aceito. Envie JPG, PNG, WebP ou AVIF.',
+  wrongType: 'Formato não aceite. Envie JPG, PNG, WebP ou AVIF.',
 } as const
 
 /**

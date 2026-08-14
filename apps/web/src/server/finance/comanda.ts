@@ -26,6 +26,7 @@ import {
 import { resolveCommission } from '@studio/core'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
+import { pais } from '@/lib/pais'
 
 export type PaymentMethod = 'cash' | 'debit_card' | 'credit_card' | 'pix' | 'other'
 
@@ -35,6 +36,23 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   credit_card: 'Cartão de crédito',
   pix: 'Pix',
   other: 'Outro',
+}
+
+/**
+ * As formas que o balcão oferece hoje — que não são as mesmas em todo o lado.
+ *
+ * O enum do banco continua a guardar todas, e é por isso que o mapa de cima
+ * cobre o conjunto inteiro: uma comanda fechada com Pix continua a ler-se
+ * "Pix" para sempre. O que muda aqui é só o que a receção pode escolher.
+ *
+ * O Pix é serviço do Banco Central do Brasil e não existe em Portugal. Estava
+ * na lista — e, pior, vinha pré-selecionado na primeira linha: quem fechasse a
+ * comanda sem abrir o seletor registava, todos os dias, um meio de pagamento
+ * que não aconteceu, e o fecho do caixa deixava de bater com a gaveta.
+ */
+export function metodosDoPais(): readonly PaymentMethod[] {
+  const todos: PaymentMethod[] = ['cash', 'debit_card', 'credit_card', 'pix', 'other']
+  return pais().codigo === 'BR' ? todos : todos.filter((m) => m !== 'pix')
 }
 
 export interface ComandaItemView {
@@ -260,31 +278,3 @@ export async function closeComanda(appointmentId: string, input: CloseComandaInp
   })
 }
 
-export interface OpenComandaRow {
-  id: string
-  clientName: string
-  completedAt: Date | null
-  total: number
-}
-
-export async function listOpenComandas(unitId: string): Promise<OpenComandaRow[]> {
-  const rows = await db
-    .select({
-      id: appointments.id,
-      completedAt: appointments.completedAt,
-      total: appointments.totalPrice,
-      clientName: users.name,
-    })
-    .from(appointments)
-    .innerJoin(clientProfiles, eq(clientProfiles.id, appointments.clientId))
-    .innerJoin(users, eq(users.id, clientProfiles.userId))
-    .leftJoin(comandaClosures, eq(comandaClosures.appointmentId, appointments.id))
-    .where(
-      and(
-        eq(appointments.unitId, unitId),
-        eq(appointments.status, 'completed'),
-        isNull(comandaClosures.id),
-      ),
-    )
-  return rows
-}

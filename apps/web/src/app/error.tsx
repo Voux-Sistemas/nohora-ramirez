@@ -32,7 +32,6 @@ export default function ErrorBoundary({
   useEffect(() => {
     /* O servidor já registrou o stack; do lado do cliente sobra o digest, e é
        ele que amarra os dois lados quando alguém for procurar. */
-    // eslint-disable-next-line no-console
     console.error('[erro]', error.digest ?? '(sem digest)', error.message)
   }, [error])
 
@@ -43,6 +42,11 @@ export default function ErrorBoundary({
       acoes={
         <>
           <Button onClick={reset}>Tentar de novo</Button>
+          {/* Âncora crua de propósito, e não `<Link>`: chegar aqui quer dizer
+              que alguma coisa rebentou dentro da árvore do React, e o `<Link>`
+              navegaria por dentro dessa mesma árvore. O carregamento inteiro é
+              o ponto — é o que garante que a página de início nasce limpa. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/" className={buttonVariants({ variant: 'ghost' })}>
             Voltar ao início
           </a>
@@ -50,7 +54,7 @@ export default function ErrorBoundary({
       }
     >
       <p>
-        Não foi culpa sua e nada do que você já tinha salvo se perdeu. Quase sempre é passageiro:
+        Não foi culpa sua e nada do que já tinha guardado se perdeu. Quase sempre é passageiro:
         tente de novo.
       </p>
       <p className="text-muted mt-3">

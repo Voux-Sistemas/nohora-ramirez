@@ -74,10 +74,10 @@ const MESSAGES: Record<BookingError, string> = {
   unit_not_found: 'Unidade não encontrada.',
   empty_cart: 'Escolha pelo menos um serviço.',
   invalid_start: 'Horário inválido.',
-  service_unavailable: 'Esse serviço não está disponível nesta unidade.',
-  not_online_bookable: 'Esse serviço só pode ser marcado pela recepção.',
-  requires_assessment: 'Esse procedimento exige avaliação presencial antes de agendar.',
-  slot_taken: 'Esse horário acabou de ser ocupado. Escolha outro, por favor.',
+  service_unavailable: 'Este serviço não está disponível nesta unidade.',
+  not_online_bookable: 'Este serviço só pode ser marcado pela receção.',
+  requires_assessment: 'Este procedimento exige avaliação presencial antes de marcar.',
+  slot_taken: 'Este horário acabou de ser ocupado. Escolha outro, por favor.',
 }
 
 function fail(error: BookingError): CreateAppointmentResult {

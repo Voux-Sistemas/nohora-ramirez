@@ -38,7 +38,7 @@ export default async function UnidadesPage() {
     >
       {units.length === 0 ? (
         <p className="text-muted plate p-10 text-center text-sm">
-          Nenhuma unidade cadastrada ainda.
+          Nenhuma unidade registada ainda.
         </p>
       ) : (
         <div className="plate overflow-x-auto">

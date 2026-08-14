@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { confirmarCodigo, type CodeState } from '@/app/conta/verificar/actions'
 
 export function CodeForm({ telefone }: { telefone: string }) {
@@ -23,14 +24,7 @@ export function CodeForm({ telefone }: { telefone: string }) {
         />
       </label>
 
-      {state.error ? (
-        <p
-          role="alert"
-          className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3 text-sm text-(--estado-mau)"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      <Erro>{state.error}</Erro>
 
       <SubmitButton />
     </form>
@@ -41,7 +35,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? 'Verificando…' : 'Entrar'}
+      {pending ? 'A verificar…' : 'Entrar'}
     </Button>
   )
 }

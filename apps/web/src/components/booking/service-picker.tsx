@@ -195,7 +195,7 @@ export function ServicePicker({
             )}
           </div>
           <Button size="lg" disabled={chosen.length === 0 || pending} onClick={advance}>
-            {pending ? 'Buscando…' : ctaLabel}
+            {pending ? 'A procurar…' : ctaLabel}
           </Button>
         </div>
       </div>

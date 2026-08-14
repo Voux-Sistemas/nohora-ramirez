@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  cartTotal,
   depositAmount,
   priceRange,
   resolvePrice,
@@ -83,16 +82,6 @@ describe('resolvePrice — precedência', () => {
     ]
     // sem profissional definido, a exceção dele não se aplica
     expect(resolvePrice(overrides, semStaff)).toMatchObject({ price: 22_000, source: 'unit' })
-  })
-})
-
-describe('cartTotal', () => {
-  it('soma os itens da visita', () => {
-    const total = cartTotal([
-      { price: 9_000, durationMin: 30, source: 'base' },
-      { price: 20_000, durationMin: 100, source: 'staff' },
-    ])
-    expect(total).toBe(29_000)
   })
 })
 

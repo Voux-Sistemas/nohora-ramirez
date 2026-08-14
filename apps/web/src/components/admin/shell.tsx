@@ -39,7 +39,7 @@ const GRUPOS = [
   {
     titulo: 'A loja',
     tabs: [
-      { path: '/admin/equipe', label: 'Equipe', rede: false },
+      { path: '/admin/equipe', label: 'Equipa', rede: false },
       { path: '/admin/recursos', label: 'Recursos', rede: false },
     ],
   },

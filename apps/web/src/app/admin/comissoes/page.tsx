@@ -198,7 +198,7 @@ export default async function ComissoesPage() {
                 />
               </label>
               <Button type="submit" variant="outline">
-                Salvar regra
+                Guardar regra
               </Button>
             </div>
           </form>

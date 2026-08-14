@@ -23,14 +23,14 @@ export async function cancelarMeuAgendamento(
 ): Promise<CancelState> {
   const session = await requireClientSession()
   const id = String(formData.get('id') ?? '')
-  if (!id) return { error: 'Agendamento não encontrado.' }
+  if (!id) return { error: 'Marcação não encontrada.' }
 
   const appointment = await getAppointment(id)
   if (!appointment || appointment.clientId !== session.clientId) {
-    return { error: 'Agendamento não encontrado.' }
+    return { error: 'Marcação não encontrada.' }
   }
   if (!CANCELABLE.has(appointment.status)) {
-    return { error: 'Esse agendamento não pode mais ser cancelado.' }
+    return { error: 'Esta marcação já não pode ser cancelada.' }
   }
 
   await cancelAppointment(id, 'cancelled_by_client', { reason: 'Cancelado pela cliente' })

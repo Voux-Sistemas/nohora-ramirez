@@ -68,7 +68,7 @@ export async function checkBookingQuota(clientId: string): Promise<GuardVerdict>
     return {
       ok: false,
       message:
-        'Você marcou vários horários agora há pouco. Espere um pouco ou fale com a recepção pelo WhatsApp.',
+        'Marcou vários horários agora há pouco. Espere um pouco ou fale com a receção pelo WhatsApp.',
     }
   }
 
@@ -76,7 +76,7 @@ export async function checkBookingQuota(clientId: string): Promise<GuardVerdict>
     return {
       ok: false,
       message:
-        'Você já tem muitos horários marcados. Fale com a recepção para organizar sua agenda.',
+        'Já tem muitas marcações. Fale com a receção para organizar a sua agenda.',
     }
   }
 

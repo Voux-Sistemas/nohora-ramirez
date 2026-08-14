@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
  * limpo e a barra diz isso.
  */
 export function FormActions({
-  label = 'Salvar',
+  label = 'Guardar',
   className,
 }: {
   label?: string

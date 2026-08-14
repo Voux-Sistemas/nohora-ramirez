@@ -7,7 +7,7 @@ import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/form
 import { getAppointment } from '@/server/scheduling/queries'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Agendamento confirmado' }
+export const metadata = { title: 'Marcação confirmada' }
 
 /**
  * O selo.
@@ -21,12 +21,20 @@ export const metadata = { title: 'Agendamento confirmado' }
  * Quem pediu para desligar movimento recebe o selo pronto, não a tela vazia
  * (ver `prefers-reduced-motion` em globals.css).
  */
-export default async function ProntoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProntoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ para?: string | string[] }>
+}) {
   const { id } = await params
   const appointment = await getAppointment(id)
   if (!appointment) notFound()
 
   const date = isoDateInZone(appointment.start, appointment.timezone)
+  const { para } = await searchParams
+  const nome = primeiroNome(para)
 
   return (
     <main className="min-h-dvh bg-(--surface-ink) text-(--on-ink)">
@@ -39,7 +47,7 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
           />
 
           <h1 className="display display-lg mt-8">
-            Está marcado, {firstName(appointment.clientName)}.
+            {nome ? `Está marcado, ${nome}.` : 'Está marcado.'}
           </h1>
 
           <p className="tnum mt-4 text-lg text-(--on-ink-muted)">
@@ -82,7 +90,7 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
               <span className="tnum font-medium text-(--on-ink)">
                 {formatMoney(appointment.depositRequired)}
               </span>{' '}
-              — o link de pagamento chega no WhatsApp{' '}
+              — enviamos o link de pagamento para o WhatsApp{' '}
               <span className="tnum">{formatPhone(appointment.clientPhone)}</span>.
             </p>
           ) : (
@@ -116,6 +124,23 @@ export default async function ProntoPage({ params }: { params: Promise<{ id: str
   )
 }
 
-function firstName(name: string): string {
-  return name.split(' ')[0] ?? name
+/**
+ * O nome com que o selo cumprimenta, vindo do endereço e não da ficha.
+ *
+ * O endereço desta tela é a chave: quem o tem, entra. Antes daqui o
+ * cumprimento saía de `appointment.clientName`, que é o nome **gravado** —
+ * e `findOrCreateClient` reconhece a cliente pelo telemóvel. Bastava marcar
+ * com o número de outra pessoa para o selo dizer como ela se chama. Agora o
+ * nome é o que foi escrito no formulário, passado por `confirmar/actions.ts`:
+ * a pessoa vê de volta o que acabou de digitar, e nada que já estivesse lá.
+ *
+ * O que chega do endereço é texto de quem quiser escrevê-lo, por isso não é
+ * usado como veio: só letras, espaços, hífenes e apóstrofos, e curto. Sem nome
+ * legível o cumprimento fica sem nome — nunca com o da ficha.
+ */
+function primeiroNome(para: string | string[] | undefined): string | null {
+  const bruto = (Array.isArray(para) ? para[0] : para)?.trim()
+  if (!bruto) return null
+  const limpo = bruto.split(/\s+/)[0]?.replace(/[^\p{L}'’-]/gu, '') ?? ''
+  return limpo.length > 0 && limpo.length <= 40 ? limpo : null
 }

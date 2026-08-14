@@ -1,12 +1,12 @@
+import { isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatTime, simboloMoeda } from '@/lib/format'
+import { ComandaForm } from '@/components/agenda/comanda-form'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
-import { PAYMENT_METHOD_LABEL, getComanda } from '@/server/finance/comanda'
+import { PAYMENT_METHOD_LABEL, getComanda, metodosDoPais } from '@/server/finance/comanda'
 import { getUnitBySlug } from '@/server/scheduling/context'
-import { fecharComanda } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +28,12 @@ export default async function ComandaPage({
   const comanda = await getComanda(id)
   if (!comanda || comanda.unitId !== unit.id) notFound()
   requireUnidade(acesso, comanda.unitId)
+  /* O rótulo é resolvido aqui porque `PAYMENT_METHOD_LABEL` vive no módulo
+     `server-only` do fecho — atravessa para o formulário já como texto. */
+  const metodos = metodosDoPais().map((valor) => ({
+    valor,
+    rotulo: PAYMENT_METHOD_LABEL[valor],
+  }))
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
@@ -77,7 +83,7 @@ export default async function ComandaPage({
               <li key={p.id} className="flex items-baseline justify-between gap-3 py-2">
                 <span>
                   {PAYMENT_METHOD_LABEL[p.method]}
-                  <span className="text-muted"> · {formatDateLong(p.paidAt.toISOString().slice(0, 10))} {formatTime(p.paidAt, unit.timezone)}</span>
+                  <span className="text-muted"> · {formatDateLong(isoDateInZone(p.paidAt, unit.timezone))} {formatTime(p.paidAt, unit.timezone)}</span>
                 </span>
                 <span className="tnum">{formatMoney(p.amount)}</span>
               </li>
@@ -87,60 +93,17 @@ export default async function ComandaPage({
         </section>
       ) : comanda.status !== 'completed' ? (
         <p className="surface rounded-card text-muted p-5 text-sm">
-          Só é possível fechar a comanda depois que o atendimento estiver concluído.
+          Só é possível fechar a comanda depois de o atendimento estar concluído.
         </p>
       ) : (
         <section className="surface rounded-card p-5">
           <h2 className="mb-3 font-medium">Fechar comanda</h2>
-          <form action={fecharComanda} className="flex flex-col gap-4">
-            <input type="hidden" name="appointmentId" value={comanda.appointmentId} />
-            <input type="hidden" name="unitSlug" value={unit.slug} />
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Desconto ({simboloMoeda()})
-                <input className="field" type="number" step="0.01" min="0" name="discountAmount" defaultValue="0" />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Motivo do desconto
-                <input className="field" name="discountReason" placeholder="opcional" />
-              </label>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium">Pagamento (pode dividir em até 3 formas)</p>
-              <div className="flex flex-col gap-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="grid grid-cols-2 gap-3">
-                    <select className="field" name={`p${i}_method`} defaultValue={i === 1 ? 'pix' : ''}>
-                      <option value="">—</option>
-                      <option value="cash">Dinheiro</option>
-                      <option value="debit_card">Débito</option>
-                      <option value="credit_card">Crédito</option>
-                      <option value="pix">Pix</option>
-                      <option value="other">Outro</option>
-                    </select>
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name={`p${i}_amount`}
-                      placeholder={formatMoney(0)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-muted mt-2 text-xs">
-                A soma dos pagamentos precisa bater exatamente com o total menos o desconto. Pagamento em
-                dinheiro exige caixa aberto na unidade.
-              </p>
-            </div>
-
-            <div>
-              <Button type="submit">Fechar comanda</Button>
-            </div>
-          </form>
+          <ComandaForm
+            appointmentId={comanda.appointmentId}
+            unitSlug={unit.slug}
+            total={comanda.total}
+            metodos={metodos}
+          />
         </section>
       )}
     </div>

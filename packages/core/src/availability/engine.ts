@@ -348,18 +348,3 @@ export function findAvailableSlots(query: AvailabilityQuery): Slot[] {
   return slots.sort((a, b) => a.start.getTime() - b.start.getTime())
 }
 
-/**
- * Janelas realmente livres de um profissional — escala menos ocupações.
- * Útil para desenhar a agenda e para medir ociosidade.
- */
-export function staffFreeWindows(staff: StaffAvailability): TimeRange[] {
-  return subtractRanges(staff.workingRanges, staff.busyRanges)
-}
-
-/** Taxa de ocupação do profissional no período, entre 0 e 1. */
-export function staffOccupancyRate(staff: StaffAvailability): number {
-  const scheduled = totalMinutes(staff.workingRanges)
-  if (scheduled === 0) return 0
-  const busy = totalMinutes(staff.busyRanges)
-  return Math.min(1, busy / scheduled)
-}

@@ -516,29 +516,40 @@ export const PRICING_EXCEPTIONS: readonly PricingSeed[] = [
 
 // ─── comissões ──────────────────────────────────────────────────────────────
 
+/**
+ * Uma linha de `commission_rules`, e nada além do que a tabela guarda.
+ *
+ * Este bloco já descreveu um modelo que não existe — comissão por categoria,
+ * valor fixo por aplicação, dedução do custo do produto — e por isso nunca foi
+ * inserido: não havia coluna onde pousar. O efeito colateral era pior do que
+ * dados a mais no ficheiro: sem regra nenhuma na tabela, fechar uma comanda na
+ * demonstração gerava comissão zero, e a tela "A pagar" ficava vazia para
+ * sempre sem ninguém perceber porquê.
+ *
+ * A precedência é a da tabela: profissional + serviço → profissional →
+ * serviço → nada. Ver `resolveCommission` em `@studio/core`.
+ */
 export interface CommissionSeed {
-  staff: string
-  /** slug do serviço, nome da categoria, ou nada = regra geral da pessoa */
+  /** slug da profissional; ausente = regra da rede para aquele serviço */
+  staff?: string
+  /** slug do serviço; ausente = regra geral daquela pessoa */
   service?: string
-  category?: CategoryName
   /** pontos-base: 4000 = 40% */
-  percentBps?: number
-  fixedCents?: number
-  deductProductCost?: boolean
+  percentBps: number
   note?: string
 }
 
 export const COMMISSIONS: readonly CommissionSeed[] = [
-  { staff: 'ana', category: 'Química', percentBps: 4000, deductProductCost: true },
   { staff: 'ana', percentBps: 3500 },
+  { staff: 'ana', service: 'coloracao', percentBps: 4000, note: 'química paga melhor' },
   { staff: 'bia', percentBps: 3000 },
   { staff: 'carla', percentBps: 5000 },
-  { staff: 'duda', service: 'cilios', fixedCents: 8000, note: 'fixo por aplicação' },
   { staff: 'duda', percentBps: 4000 },
-  { staff: 'elis', percentBps: 4500, deductProductCost: true },
+  { staff: 'duda', service: 'cilios', percentBps: 5000, note: 'especialidade dela' },
+  { staff: 'elis', percentBps: 4500 },
   { staff: 'fabi', percentBps: 3500 },
-  { staff: 'gigi', category: 'Química', percentBps: 4000, deductProductCost: true },
   { staff: 'gigi', percentBps: 3000 },
+  { staff: 'gigi', service: 'coloracao', percentBps: 4000 },
   { staff: 'helo', percentBps: 4500 },
 ]
 

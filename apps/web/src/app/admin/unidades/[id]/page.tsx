@@ -123,7 +123,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                Endereço
+                Morada
                 <input className="field" name="addressLine" defaultValue={unit.addressLine ?? ''} />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -164,12 +164,13 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           </Section>
 
           {/*
-          A cliente escolhe a unidade olhando a sala, não o CEP — por isso a
-          foto tem seção própria e aparece no mesmo 4:5 em que ela vai ver.
+          A cliente escolhe a unidade a olhar para a sala, não para o código
+          postal — por isso a foto tem secção própria e aparece no mesmo 4:5
+          em que ela a vai ver.
         */}
           <Section
             title="Foto da unidade"
-            hint="Aparece na primeira tela do agendamento, do tamanho de um cartão. Vale uma foto da sala com luz acesa e sem gente de costas."
+            hint="Aparece no primeiro ecrã da marcação, do tamanho de um cartão. Vale uma foto da sala com luz acesa e sem gente de costas."
           >
             <ImageField
               name="imagem"
@@ -180,8 +181,8 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           </Section>
 
           <Section
-            title="Regras de agendamento"
-            hint="Valem para o agendamento online do cliente. A recepção pode ignorar essas regras no encaixe."
+            title="Regras de marcação"
+            hint="Valem para a marcação online da cliente. A receção pode ignorar estas regras no encaixe."
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm">
@@ -289,7 +290,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
             </div>
           </Section>
 
-          <FormActions label="Salvar unidade" />
+          <FormActions label="Guardar unidade" />
         </form>
 
         {/*
@@ -341,7 +342,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
                 </li>
               ))}
               {exceptions.length === 0 ? (
-                <li className="text-muted text-sm">Nenhuma exceção cadastrada.</li>
+                <li className="text-muted text-sm">Nenhuma exceção registada.</li>
               ) : null}
             </ul>
 

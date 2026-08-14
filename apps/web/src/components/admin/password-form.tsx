@@ -16,17 +16,17 @@ export function PasswordForm({ staffId }: { staffId: string }) {
       <input type="hidden" name="staffId" value={staffId} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
-          Nova senha
+          Nova palavra-passe
           <input className="field" type="password" name="senha" minLength={8} required />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Confirmar senha
+          Confirmar palavra-passe
           <input className="field" type="password" name="confirmar" minLength={8} required />
         </label>
       </div>
       {state.error ? <p className="text-sm text-(--estado-mau)">{state.error}</p> : null}
       {state.success ? (
-        <p className="text-sm text-(--estado-bom)">Senha atualizada.</p>
+        <p className="text-sm text-(--estado-bom)">Palavra-passe atualizada.</p>
       ) : null}
       <div>
         <SubmitButton />
@@ -39,7 +39,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" variant="outline" disabled={pending}>
-      {pending ? 'Salvando…' : 'Definir senha'}
+      {pending ? 'A guardar…' : 'Definir palavra-passe'}
     </Button>
   )
 }

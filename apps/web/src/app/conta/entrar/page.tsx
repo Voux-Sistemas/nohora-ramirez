@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { PhoneForm } from '@/components/auth/phone-form'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 
@@ -19,20 +20,20 @@ export default function ContaEntrarPage() {
   if (!loginClienteDisponivel()) {
     return (
       <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-        <h1 className="text-2xl font-semibold">Minha conta</h1>
+        <h1 className="text-2xl font-semibold">A minha conta</h1>
         <p className="text-muted mt-1 mb-6 text-sm">
-          A área da cliente ainda está em preparo.
+          A área da cliente ainda está em preparação.
         </p>
         <div className="surface rounded-card p-5">
           <p className="text-sm leading-relaxed">
-            Para ver, remarcar ou cancelar um horário, fale direto com o salão — a recepção
+            Para ver, remarcar ou cancelar um horário, fale diretamente com o salão — a receção
             resolve na hora.
           </p>
           <p className="text-muted mt-4 text-sm leading-relaxed">
-            Para marcar um novo horário você não precisa de conta:{' '}
-            <a className="underline underline-offset-4" href="/agendar">
+            Para marcar um novo horário não precisa de conta:{' '}
+            <Link className="underline underline-offset-4" href="/agendar">
               agende por aqui
-            </a>
+            </Link>
             .
           </p>
         </div>
@@ -42,9 +43,9 @@ export default function ContaEntrarPage() {
 
   return (
     <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-      <h1 className="text-2xl font-semibold">Minha conta</h1>
+      <h1 className="text-2xl font-semibold">A minha conta</h1>
       <p className="text-muted mt-1 mb-6 text-sm">
-        Digite seu telefone e mandamos um código para o seu e-mail.
+        Escreva o seu telefone e enviamos um código para o seu e-mail.
       </p>
       <div className="surface rounded-card p-5">
         <PhoneForm />

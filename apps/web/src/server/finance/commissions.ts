@@ -87,46 +87,6 @@ export async function removeCommissionRule(id: string): Promise<void> {
   await db.delete(commissionRules).where(eq(commissionRules.id, id))
 }
 
-export interface CommissionEntryRow {
-  id: string
-  staffId: string
-  staffName: string
-  serviceName: string
-  baseAmount: number
-  percentBps: number
-  amount: number
-  status: 'pending' | 'paid'
-  createdAt: Date
-}
-
-export async function listCommissionEntries(filter: {
-  staffId?: string
-  status?: 'pending' | 'paid'
-}): Promise<CommissionEntryRow[]> {
-  const conditions = []
-  if (filter.staffId) conditions.push(eq(commissionEntries.staffId, filter.staffId))
-  if (filter.status) conditions.push(eq(commissionEntries.status, filter.status))
-
-  const rows = await db
-    .select({
-      id: commissionEntries.id,
-      staffId: commissionEntries.staffId,
-      staffName: staffProfiles.displayName,
-      serviceName: services.name,
-      baseAmount: commissionEntries.baseAmount,
-      percentBps: commissionEntries.percentBps,
-      amount: commissionEntries.amount,
-      status: commissionEntries.status,
-      createdAt: commissionEntries.createdAt,
-    })
-    .from(commissionEntries)
-    .innerJoin(staffProfiles, eq(staffProfiles.id, commissionEntries.staffId))
-    .innerJoin(services, eq(services.id, commissionEntries.serviceId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(commissionEntries.createdAt))
-  return rows
-}
-
 export interface CommissionSummaryRow {
   staffId: string
   staffName: string

@@ -24,7 +24,7 @@ export default function NotFound() {
       }
     >
       <p>
-        Ou o endereço mudou, ou ele pertence a uma unidade que não é a sua. Se você esperava
+        Ou o endereço mudou, ou ele pertence a uma unidade que não é a sua. Se esperava
         encontrar algo aqui, fale com a administração.
       </p>
     </Recado>

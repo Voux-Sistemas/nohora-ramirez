@@ -33,13 +33,13 @@ export async function importarCsv(_state: ImportState, formData: FormData): Prom
 
   const file = formData.get('file')
   if (!(file instanceof File) || file.size === 0) {
-    return { error: 'Selecione um arquivo CSV.' }
+    return { error: 'Selecione um ficheiro CSV.' }
   }
 
   const text = await file.text()
   const rows = parseCsv(text)
   if (rows.length < 2) {
-    return { error: 'O arquivo precisa de um cabeçalho e ao menos uma linha de dados.' }
+    return { error: 'O ficheiro precisa de um cabeçalho e pelo menos uma linha de dados.' }
   }
 
   const header = rows[0]!.map((h) => COLUMN_ALIASES[h.trim().toLowerCase()])

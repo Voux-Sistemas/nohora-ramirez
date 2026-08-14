@@ -44,7 +44,7 @@ interface Secao {
  */
 function secoesDe(acesso: Acesso): Secao[] {
   if (acesso.papel === 'profissional') {
-    return [{ id: 'agenda', path: '/agenda', label: 'Minha agenda' }]
+    return [{ id: 'agenda', path: '/agenda', label: 'A minha agenda' }]
   }
 
   return [
@@ -98,7 +98,7 @@ export function OperateTopbar({
           cada troca, que é a ação mais repetida do turno.
         */}
         <nav
-          aria-label="Seções"
+          aria-label="Secções"
           className="-mb-px flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto"
         >
           {secoes.map((secao) => {

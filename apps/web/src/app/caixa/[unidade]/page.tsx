@@ -1,12 +1,14 @@
+import { isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatTime, simboloMoeda } from '@/lib/format'
+import { AbrirCaixaForm } from '@/components/caixa/abrir-form'
+import { FecharCaixaForm } from '@/components/caixa/fechar-form'
+import { MovimentoForm } from '@/components/caixa/movimento-form'
+import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { getOpenSession, listMovements, listSessionsForUnit } from '@/server/finance/caixa'
 import { getUnitBySlug } from '@/server/scheduling/context'
-import { abrirCaixa, fecharCaixa, lancarMovimento } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +70,7 @@ export default async function CaixaUnidadePage({
             </p>
             <p className="text-muted tnum mt-3 text-sm">
               Abertura {formatMoney(session.openingAmount)} · desde{' '}
-              {formatDateLong(session.openedAt.toISOString().slice(0, 10))}{' '}
+              {formatDateLong(isoDateInZone(session.openedAt, unit.timezone))}{' '}
               {formatTime(session.openedAt, unit.timezone)}
             </p>
           </section>
@@ -103,57 +105,16 @@ export default async function CaixaUnidadePage({
             <aside className="flex flex-col gap-6">
               <section className="surface rounded-card p-5">
                 <h2 className="mb-3 font-medium">Lançar movimento</h2>
-                <form action={lancarMovimento} className="flex flex-col gap-3">
-                  <input type="hidden" name="sessionId" value={session.id} />
-                  <input type="hidden" name="unitSlug" value={unit.slug} />
-                  <label className="flex flex-col gap-1 text-sm">
-                    Tipo
-                    <select className="field" name="type" defaultValue="withdrawal">
-                      <option value="withdrawal">Sangria</option>
-                      <option value="reinforcement">Reforço</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Valor ({simboloMoeda()})
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="amount"
-                      required
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    Observação
-                    <input className="field" name="note" placeholder="opcional" />
-                  </label>
-                  <Button type="submit" variant="outline" className="mt-1">
-                    Lançar
-                  </Button>
-                </form>
+                <MovimentoForm sessionId={session.id} unitSlug={unit.slug} saldo={balance} />
               </section>
 
               <section className="surface rounded-card p-5">
                 <h2 className="mb-3 font-medium">Fechar caixa</h2>
-                <form action={fecharCaixa} className="flex flex-col gap-3">
-                  <input type="hidden" name="sessionId" value={session.id} />
-                  <input type="hidden" name="unitSlug" value={unit.slug} />
-                  <label className="flex flex-col gap-1 text-sm">
-                    Valor contado ({simboloMoeda()})
-                    <input
-                      className="field"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="closingCountedAmount"
-                      required
-                    />
-                  </label>
-                  <Button type="submit" variant="danger" className="mt-1">
-                    Fechar caixa
-                  </Button>
-                </form>
+                <FecharCaixaForm
+                  sessionId={session.id}
+                  unitSlug={unit.slug}
+                  esperado={balance}
+                />
               </section>
             </aside>
           </div>
@@ -162,27 +123,9 @@ export default async function CaixaUnidadePage({
         <section className="surface rounded-card mx-auto max-w-sm p-7 text-center">
           <p className="display text-[1.5rem] leading-tight">Caixa fechado</p>
           <p className="text-muted mt-2 text-sm">
-            Abra o caixa para começar a registrar pagamentos, reforços e sangrias do dia.
+            Abra o caixa para começar a registar pagamentos, reforços e sangrias do dia.
           </p>
-          <form action={abrirCaixa} className="mt-6 flex flex-col gap-3 text-left">
-            <input type="hidden" name="unitId" value={unit.id} />
-            <input type="hidden" name="unitSlug" value={unit.slug} />
-            <label className="flex flex-col gap-1 text-sm">
-              Valor de abertura ({simboloMoeda()})
-              <input
-                className="field"
-                type="number"
-                step="0.01"
-                min="0"
-                name="openingAmount"
-                defaultValue="0"
-                required
-              />
-            </label>
-            <Button type="submit" size="lg">
-              Abrir caixa
-            </Button>
-          </form>
+          <AbrirCaixaForm unitId={unit.id} unitSlug={unit.slug} />
         </section>
       )}
 
@@ -193,7 +136,7 @@ export default async function CaixaUnidadePage({
             {history.map((h) => (
               <li key={h.id} className="flex items-baseline justify-between gap-3 py-2">
                 <span>
-                  {formatDateLong(h.openedAt.toISOString().slice(0, 10))}
+                  {formatDateLong(isoDateInZone(h.openedAt, unit.timezone))}
                   <span className="text-muted"> · {h.status === 'open' ? 'aberto' : 'fechado'}</span>
                 </span>
                 <span className="tnum">

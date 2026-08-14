@@ -2,6 +2,7 @@ import { addDaysInZone, isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { buttonVariants } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { formatDateLong, formatDuration, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
@@ -85,11 +86,7 @@ export default async function RemarcarPage({
         {appointment.items.map((item) => item.serviceName).join(' + ')}
       </p>
 
-      {erro ? (
-        <p className="mt-4 rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 px-3 py-2 text-sm text-(--estado-mau)">
-          {erro}
-        </p>
-      ) : null}
+      <Erro className="mt-4">{erro}</Erro>
 
       <div className="mt-6 mb-4 flex flex-wrap gap-2">
         <Chip to={`/agenda/${unit.slug}/remarcar/${id}?d=${date}`} active={!staffId}>

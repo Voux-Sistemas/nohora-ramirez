@@ -109,24 +109,6 @@ export async function findSlotsForDay(query: DayQuery): Promise<DayAvailability 
 }
 
 /**
- * Primeiro dia com horário livre a partir de `fromDate`. É o que a tela do
- * cliente mostra quando ele escolhe o serviço antes de escolher a data.
- */
-export async function findNextAvailableDay(
-  query: Omit<DayQuery, 'date'> & { fromDate: string; maxDays?: number },
-): Promise<DayAvailability | null> {
-  const maxDays = query.maxDays ?? 21
-  let date = query.fromDate
-  for (let i = 0; i < maxDays; i++) {
-    const day = await findSlotsForDay({ ...query, date })
-    if (!day) return null
-    if (day.slots.length > 0) return day
-    date = addDaysInZone(date, 1)
-  }
-  return null
-}
-
-/**
  * Varre um contexto já carregado. Usado quando a tela precisa de vários dias de
  * uma vez — carregar o contexto uma vez e varrer é muito mais barato que uma
  * consulta por dia.

@@ -19,11 +19,11 @@ export default async function AgendaIndexPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">Agenda do dia</h1>
-      <p className="text-muted mt-1 text-sm">Ver o dia de qual loja.</p>
+      <p className="text-muted mt-1 text-sm">De que loja quer ver o dia?</p>
 
       {units.length === 0 ? (
         <p className="text-muted mt-8 border-t border-(--border-strong) pt-8 text-sm">
-          Nenhuma loja atribuída a você ainda. Fale com a administração.
+          Nenhuma loja atribuída a si ainda. Fale com a administração.
         </p>
       ) : (
         <UnitPicker units={units} base="/agenda" />

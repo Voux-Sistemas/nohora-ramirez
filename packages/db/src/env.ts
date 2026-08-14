@@ -15,9 +15,3 @@ const rootEnv = join(here, '..', '..', '..', '.env')
 if (existsSync(rootEnv)) {
   process.loadEnvFile(rootEnv)
 }
-
-export function requireEnv(name: string): string {
-  const value = process.env[name]
-  if (!value) throw new Error(`${name} não definida — copie .env.example para .env`)
-  return value
-}

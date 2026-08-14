@@ -87,7 +87,7 @@ export default function GlobalError({
           <h1>O sistema não conseguiu abrir</h1>
           <div className="regua" />
           <p>
-            Isso é mais grave que um erro de tela: falhou antes de a página existir. Recarregue
+            Isto é mais grave do que um erro de ecrã: falhou antes de a página existir. Recarregue
             uma vez; se voltar a acontecer, avise a administração.
           </p>
           <button type="button" onClick={reset}>

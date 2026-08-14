@@ -87,11 +87,6 @@ export function resolvePrice(
   }
 }
 
-/** Soma dos preços de uma visita, em centavos. */
-export function cartTotal(prices: readonly ResolvedPrice[]): number {
-  return prices.reduce((sum, item) => sum + item.price, 0)
-}
-
 export interface PriceRange {
   /** Menor preço possível na unidade, em centavos. */
   readonly min: number

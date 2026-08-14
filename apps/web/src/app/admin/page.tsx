@@ -1,4 +1,4 @@
-import { addDaysInZone, isoDateInZone, zonedDateTime } from '@studio/core'
+import { addDaysInZone, agruparPorFuso, isoDateInZone, janelaDoMes, zonedDateTime } from '@studio/core'
 import { LIVE_APPOINTMENT_STATUSES, appointments, units } from '@studio/db'
 import { and, asc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
@@ -36,10 +36,6 @@ interface Comparativo {
   anterior: number
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
-
 /** Enum já validado no schema — junta os valores num IN() literal em vez de
  *  parametrizar um array, que pediria `= any()` explícito no driver. */
 const STATUSES_AINDA_VALEM = sql.raw(
@@ -66,13 +62,6 @@ async function loadDashboard(acesso: Acesso): Promise<Dashboard> {
   const rows = unidadesVisiveis(acesso, todas)
   if (rows.length === 0) return vazio
 
-  const porFuso = new Map<string, typeof rows>()
-  for (const unit of rows) {
-    const grupo = porFuso.get(unit.timezone) ?? []
-    grupo.push(unit)
-    porFuso.set(unit.timezone, grupo)
-  }
-
   const porUnidade = new Map<string, UnitStat>(
     rows.map((unit) => [
       unit.id,
@@ -97,53 +86,24 @@ async function loadDashboard(acesso: Acesso): Promise<Dashboard> {
   let diaAtual = 0
   let mesLabel = ''
 
-  for (const [timezone, unidadesDoFuso] of porFuso) {
-    const hoje = isoDateInZone(agora, timezone)
-    const [year, month, diaDoMes] = hoje.split('-').map(Number) as [number, number, number]
+  for (const [timezone, unidadesDoFuso] of agruparPorFuso(rows)) {
+    /* A janela do mês e o corte "mesmo trecho do mês anterior" vivem em
+       `@studio/core` — a pauta em `/` faz a mesma pergunta e usa a mesma
+       conta. */
+    const mes = janelaDoMes(agora, timezone)
 
-    const monthStartIso = `${year}-${pad2(month)}-01`
-    const [nextYear, nextMonth] = month === 12 ? [year + 1, 1] : [year, month + 1]
-    const nextMonthStartIso = `${nextYear}-${pad2(nextMonth)}-01`
-    const [prevYear, prevMonth] = month === 1 ? [year - 1, 12] : [year, month - 1]
-    const prevMonthStartIso = `${prevYear}-${pad2(prevMonth)}-01`
-
-    /*
-      "Mesmo trecho do mês anterior", não o mês anterior inteiro: comparar o
-      mês corrente pela metade com o mês passado completo faria o mês
-      corrente parecer sempre murcho. O corte usa a mesma contagem de dias —
-      dia 13 deste mês contra os primeiros 13 dias do mês passado — e se
-      autolimita ao início do mês corrente quando o mês anterior é mais
-      curto (dia 31 de janeiro contra um fevereiro de 28 dias).
-    */
-    const cutoffCandidate = addDaysInZone(prevMonthStartIso, diaDoMes)
-    const prevPeriodEndIso = cutoffCandidate < monthStartIso ? cutoffCandidate : monthStartIso
-    const em7DiasIso = addDaysInZone(hoje, 7)
-
-    const monthStart = zonedDateTime(monthStartIso, '00:00', timezone)
-    const monthEnd = zonedDateTime(nextMonthStartIso, '00:00', timezone)
-    const prevMonthStart = zonedDateTime(prevMonthStartIso, '00:00', timezone)
-    const prevPeriodEnd = zonedDateTime(prevPeriodEndIso, '00:00', timezone)
-    const em7Dias = zonedDateTime(em7DiasIso, '00:00', timezone)
-
-    /* `sql` template interpolation não passa pelo mapeamento de tipo da coluna
-       que `gte`/`lt` fazem — o driver recebe o `Date` cru e quebra ao
-       serializar o pacote ("must be of type string or an instance of Buffer").
-       Dentro de `filter (where …)` isso só se resolve com string ISO. */
-    const monthStartTs = monthStart.toISOString()
-    const monthEndTs = monthEnd.toISOString()
-    const prevMonthStartTs = prevMonthStart.toISOString()
-    const prevPeriodEndTs = prevPeriodEnd.toISOString()
+    /* Os próximos sete dias são só desta tela: começam agora, não à
+       meia-noite, porque o que ela quer saber é o que ainda está por atender. */
+    const em7Dias = zonedDateTime(addDaysInZone(isoDateInZone(agora, timezone), 7), '00:00', timezone)
     const agoraTs = agora.toISOString()
     const em7DiasTs = em7Dias.toISOString()
 
     const ids = unidadesDoFuso.map((u) => u.id)
 
     if (serie.length === 0) {
-      // dia 0 do mês seguinte = último dia deste mês
-      const diasNoMes = new Date(Date.UTC(nextYear, nextMonth - 1, 0)).getUTCDate()
-      serie = new Array<number>(diasNoMes).fill(0)
-      diaAtual = diaDoMes
-      mesLabel = formatMonthLong(monthStartIso)
+      serie = new Array<number>(mes.dias).fill(0)
+      diaAtual = mes.diaDoMes
+      mesLabel = formatMonthLong(mes.inicioIso)
     }
 
     const diaExpr = sql<number>`extract(day from (${appointments.startsAt} at time zone ${timezone}))::int`
@@ -152,10 +112,10 @@ async function loadDashboard(acesso: Acesso): Promise<Dashboard> {
       db
         .select({
           unitId: appointments.unitId,
-          concluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs})::int`,
-          faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs}), 0)::int`,
-          concluidosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs})::int`,
-          faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs}), 0)::int`,
+          concluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs})::int`,
+          faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs}), 0)::int`,
+          concluidosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs})::int`,
+          faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs}), 0)::int`,
           marcadosCount: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs})::int`,
           marcadosFaturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs}), 0)::int`,
         })
@@ -163,7 +123,7 @@ async function loadDashboard(acesso: Acesso): Promise<Dashboard> {
         .where(
           and(
             inArray(appointments.unitId, ids),
-            gte(appointments.startsAt, prevMonthStart),
+            gte(appointments.startsAt, mes.anteriorInicio),
             lt(appointments.startsAt, em7Dias),
           ),
         )
@@ -179,8 +139,8 @@ async function loadDashboard(acesso: Acesso): Promise<Dashboard> {
           and(
             inArray(appointments.unitId, ids),
             eq(appointments.status, 'completed'),
-            gte(appointments.startsAt, monthStart),
-            lt(appointments.startsAt, monthEnd),
+            gte(appointments.startsAt, mes.inicio),
+            lt(appointments.startsAt, mes.fim),
           ),
         )
         /*
@@ -273,7 +233,7 @@ export default async function AdminPainelPage() {
       */}
       <div className="plate mb-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="p-6 lg:p-8">
-          <p className="label-caps text-muted">Faturamento · {mesLabel}</p>
+          <p className="label-caps text-muted">Faturação · {mesLabel}</p>
           <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <p className="display tnum text-[2.75rem] leading-none xl:text-[3.25rem]">
               {formatMoneyShort(faturamento)}
@@ -375,8 +335,8 @@ function MesDiaADia({
         role="img"
         aria-label={
           max > 1
-            ? `Faturamento dia a dia de ${mesLabel}. Melhor dia: ${melhor}, com ${formatMoney(max)}.`
-            : `Ainda sem faturamento em ${mesLabel}.`
+            ? `Faturação dia a dia de ${mesLabel}. Melhor dia: ${melhor}, com ${formatMoney(max)}.`
+            : `Ainda sem faturação em ${mesLabel}.`
         }
       >
         {serie.map((valor, i) => {
@@ -472,7 +432,7 @@ function PorUnidade({ unidades, papel }: { unidades: UnitStat[]; papel: Acesso['
             <tr>
               <th className="px-5 py-3 font-medium">Unidade</th>
               <th className="px-5 py-3 text-right font-medium">Atend.</th>
-              <th className="px-5 py-3 text-right font-medium">Faturamento</th>
+              <th className="px-5 py-3 text-right font-medium">Faturação</th>
               <th className="px-5 py-3 text-right font-medium whitespace-nowrap">Próx. 7 dias</th>
             </tr>
           </thead>

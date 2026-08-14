@@ -636,9 +636,6 @@ function toDate(value: unknown): Date {
   return value instanceof Date ? value : new Date(String(value))
 }
 
-/** Reexporta a tabela de agendamentos para quem só precisa do tipo. */
-export type AppointmentRow = typeof appointments.$inferSelect
-
 /**
  * O que a unidade REALMENTE entrega: catálogo é da rede, mas só vale o serviço
  * para o qual existe recurso instalado e alguém habilitado na equipe local.

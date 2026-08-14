@@ -1,10 +1,15 @@
 /**
- * Radiografia do banco semeado.
+ * Radiografia do banco.
  *
  *     npm run db:inspect
  *
  * Serve para dois momentos: conferir que o seed produziu um estúdio plausível,
- * e mostrar em uma tela só o que o sistema está guardando.
+ * e mostrar num ecrã só o que o sistema está a guardar.
+ *
+ * As horas saem no fuso da unidade, lido da própria linha — estavam fixadas em
+ * `America/Sao_Paulo`, do tempo em que o estúdio fictício era a única coisa que
+ * havia. Contra a rede portuguesa isso mostrava cada atendimento quatro horas
+ * antes de ele ter acontecido, e nada na tabela dizia porquê.
  */
 import './env'
 import postgres from 'postgres'
@@ -37,10 +42,12 @@ async function main(): Promise<void> {
     console.table(
       await sql`
         select s.name as servico, st.display_name as profissional,
-               to_char(lower(b.block) at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI') as inicio,
-               to_char(upper(b.block) at time zone 'America/Sao_Paulo', 'HH24:MI') as fim
+               to_char(lower(b.block) at time zone un.timezone, 'DD/MM HH24:MI') as inicio,
+               to_char(upper(b.block) at time zone un.timezone, 'HH24:MI') as fim
           from appointment_staff_blocks b
           join appointment_items i on i.id = b.appointment_item_id
+          join appointments a on a.id = i.appointment_id
+          join units un on un.id = a.unit_id
           join services s on s.id = i.service_id
           join staff_profiles st on st.id = b.staff_id
          where b.appointment_item_id = (
@@ -64,8 +71,8 @@ async function main(): Promise<void> {
       await sql`
         select u.name as unidade,
                count(*)::int as visitas,
-               to_char(sum(a.total_price) / 100.0, 'FM999G999D00') as total_brl,
-               to_char(avg(a.total_price) / 100.0, 'FM999G999D00') as ticket_medio_brl
+               to_char(sum(a.total_price) / 100.0, 'FM999G999D00') as total,
+               to_char(avg(a.total_price) / 100.0, 'FM999G999D00') as ticket_medio
           from appointments a join units u on u.id = a.unit_id
          where a.status = 'completed'
          group by 1 order by 2 desc`,

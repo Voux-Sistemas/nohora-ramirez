@@ -56,15 +56,24 @@ export function PautaFalsa({ linhas = 6 }: { linhas?: number }) {
   )
 }
 
-/** Aviso para leitor de tela: o resto é decoração e fica escondido dele. */
-export function Carregando({ children }: { children: React.ReactNode }) {
+/**
+ * Aviso para leitor de tela: o resto é decoração e fica escondido dele.
+ *
+ * A moldura pode ser trocada porque a gestão não tem a medida da operação — lá
+ * é uma coluna de leitura, aqui é a mesa inteira com o rail à esquerda. Um
+ * esqueleto com a largura errada não parece a tela a chegar: parece outra tela.
+ */
+export function Carregando({
+  children,
+  className = 'mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10',
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
   return (
-    <main
-      aria-busy="true"
-      className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10"
-    >
+    <main aria-busy="true" className={className}>
       <span className="sr-only" role="status">
-        Carregando…
+        A carregar…
       </span>
       <div aria-hidden>{children}</div>
     </main>

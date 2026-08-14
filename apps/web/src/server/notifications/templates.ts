@@ -32,7 +32,7 @@ export interface RoutineMeta {
 export const ROUTINES: readonly RoutineMeta[] = [
   {
     key: 'confirmacao',
-    label: 'Confirmar agendamento',
+    label: 'Confirmar marcação',
     hint: 'Marcou pelo site e ainda não recebeu confirmação nenhuma.',
   },
   {
@@ -80,7 +80,7 @@ export interface MessageVars {
  * parada com custo correndo. A frase final não é gentileza, é a feature.
  */
 const BODIES: Record<RoutineKey, string> = {
-  confirmacao: `Oi, {cliente}! Seu horário está confirmado 💛
+  confirmacao: `Olá, {cliente}! A sua marcação está confirmada 💛
 
 {servicos}
 {data} às {hora}
@@ -89,9 +89,9 @@ com {profissional}
 {unidade}
 {endereco}
 
-Qualquer coisa, é só me chamar por aqui.`,
+Qualquer coisa, é só falar comigo por aqui.`,
 
-  lembrete_vespera: `Oi, {cliente}! Passando pra lembrar do seu horário amanhã 💛
+  lembrete_vespera: `Olá, {cliente}! É só para lembrar da sua marcação de amanhã 💛
 
 {servicos}
 {data} às {hora}
@@ -100,20 +100,20 @@ com {profissional}
 {unidade}
 {endereco}
 
-Consegue vir? Se precisar remarcar, me avisa que eu ajeito pra você.`,
+Consegue vir? Se precisar de remarcar, avise-me que eu trato disso.`,
 
-  bom_dia: `Bom dia, {cliente}! Te espero hoje às {hora} 💛
+  bom_dia: `Bom dia, {cliente}! Espero por si hoje às {hora} 💛
 
 {servicos} com {profissional}
 {unidade}`,
 
-  avaliacao: `Oi, {cliente}! Que bom ter te recebido ontem 💛
+  avaliacao: `Olá, {cliente}! Que bom tê-la recebido ontem 💛
 
-Como você ficou com o resultado? Sua opinião ajuda demais a gente a melhorar.`,
+Ficou contente com o resultado? A sua opinião ajuda-nos muito a melhorar.`,
 
-  resgate: `Oi, {cliente}! Senti sua falta no horário de {data}.
+  resgate: `Olá, {cliente}! Senti a sua falta na marcação de {data}.
 
-Quer que eu veja um novo dia pra você? Me fala o que fica melhor e eu encaixo 💛`,
+Quer que eu procure um novo dia para si? Diga-me o que lhe fica melhor e eu encaixo 💛`,
 }
 
 /** Troca `{variavel}` pelo valor. Variável desconhecida some em vez de vazar chave. */

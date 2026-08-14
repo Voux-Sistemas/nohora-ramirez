@@ -19,7 +19,7 @@ export default async function AvisosIndexPage() {
 
       {units.length === 0 ? (
         <p className="text-muted mt-8 border-t border-(--border-strong) pt-8 text-sm">
-          Nenhuma loja atribuída a você ainda. Fale com a administração.
+          Nenhuma loja atribuída a si ainda. Fale com a administração.
         </p>
       ) : (
         <UnitPicker units={units} base="/avisos" />

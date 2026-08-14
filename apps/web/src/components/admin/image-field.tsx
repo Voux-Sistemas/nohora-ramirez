@@ -50,7 +50,7 @@ export function ImageField({
     setError(null)
     if (!file) return
     if (!ACCEPTED.includes(file.type)) {
-      setError('Formato não aceito. Envie JPG, PNG, WebP ou AVIF.')
+      setError('Formato não aceite. Envie JPG, PNG, WebP ou AVIF.')
       return
     }
     if (file.size > MAX_BYTES) {

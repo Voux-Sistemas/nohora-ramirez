@@ -1,7 +1,9 @@
 'use server'
 
+import { isoDateInZone } from '@studio/core'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { pais } from '@/lib/pais'
 import { setStaffPassword } from '@/server/auth/password'
 import {
   alcanceDoStaff,
@@ -82,7 +84,7 @@ export async function salvarProfissional(
     if (input.papel && input.papel !== 'dona' && id !== 'novo') {
       const alvo = await alcanceDoStaff(id)
       if (alvo?.userId === acesso.session.userId) {
-        return { error: 'você não pode tirar o próprio acesso de dona' }
+        return { error: 'não pode tirar o próprio acesso de dona' }
       }
     }
   }
@@ -97,7 +99,7 @@ export async function salvarProfissional(
      não enxerga na lista no instante seguinte. A dona pode: cadastrar hoje e
      alocar depois é fluxo dela. */
   if (acesso.unidadeIds !== null && input.unitIds.length === 0) {
-    return { error: 'marque ao menos uma unidade' }
+    return { error: 'marque pelo menos uma unidade' }
   }
 
   /* `toE164` recusa um telefone fora do formato do país — validação normal de
@@ -109,7 +111,7 @@ export async function salvarProfissional(
     staffId = id === 'novo' ? await createStaff(input, escopo) : id
     if (id !== 'novo') await updateStaff(id, input, escopo)
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'não foi possível salvar' }
+    return { error: e instanceof Error ? e.message : 'não foi possível guardar' }
   }
 
   revalidatePath('/admin/equipe')
@@ -138,8 +140,12 @@ export async function salvarEscala(formData: FormData): Promise<void> {
     if (!veUnidade(acesso, row.unitId)) throw new Error(NEGADO)
   }
 
-  const today = new Date().toISOString().slice(0, 10)
-  await replaceSchedule(staffId, today, rows, acesso.unidadeIds)
+  /* "Hoje" é o dia do salão, não o do relógio do servidor. O contentor corre em
+     UTC: com `toISOString` a escala gravada às 21h30 no Brasil já nascia datada
+     de amanhã, e a de amanhã era a que ficava a valer — a de hoje continuava a
+     antiga, sem erro nenhum a dizer porquê. */
+  const hoje = isoDateInZone(new Date(), pais().fusoPadrao)
+  await replaceSchedule(staffId, hoje, rows, acesso.unidadeIds)
   revalidatePath(`/admin/equipe/${staffId}`)
 }
 
@@ -153,8 +159,8 @@ export async function salvarSenha(_state: PasswordState, formData: FormData): Pr
   const senha = String(formData.get('senha') ?? '')
   const confirmar = String(formData.get('confirmar') ?? '')
   if (!staffId) return { error: 'Profissional inválido.' }
-  if (senha.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' }
-  if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
+  if (senha.length < 8) return { error: 'A palavra-passe tem de ter pelo menos 8 caracteres.' }
+  if (senha !== confirmar) return { error: 'As palavras-passe não coincidem.' }
 
   /* A conta é a do perfil aberto, lida do banco. O formulário não escolhe de
      quem é a senha. */
@@ -166,9 +172,25 @@ export async function salvarSenha(_state: PasswordState, formData: FormData): Pr
 }
 
 /**
- * Quem edita precisa ser da gestão **e** ter a pessoa ao alcance: basta uma loja
- * em comum. Quem não tem lotação nenhuma é só da dona — é o caso de quem acabou
- * de ser cadastrado e ainda não foi alocado.
+ * Quem edita precisa ser da gestão, ter a pessoa ao alcance — basta uma loja em
+ * comum — **e** estar num degrau que alcance o dela. Quem não tem lotação
+ * nenhuma é só da dona: é o caso de quem acabou de ser cadastrado e ainda não
+ * foi alocado.
+ *
+ * A segunda trava é a que faltava, e ela é a diferença entre um sistema com
+ * hierarquia e um sistema com aparência de hierarquia. Neste salão a dona
+ * também atende, portanto ela aparece lotada na mesma loja que o gerente dela.
+ * Com "uma loja em comum" por único critério, esse gerente abria a ficha da
+ * patroa e chamava `salvarSenha` — a ação lê a conta do banco, não do
+ * formulário, mas a conta que ela lia era mesmo a certa: a da dona. Trocava a
+ * senha, entrava como ela, e do lado de lá está o cadastro da rede inteira.
+ * Mudar o telemóvel dela dava no mesmo por outro caminho, pela recuperação.
+ *
+ * Daí a regra: só quem manda na rede mexe em ficha de quem manda em alguma
+ * coisa. O gerente continua a tratar da equipa dele, que é o trabalho dele, e
+ * continua a tratar da própria ficha — a ficha dele não é degrau acima do
+ * dele, e o papel ele já não conseguia mexer de qualquer forma (`papel` só é
+ * lido de quem tem `podeRede`).
  */
 async function autorizarStaff(
   staffId: string,
@@ -179,5 +201,7 @@ async function autorizarStaff(
   if (!alvo.unitIds.some((unitId) => veUnidade(acesso, unitId)) && acesso.unidadeIds !== null) {
     throw new Error(NEGADO)
   }
+  const ehEuMesmo = alvo.userId === acesso.session.userId
+  if (!podeRede(acesso) && alvo.papel !== 'profissional' && !ehEuMesmo) throw new Error(NEGADO)
   return { acesso, alvo }
 }

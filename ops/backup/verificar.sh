@@ -2,14 +2,14 @@
 #
 # Prova que o backup restaura.
 #
-# Backup nunca restaurado é esperança, não backup. O jeito de um backup falhar
-# é silencioso: o arquivo sobe todo dia, do tamanho certo, e no dia do resgate
-# descobre-se que ele nunca voltou. Este script é o que impede isso — uma vez
-# por semana ele baixa o arquivo que acabou de subir, restaura num banco
-# descartável e confere se o que voltou é o banco de verdade.
+# Backup nunca restaurado é esperança, não backup. A maneira de um backup
+# falhar é silenciosa: o ficheiro sobe todos os dias, do tamanho certo, e no dia
+# do resgate descobre-se que nunca voltou. Este script é o que impede isso — uma
+# vez por semana descarrega o ficheiro que acabou de subir, restaura num banco
+# descartável e confere se o que voltou é o banco a sério.
 #
-# Baixa do bucket de propósito, em vez de reaproveitar o arquivo em /tmp: assim
-# a prova cobre a corrente inteira, inclusive o upload e a leitura de volta.
+# Descarrega do bucket de propósito, em vez de reaproveitar o ficheiro em /tmp:
+# assim a prova cobre a corrente inteira, incluindo o upload e a leitura de volta.
 set -eu
 
 ARQUIVO="$1"

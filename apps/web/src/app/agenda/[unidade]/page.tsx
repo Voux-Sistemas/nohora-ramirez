@@ -238,7 +238,7 @@ export default async function AgendaDoDiaPage({
         <div className="min-w-0">
           {columns.length === 0 ? (
             <p className="surface rounded-card text-muted p-6 text-sm">
-              {gerir ? 'Ninguém escalado neste dia.' : 'Você não está escalada neste dia.'}
+              {gerir ? 'Ninguém escalado neste dia.' : 'Não está escalada neste dia.'}
             </p>
           ) : (
             <DayGrid

@@ -128,7 +128,7 @@ export async function criarPrimeiraConta(input: {
   })
 
   if (!userId) {
-    return { ok: false, message: 'Este sistema já tem uma conta de equipe. Entre pela tela de login.' }
+    return { ok: false, message: 'Este sistema já tem uma conta de equipa. Entre pelo ecrã de login.' }
   }
 
   await createSession(userId)

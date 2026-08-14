@@ -47,6 +47,7 @@ import { eq } from 'drizzle-orm'
 import type { Route } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { db } from '@/lib/db'
+import { toE164 } from '@/lib/format'
 import { getSession, type SessionUser } from './session'
 
 export type Papel = 'suporte' | 'dona' | 'gerente' | 'profissional'
@@ -59,23 +60,32 @@ const DEGRAUS: readonly { role: string; papel: Papel }[] = [
 ]
 
 /**
- * Os telefones de quem mantém a instalação, em E.164, separados por vírgula.
+ * Os telemóveis de quem mantém a instalação, separados por vírgula.
+ *
+ * Cada entrada passa pelo mesmo `toE164` que normaliza o número no cadastro,
+ * portanto escreve-se na variável como se escreve em qualquer campo do
+ * sistema: `+351912345678`, `912345678` ou `912 345 678` chegam todos ao mesmo
+ * sítio. Antes daqui a comparação era de dígitos crus com um piso de dez, e um
+ * telemóvel português — que tem nove — era descartado em silêncio: a variável
+ * ficava preenchida, o acesso de suporte nunca aparecia, e não havia erro
+ * nenhum a apontar para a causa.
+ *
  * Lida a cada chamada porque em produção a variável só muda com redeploy — e
- * ler na hora evita um valor congelado no build de quem for rodar isto de
- * outro jeito.
+ * ler na hora evita um valor congelado no build de quem correr isto de outro
+ * jeito.
  */
 function telefonesDeSuporte(): Set<string> {
   const bruto = process.env.TELEFONES_SUPORTE ?? ''
-  return new Set(
-    bruto
-      .split(',')
-      .map((item) => item.replace(/\D/g, ''))
-      .filter((item) => item.length >= 10),
-  )
+  const numeros = new Set<string>()
+  for (const item of bruto.split(',')) {
+    const e164 = toE164(item.trim())
+    if (e164) numeros.add(e164)
+  }
+  return numeros
 }
 
 function ehSuporte(phone: string): boolean {
-  return telefonesDeSuporte().has(phone.replace(/\D/g, ''))
+  return telefonesDeSuporte().has(phone)
 }
 
 export interface Acesso {

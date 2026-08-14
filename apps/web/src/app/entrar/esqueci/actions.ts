@@ -11,7 +11,7 @@ export interface EsqueciState {
 }
 
 const FECHADO =
-  'A troca de senha pela internet ainda não está ligada. Fale com quem cuida do sistema.'
+  'A troca de palavra-passe pela internet ainda não está ligada. Fale com quem cuida do sistema.'
 
 export async function pedirCodigoDeSenha(
   _state: EsqueciState,
@@ -63,8 +63,8 @@ export async function definirNovaSenha(
   const codigo = String(formData.get('codigo') ?? '').trim()
   const senha = String(formData.get('senha') ?? '')
   const confirmar = String(formData.get('confirmar') ?? '')
-  if (!codigo) return { error: 'Digite o código que chegou por e-mail.' }
-  if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
+  if (!codigo) return { error: 'Escreva o código que chegou por e-mail.' }
+  if (senha !== confirmar) return { error: 'As palavras-passe não coincidem.' }
 
   const resultado = await trocarSenhaComCodigo(phone, codigo, senha)
   if (!resultado.ok) return { error: resultado.message }

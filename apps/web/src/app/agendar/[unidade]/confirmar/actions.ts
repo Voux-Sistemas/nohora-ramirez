@@ -15,7 +15,7 @@ const schema = z.object({
   servicos: z.string().min(1),
   inicio: z.string().min(1),
   profissional: z.string().optional(),
-  nome: z.string().trim().min(2, 'Diga seu nome completo.'),
+  nome: z.string().trim().min(2, 'Diga o seu nome completo.'),
   telefone: z.string().trim().min(10, 'Telefone incompleto.'),
   // Campo opcional chega como string vazia, não como ausente — então "vazio" é
   // um valor válido aqui, e não uma exceção. Validar direto com `.email()`
@@ -54,7 +54,7 @@ export async function confirmarAgendamento(
     // no primeiro teste de quem lê a tela e conta.
     const minutos = Math.ceil(volume.retryAfterSec / 60)
     return {
-      error: `Muitas tentativas seguidas. Tente de novo em ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'} ou fale com a recepção.`,
+      error: `Muitas tentativas seguidas. Tente de novo em ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'} ou fale com a receção.`,
     }
   }
 
@@ -97,5 +97,12 @@ export async function confirmarAgendamento(
 
   if (!result.ok) return { error: result.message }
 
-  redirect(`/agendar/${data.unidade}/pronto/${result.appointmentId}`)
+  // O primeiro nome viaja no endereço porque o selo cumprimenta por ele — e o
+  // que ela escreveu agora é a única versão que lhe pertence. `findOrCreateClient`
+  // reconhece a cliente pelo telemóvel e devolve o nome que já estava gravado:
+  // ler daí seria contar, a quem digitou um número, como se chama quem o tem.
+  const primeiroNome = data.nome.split(/\s+/)[0] ?? ''
+  redirect(
+    `/agendar/${data.unidade}/pronto/${result.appointmentId}?para=${encodeURIComponent(primeiroNome)}`,
+  )
 }

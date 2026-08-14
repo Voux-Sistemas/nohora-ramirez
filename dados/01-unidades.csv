@@ -1,4 +1,4 @@
-codigo;nome;telefone;endereco;bairro;cidade;estado;cep
-centro;Estúdio Centro;(11) 3000-0000;Rua Exemplo, 100;Centro;São Paulo;SP;01000-000
-zona-sul;Estúdio Zona Sul;(11) 3000-0001;Av. Exemplo, 200;Moema;São Paulo;SP;04000-000
-shopping;Estúdio Shopping;(11) 3000-0002;Shopping Exemplo, Loja 55;Morumbi;São Paulo;SP;05000-000
+codigo;nome;telefone;morada;freguesia;cidade;distrito;codigo_postal
+centro;Estúdio Centro;223 000 001;Rua de Santa Catarina, 120;Santo Ildefonso;Porto;Porto;4000-442
+gaia;Estúdio Gaia;223 000 002;Avenida da República, 240;Mafamude;Vila Nova de Gaia;Porto;4430-190
+shopping;Estúdio Shopping;229 000 003;Centro Comercial da Maia, Loja 55;Senhora da Hora;Matosinhos;Porto;4460-841

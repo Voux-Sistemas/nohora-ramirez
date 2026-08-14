@@ -304,8 +304,8 @@ export default async function EscolherHorarioPage({
           <div className="rounded-plate border border-dashed border-(--border-strong) px-5 py-9 text-center">
             <p className="text-body measure mx-auto">
               {staffId
-                ? 'Essa profissional não tem nenhum horário livre nas próximas duas semanas para essa combinação.'
-                : 'Não há horário livre nas próximas duas semanas para essa combinação de serviços. Ela é longa e poucas profissionais executam.'}
+                ? 'Esta profissional não tem nenhum horário livre nas próximas duas semanas para esta combinação.'
+                : 'Não há horário livre nas próximas duas semanas para esta combinação de serviços. É longa e poucas profissionais a executam.'}
             </p>
 
             {/* Saídas de verdade, na ordem em que resolvem: soltar a
@@ -316,7 +316,7 @@ export default async function EscolherHorarioPage({
                   href={withStaff(undefined) as never}
                   className={buttonVariants({ variant: 'outline', size: 'md' })}
                 >
-                  Ver a agenda da equipe inteira
+                  Ver a agenda da equipa inteira
                 </Link>
               ) : (
                 <Link
@@ -333,7 +333,7 @@ export default async function EscolherHorarioPage({
                 </Link>
                 {unit.phone ? (
                   <>
-                    {' · ou fale com a recepção: '}
+                    {' · ou fale com a receção: '}
                     <a
                       href={`tel:${unit.phone}`}
                       className="tnum whitespace-nowrap underline underline-offset-4"
@@ -350,7 +350,7 @@ export default async function EscolherHorarioPage({
             <p className="text-body measure mx-auto">
               Nenhum horário livre neste dia.
               {staffId
-                ? ' Escolha outra data acima, ou tire a preferência de profissional para ver a agenda da equipe inteira.'
+                ? ' Escolha outra data acima, ou tire a preferência de profissional para ver a agenda da equipa inteira.'
                 : ' Escolha uma das datas marcadas acima.'}
             </p>
             {staffId ? (

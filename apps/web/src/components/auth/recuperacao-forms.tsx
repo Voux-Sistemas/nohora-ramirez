@@ -4,19 +4,8 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { definirNovaSenha, pedirCodigoDeSenha, type EsqueciState } from '@/app/entrar/esqueci/actions'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { PhoneInput } from '@/components/ui/phone-input'
-
-function Erro({ mensagem }: { mensagem?: string }) {
-  if (!mensagem) return null
-  return (
-    <p
-      role="alert"
-      className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3 text-sm text-(--estado-mau)"
-    >
-      {mensagem}
-    </p>
-  )
-}
 
 function Enviar({ ocioso, ocupado }: { ocioso: string; ocupado: string }) {
   const { pending } = useFormStatus()
@@ -36,8 +25,8 @@ export function PedirCodigoForm() {
         Telefone
         <PhoneInput className="field" name="telefone" required />
       </label>
-      <Erro mensagem={state.error} />
-      <Enviar ocioso="Receber código" ocupado="Enviando…" />
+      <Erro>{state.error}</Erro>
+      <Enviar ocioso="Receber código" ocupado="A enviar…" />
     </form>
   )
 }
@@ -61,7 +50,7 @@ export function NovaSenhaForm({ telefone }: { telefone: string }) {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Nova senha
+        Nova palavra-passe
         <input
           className="field"
           name="senha"
@@ -73,7 +62,7 @@ export function NovaSenhaForm({ telefone }: { telefone: string }) {
         <span className="text-muted text-xs">Pelo menos 8 caracteres.</span>
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Repita a nova senha
+        Repita a nova palavra-passe
         <input
           className="field"
           name="confirmar"
@@ -83,8 +72,8 @@ export function NovaSenhaForm({ telefone }: { telefone: string }) {
           required
         />
       </label>
-      <Erro mensagem={state.error} />
-      <Enviar ocioso="Trocar senha e entrar" ocupado="Trocando…" />
+      <Erro>{state.error}</Erro>
+      <Enviar ocioso="Trocar a palavra-passe e entrar" ocupado="A trocar…" />
     </form>
   )
 }

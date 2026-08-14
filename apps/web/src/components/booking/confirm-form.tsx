@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { confirmarAgendamento, type ConfirmState } from '@/app/agendar/[unidade]/confirmar/actions'
 
@@ -42,7 +43,7 @@ export function ConfirmForm({
 
       <div>
         <label htmlFor="nome" className="mb-2 block text-sm font-medium">
-          Seu nome
+          O seu nome
         </label>
         <input id="nome" name="nome" required autoComplete="name" className="field" />
       </div>
@@ -75,12 +76,12 @@ export function ConfirmForm({
           autoComplete="email"
           autoCapitalize="off"
           spellCheck={false}
-          placeholder="voce@exemplo.com"
+          placeholder="nome@exemplo.com"
           aria-describedby="email-ajuda"
           className="field"
         />
         <p id="email-ajuda" className="text-muted mt-1.5 text-xs">
-          Para você acompanhar seus horários pelo site. Não mandamos propaganda.
+          Para poder acompanhar as suas marcações pelo site. Não enviamos publicidade.
         </p>
       </div>
 
@@ -98,19 +99,12 @@ export function ConfirmForm({
         />
       </div>
 
-      {state.error ? (
-        <p
-          role="alert"
-          className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3.5 text-sm text-(--estado-mau)"
-        >
-          {state.error}
-        </p>
-      ) : null}
+      <Erro>{state.error}</Erro>
 
       <SubmitButton />
 
       <p className="text-muted text-center text-xs">
-        Ao confirmar você reserva o horário. Nada é cobrado agora.
+        Ao confirmar, reserva o horário. Não é cobrado nada agora.
       </p>
     </form>
   )
@@ -120,7 +114,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="xl" className="w-full" disabled={pending}>
-      {pending ? 'Confirmando…' : 'Confirmar agendamento'}
+      {pending ? 'A confirmar…' : 'Confirmar marcação'}
     </Button>
   )
 }

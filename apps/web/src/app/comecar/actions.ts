@@ -30,9 +30,9 @@ export async function instalar(_state: InstalarState, formData: FormData): Promi
   /* Conferência de formato, não de existência — o que importa aqui é não
      gravar um endereço obviamente quebrado na única conta sem plano B. */
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'E-mail inválido.' }
-  if (senha.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' }
-  if (senha !== confirmar) return { error: 'As senhas não coincidem.' }
-  if (!codigo) return { error: 'Digite o código de instalação.' }
+  if (senha.length < 8) return { error: 'A palavra-passe tem de ter pelo menos 8 caracteres.' }
+  if (senha !== confirmar) return { error: 'As palavras-passe não coincidem.' }
+  if (!codigo) return { error: 'Escreva o código de instalação.' }
 
   const result = await criarPrimeiraConta({ nome, phone, email, senha, codigo })
   if (!result.ok) return { error: result.message }

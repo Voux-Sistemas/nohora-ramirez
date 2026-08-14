@@ -208,39 +208,3 @@ export function countDay(list: readonly AppointmentView[]): DayCounters {
   return counters
 }
 
-/**
- * Blocos do profissional no dia — é o que desenha a coluna da agenda com o
- * buraco de processamento visível.
- */
-export async function listStaffBlocks(
-  unit: UnitInfo,
-  date: string,
-): Promise<{ staffId: string; start: Date; end: Date; appointmentId: string }[]> {
-  const dayStart = zonedDateTime(date, '00:00', unit.timezone)
-  const dayEnd = new Date(dayStart.getTime() + 24 * 3600_000)
-
-  const rows = await db
-    .select({
-      staffId: appointmentStaffBlocks.staffId,
-      appointmentId: appointmentItems.appointmentId,
-      start: sql<string>`lower(${appointmentStaffBlocks.block})`,
-      end: sql<string>`upper(${appointmentStaffBlocks.block})`,
-    })
-    .from(appointmentStaffBlocks)
-    .innerJoin(appointmentItems, eq(appointmentItems.id, appointmentStaffBlocks.appointmentItemId))
-    .innerJoin(appointments, eq(appointments.id, appointmentItems.appointmentId))
-    .where(
-      and(
-        eq(appointments.unitId, unit.id),
-        // ISO explícito: em SQL cru o driver não aceita `Date`
-        sql`${appointmentStaffBlocks.block} && tstzrange(${dayStart.toISOString()}::timestamptz, ${dayEnd.toISOString()}::timestamptz)`,
-      ),
-    )
-
-  return rows.map((row) => ({
-    staffId: row.staffId,
-    appointmentId: row.appointmentId,
-    start: new Date(row.start),
-    end: new Date(row.end),
-  }))
-}

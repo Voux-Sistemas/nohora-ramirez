@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { criarEncaixe, type EncaixeState } from '@/app/agenda/[unidade]/encaixe/actions'
 import { Button } from '@/components/ui/button'
+import { Erro } from '@/components/ui/erro'
 import { PhoneInput } from '@/components/ui/phone-input'
 
 export function EncaixeForm({
@@ -51,11 +52,7 @@ export function EncaixeForm({
         <textarea name="observacao" rows={2} className="field resize-none" />
       </Field>
 
-      {state.error ? (
-        <p className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 px-3 py-2 text-sm text-(--estado-mau)">
-          {state.error}
-        </p>
-      ) : null}
+      <Erro>{state.error}</Erro>
 
       <Submit />
     </form>
@@ -66,7 +63,7 @@ function Submit() {
   const { pending } = useFormStatus()
   return (
     <Button size="lg" className="w-full" disabled={pending}>
-      {pending ? 'Marcando…' : 'Confirmar encaixe'}
+      {pending ? 'A marcar…' : 'Confirmar encaixe'}
     </Button>
   )
 }

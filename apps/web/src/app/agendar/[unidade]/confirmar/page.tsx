@@ -58,10 +58,10 @@ export default async function ConfirmarPage({
 
   if (!plan) {
     return (
-      <BookingShell step={4} title="Esse horário não está mais livre" back={backToSlots}>
+      <BookingShell step={4} title="Este horário já não está livre" back={backToSlots}>
         <p className="text-body measure">
-          Alguém marcou antes ou a agenda mudou nos últimos minutos. Seus serviços continuam
-          escolhidos — é só apontar outro horário.
+          Alguém marcou antes ou a agenda mudou nos últimos minutos. Os seus serviços continuam
+          escolhidos — é só escolher outro horário.
         </p>
         <Link href={backToSlots as never} className="mt-7 inline-block">
           <Button size="xl">Ver horários de novo</Button>
@@ -79,7 +79,7 @@ export default async function ConfirmarPage({
   return (
     <BookingShell
       step={4}
-      title="Confere se está tudo certo"
+      title="Confira se está tudo certo"
       // A data está em corpo grande dentro da placa; repetir aqui só gastava
       // uma linha. O subtítulo carrega o que ainda não apareceu nesta tela.
       subtitle={slot.items.map((item) => item.serviceName).join(' + ')}
@@ -161,7 +161,7 @@ export default async function ConfirmarPage({
             {deposit > 0 ? (
               <p className="text-body mt-3 text-sm">
                 Este procedimento pede sinal de{' '}
-                <span className="tnum font-medium">{formatMoney(deposit)}</span>. A recepção envia
+                <span className="tnum font-medium">{formatMoney(deposit)}</span>. A receção envia
                 o link de pagamento pelo WhatsApp.
               </p>
             ) : null}

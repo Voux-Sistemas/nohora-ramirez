@@ -3,15 +3,15 @@ ana;centro;terca;09:00;18:00;
 ana;centro;quarta;09:00;18:00;
 ana;centro;quinta;09:00;20:00;
 ana;centro;sexta;09:00;20:00;
-ana;zona-sul;sabado;09:00;17:00;atende na zona sul aos sabados
+ana;gaia;sabado;09:00;17:00;atende em Gaia aos sábados
 bia;centro;segunda;09:00;18:00;
 bia;centro;terca;09:00;18:00;
 bia;centro;quarta;09:00;18:00;
 bia;centro;quinta;09:00;18:00;
 bia;centro;sexta;09:00;18:00;
 bia;centro;sabado;08:00;16:00;
-carla;zona-sul;terca;10:00;19:00;
-carla;zona-sul;quarta;10:00;19:00;
-carla;zona-sul;quinta;10:00;19:00;
-carla;zona-sul;sexta;10:00;19:00;
-carla;zona-sul;sabado;09:00;18:00;
+carla;gaia;terca;10:00;19:00;
+carla;gaia;quarta;10:00;19:00;
+carla;gaia;quinta;10:00;19:00;
+carla;gaia;sexta;10:00;19:00;
+carla;gaia;sabado;09:00;18:00;

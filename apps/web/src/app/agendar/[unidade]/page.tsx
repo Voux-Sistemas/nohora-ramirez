@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ unidade: string }> }) {
   const unit = await getUnitBySlug((await params).unidade)
-  return { title: unit ? `Agendar · ${unit.name}` : 'Agendar' }
+  return { title: unit ? `Marcar · ${unit.name}` : 'Marcar' }
 }
 
 export default async function EscolherServicosPage({
@@ -70,15 +70,15 @@ export default async function EscolherServicosPage({
   return (
     <BookingShell
       step={2}
-      title="O que você vai fazer hoje?"
+      title="O que vai fazer hoje?"
       subtitle={`${unit.name}${unit.district ? ` · ${unit.district}` : ''}`}
       back="/agendar"
       rail={<UnitContextCard unit={unit} />}
     >
       {services.length === 0 ? (
         <p className="text-muted">
-          Esta unidade ainda não tem serviços liberados para agendamento online. Ligue para a
-          recepção.
+          Esta unidade ainda não tem serviços disponíveis para marcação online. Ligue para a
+          receção.
         </p>
       ) : (
         <ServicePicker nextHref={`/agendar/${unit.slug}/horarios`} services={services} />

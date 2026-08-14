@@ -1,51 +1,51 @@
 # Onboarding de um salão
 
-A estrutura já está pronta; o que falta é o conteúdo. Este arquivo é a ordem em
-que os dados entram e a lista do que pedir para a dona — nessa ordem porque cada
-tela depende da anterior.
+A estrutura já está pronta; o que falta é o conteúdo. Este ficheiro é a ordem em
+que os dados entram e a lista do que pedir à dona — nessa ordem porque cada
+ecrã depende do anterior.
 
-## Ordem de cadastro
+## Ordem de registo
 
 | # | Onde | Por que antes do seguinte |
 | --- | --- | --- |
 | 1 | `/comecar` | cria a primeira conta; sem ela ninguém entra no `/admin` |
-| 2 | `/admin/unidades` | tudo pendura em unidade: equipe, agenda, caixa |
+| 2 | `/admin/unidades` | tudo pendura em unidade: equipa, agenda, caixa |
 | 3 | `/admin/recursos` | o serviço marca o tipo de recurso que exige |
 | 4 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
 | 5 | `/admin/equipe` | a ficha marca os serviços que a pessoa executa |
 | 6 | escala, dentro da ficha | sem escala a profissional não tem coluna na agenda |
-| 7 | `/admin/comissoes` | precisa da equipe e do catálogo já cadastrados |
+| 7 | `/admin/comissoes` | precisa da equipa e do catálogo já registados |
 
-Dá para voltar e ajustar qualquer um depois. O que não dá é pular o 2 e o 6: sem
-unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipe
-cadastrada.
+Dá para voltar e ajustar qualquer um depois. O que não dá é saltar o 2 e o 6: sem
+unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipa
+registada.
 
 ## Quem instala não é quem é dona
 
 A conta do `/comecar` é de quem instalou o sistema — normalmente não a dona do
-salão. É de propósito: quem monta o ambiente precisa entrar antes de a dona
-existir, e o código de instalação some assim que a primeira conta nasce.
+salão. É de propósito: quem monta o ambiente precisa de entrar antes de a dona
+existir, e o código de instalação desaparece assim que a primeira conta nasce.
 
 A conta da dona vem depois, em `/admin/equipe`, com o acesso **Dona** marcado —
 o que exige estar em `TELEFONES_SUPORTE`, porque conceder esse degrau é do
-suporte. Ela enxerga a rede inteira e mexe no cadastro, igual à primeira conta.
+suporte. Ela vê a rede inteira e mexe no cadastro, tal como a primeira conta.
 As duas convivem sem problema, e o sistema recusa tirar o acesso da última —
 inclusive o seu próprio, que só sai depois de outra pessoa já ser dona.
 
-## O que pedir para a dona
+## O que pedir à dona
 
 ### Ela (conta de dona)
 
 - nome completo
-- celular com DDD — é o login dela
+- telemóvel — é o login dela
 - e-mail pessoal — o dela, não o da loja: é para lá que vai o código quando ela
-  esquecer a senha
-- senha, ou uma provisória para ela trocar depois
+  se esquecer da palavra-passe
+- palavra-passe, ou uma provisória para ela trocar depois
 
 ### Cada unidade
 
 - nome como as clientes chamam
-- endereço completo com bairro, cidade, UF e CEP
+- morada completa com freguesia, concelho, distrito e código postal
 - telefone e e-mail da loja
 - horário de funcionamento por dia da semana, com o intervalo de almoço se a
   loja fecha
@@ -57,14 +57,14 @@ inclusive o seu próprio, que só sai depois de outra pessoa já ser dona.
 - nome e categoria (corte, coloração, manicure…)
 - preço
 - quanto tempo leva do começo ao fim, contando a espera da química
-- pode ser marcado pelo site ou só pela recepção
+- pode ser marcado pelo site ou só pela receção
 - exige sinal? avaliação presencial antes? ficha de anamnese?
 - se ocupa cabine, lavatório ou equipamento — e quantos de cada a loja tem
 
 ### Cada profissional
 
-- nome, celular e e-mail — o e-mail não é enfeite: é por ele que a pessoa
-  recupera a senha se esquecer
+- nome, telemóvel e e-mail — o e-mail não é enfeite: é por ele que a pessoa
+  recupera a palavra-passe se se esquecer
 - em quais lojas atende
 - quais serviços faz
 - escala da semana: dia, hora de entrada e de saída, e em qual loja
@@ -76,7 +76,7 @@ inclusive o seu próprio, que só sai depois de outra pessoa já ser dona.
 
 ### Comissão
 
-- o percentual padrão da casa
+- a percentagem padrão da casa
 - as exceções: por pessoa, por serviço, ou os dois juntos
 
 ## O que não precisa perguntar

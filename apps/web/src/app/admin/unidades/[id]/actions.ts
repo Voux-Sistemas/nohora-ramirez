@@ -165,7 +165,7 @@ export async function adicionarFotos(
   const arquivos = formData
     .getAll('fotos')
     .filter((item): item is File => item instanceof File && item.size > 0)
-  if (arquivos.length === 0) return { erro: 'Escolha ao menos uma fotografia.' }
+  if (arquivos.length === 0) return { erro: 'Escolha pelo menos uma fotografia.' }
 
   try {
     const guardadas = await storeUploadedImages(arquivos, 'unidades', unitId)

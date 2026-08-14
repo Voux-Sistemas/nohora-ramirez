@@ -12,7 +12,7 @@ export default function CarregandoAgenda() {
   return (
     <main aria-busy="true" className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       <span className="sr-only" role="status">
-        Carregando a agenda…
+        A carregar a agenda…
       </span>
 
       <div aria-hidden>

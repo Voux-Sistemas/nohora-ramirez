@@ -1,14 +1,18 @@
+import { isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { FichaForm } from '@/components/clientes/ficha-form'
 import { Button } from '@/components/ui/button'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
+import { pais } from '@/lib/pais'
 import { href } from '@/lib/utils'
 import { listAssignables } from '@/server/admin/services'
 import { listUnitsAdmin } from '@/server/admin/units'
 import { getClientProfile, listClientNotes } from '@/server/people/clients'
 import { listClientAppointments } from '@/server/scheduling/queries'
-import { alternarFixarNota, atualizarCliente, adicionarNota, removerNota } from './actions'
+import { alternarFixarNota, adicionarNota, removerNota } from './actions'
 
 const CANCELLED = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
 
@@ -70,15 +74,16 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
 
       <section className="surface rounded-card mb-6 p-5">
         <h2 className="mb-4 font-medium">Dados</h2>
-        <form action={atualizarCliente} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <input type="hidden" name="clientId" value={profile.clientId} />
+        <FichaForm clientId={profile.clientId}>
+          {(state) => (
+            <>
           <label className="flex flex-col gap-1 text-sm">
             Nome
             <input className="field" name="name" defaultValue={profile.name} required />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Telefone
-            <input className="field" name="phone" defaultValue={profile.phone} required />
+            {pais().rotulos.telemovel}
+            <PhoneInput className="field" name="phone" defaultValue={profile.phone} required />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             E-mail
@@ -124,12 +129,19 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="requiresDeposit" defaultChecked={profile.requiresDeposit} />
-            Exigir sinal ao agendar
+            Exigir sinal ao marcar
           </label>
-          <div className="sm:col-span-2">
-            <Button type="submit">Salvar</Button>
+          <div className="flex items-center gap-3 sm:col-span-2">
+            <Button type="submit">Guardar</Button>
+            {state.error ? (
+              <p className="text-sm text-(--estado-mau)" role="alert">
+                {state.error}
+              </p>
+            ) : null}
           </div>
-        </form>
+            </>
+          )}
+        </FichaForm>
       </section>
 
       <section className="surface rounded-card mb-6 p-5">
@@ -157,7 +169,8 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
                 </div>
               </div>
               <p className="text-muted mt-1 text-xs">
-                {note.authorName ?? 'recepção'} · {formatDateLong(note.createdAt.toISOString().slice(0, 10))}
+                {note.authorName ?? 'receção'} ·{' '}
+                {formatDateLong(isoDateInZone(note.createdAt, pais().fusoPadrao))}
               </p>
             </li>
           ))}
@@ -184,7 +197,9 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
           {history.map((a) => (
             <li key={a.id} className="border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-medium">{formatDateLong(a.start.toISOString().slice(0, 10))}</span>
+                <span className="font-medium">
+                  {formatDateLong(isoDateInZone(a.start, a.timezone))}
+                </span>
                 <span className="text-muted">
                   {formatTime(a.start, a.timezone)} · {a.unitName}
                 </span>
@@ -195,7 +210,7 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
               <span className="text-muted text-xs">{STATUS_LABEL[a.status] ?? a.status}</span>
             </li>
           ))}
-          {history.length === 0 ? <li className="text-muted text-sm">Nenhuma visita registrada ainda.</li> : null}
+          {history.length === 0 ? <li className="text-muted text-sm">Nenhuma visita registada ainda.</li> : null}
         </ul>
       </section>
     </div>

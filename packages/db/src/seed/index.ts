@@ -26,6 +26,7 @@ import {
   appointmentStatusEvents,
   clientNotes,
   clientProfiles,
+  commissionRules,
   organizations,
   resources,
   resourceTypes,
@@ -47,6 +48,7 @@ import {
   ADMINS,
   CATEGORIES,
   CLIENTS,
+  COMMISSIONS,
   ORGANIZATION,
   PRICING_EXCEPTIONS,
   RESOURCES,
@@ -341,6 +343,21 @@ async function main(): Promise<void> {
     })
   }
 
+  // ─── comissões ────────────────────────────────────────────────────────────
+
+  /* Sem regra nenhuma na tabela, fechar comanda gera comissão zero e a tela
+     "A pagar" nasce vazia — a demonstração mostraria um produto que não
+     calcula o que promete calcular. */
+  for (const rule of COMMISSIONS) {
+    await db.insert(commissionRules).values({
+      organizationId: orgId,
+      staffId: rule.staff ? staffCtxBySlug.get(rule.staff)!.id : null,
+      serviceId: rule.service ? serviceCtxBySlug.get(rule.service)!.id : null,
+      percentBps: rule.percentBps,
+    })
+  }
+  console.log(`  regras de comissão: ${COMMISSIONS.length}`)
+
   // ─── clientes ─────────────────────────────────────────────────────────────
 
   const clientCtx: {
@@ -546,8 +563,11 @@ async function insertInChunks<T extends Parameters<ReturnType<typeof getDb>['ins
   size: number,
 ): Promise<void> {
   for (let i = 0; i < rows.length; i += size) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.insert(table).values(rows.slice(i, i + size) as any)
+    /* O `any` é o preço de a função servir qualquer tabela: `values()` quer o
+       tipo de inserção daquela tabela em concreto, e aqui só se sabe que é
+       *alguma*. Quem chama passa as linhas já com a forma certa e é aí que o
+       compilador as confere — este ponto é só a passagem. */
+    await db.insert(table).values(rows.slice(i, i + size) as never[])
   }
 }
 

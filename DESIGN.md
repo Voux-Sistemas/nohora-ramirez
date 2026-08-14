@@ -1,20 +1,20 @@
 # DESIGN — NOHORA RAMIREZ, Beauty Studio
 
 Documento do sistema visual. Descreve o que está construído, não o que se
-pretende construir. Quem for mexer numa tela lê isto antes.
+pretende construir. Quem for mexer num ecrã lê isto antes.
 
 A fonte da verdade é [`apps/web/src/app/globals.css`](apps/web/src/app/globals.css)
-— este arquivo explica as decisões; o CSS as executa. Onde os dois divergirem, o
+— este ficheiro explica as decisões; o CSS executa-as. Onde os dois divergirem, o
 CSS está certo e este documento está velho.
 
 ---
 
 ## 1. A cena que decide tudo
 
-> Camila abre o celular às 22h40 de domingo, no escuro do quarto, para ver se
+> Camila abre o telemóvel às 22h40 de domingo, no escuro do quarto, para ver se
 > consegue a Juliana no sábado. Doze horas depois a mesma interface está num
-> tablet no balcão, sob LED de salão batendo em espelho e mármore, com uma
-> cliente de pé esperando.
+> tablet no balcão, sob LED de salão a bater em espelho e mármore, com uma
+> cliente de pé à espera.
 
 **A segunda cena manda.** Claro não é o padrão seguro aqui — é a única leitura
 que sobrevive ao reflexo do balcão. Mas é um claro de *pedra quente*, não de
@@ -38,7 +38,7 @@ marca não herdou cor nenhuma, então a tinta *é* a cor da marca.
 | `stone-50…950` | travertino quente, o chão do produto | `stone-600` é `L 0.50`, não `0.545`: em `0.545` o texto secundário lia 3.98:1 sobre o fundo rebaixado |
 | `ink-50…950` | a cor da marca | `ink-900` é a tinta do claro; `ink-950` é a do escuro |
 | `bronze-100…700` | metal escovado — detalhe, régua, selo | **nunca é botão** |
-| `signal-good/warn/bad` | só onde estado é fato do produto | escurecidos até passarem 4.5:1 sobre o fundo rebaixado, o pior caso em que aparecem |
+| `signal-good/warn/bad` | só onde estado é facto do produto | escurecidos até passarem 4.5:1 sobre o fundo rebaixado, o pior caso em que aparecem |
 
 Tudo em OKLCH. Componente **nunca** chama cor bruta — chama papel semântico. É o
 que faz o white-label funcionar sem tocar em componente: trocar de salão é
@@ -71,7 +71,7 @@ Dois pares merecem atenção porque são fáceis de confundir:
 
 Usar tinta onde cabia inverso foi o bug mais caro do sistema: no escuro o
 atendimento em curso ficava mais *escuro* que os marcados e a distinção invertia
-justamente na tela em que a recepção precisa dela.
+justamente no ecrã em que a receção precisa dela.
 
 ### Contraste
 
@@ -103,14 +103,14 @@ Classes: `.display` (+ `.display-xl` / `.display-lg` / `.display-md`, todas em
 17px com tracking largo em caixa alta. Caixa alta em versalete largo não tem
 hairline em risco — é o desenho da própria logo.
 
-`.label-caps` **não é eyebrow de seção.** É rótulo de dado: aparece onde há um
+`.label-caps` **não é eyebrow de secção.** É rótulo de dado: aparece onde há um
 valor logo em seguida (nome da unidade num cartão, "a partir de" num preço),
 nunca solto acima de um título.
 
 ## 4. Forma, elevação, camada
 
-- **Uma escala de raio só:** `--radius-plate: 4px`. Placa e controle
-  compartilham. Pílula é reservada ao que é genuinamente pílula — chip, selo,
+- **Uma escala de raio só:** `--radius-plate: 4px`. Placa e controlo
+  partilham. Pílula é reservada ao que é genuinamente pílula — chip, selo,
   avatar.
 - **Placa usa fio, não sombra.** Elevação é rara: barra fixa, diálogo, menu.
 - Sombra é sempre **tingida do próprio chão**, nunca preta.
@@ -121,9 +121,9 @@ nunca solto acima de um título.
 Saída exponencial (`--ease-out-quint`, `--ease-out-expo`). **Sem bounce:** o
 produto marca hora e cobra dinheiro.
 
-Não há entrada genérica aplicada a toda seção. O movimento autoral do produto
-acontece **uma vez só**: o selo, quando o horário fica marcado. A coroa se
-desenha, as folhas abrem atrás dela e o swash atravessa por último — a mesma
+Não há entrada genérica aplicada a todas as secções. O movimento autoral do produto
+acontece **uma vez só**: o selo, quando o horário fica marcado. A coroa
+desenha-se, as folhas abrem atrás dela e o swash atravessa por último — a mesma
 ordem em que a mão desenharia.
 
 `prefers-reduced-motion` não é opcional. Quem desligou movimento recebe o selo
@@ -143,7 +143,7 @@ botânica.
 ## 7. Tema claro/escuro
 
 **O claro é o padrão de todo o produto** — inclusive na área da cliente, que
-antes escurecia sozinha seguindo o sistema operacional. Agora ninguém escurece
+antes escurecia sozinha a seguir o sistema operativo. Agora ninguém escurece
 sem escolher: quem quiser escuro pede, no controlo da barra.
 
 ### Mecanismo
@@ -153,14 +153,14 @@ O tema vive em `<html data-theme="light" | "dark">`, nunca em `div` nem em
 (`tema`, lido por [`lib/tema.ts`](apps/web/src/lib/tema.ts)): `app/layout.tsx`
 é `async`, lê o cookie antes de render, e já entrega o `data-theme` certo no
 primeiro HTML. Sem script inline, sem flash, sem divergência de hidratação —
-e `color-scheme` finalmente vale para barra de rolagem e controlo nativo,
+e `color-scheme` finalmente vale para barra de deslocamento e controlo nativo,
 coisa que só funciona a partir de `<html>`, nunca de um nó qualquer da árvore.
 
 Por que tem de ser `<html>` e não uma `div` de embrulho: uma `div` com
 `data-theme` carrega o atributo mas não pinta nada — se ela não tiver caixa
 própria (`display: contents`, ou simplesmente sem `bg-`), o que aparece por
 trás é o que `:root` resolveu para `body`, que é a raiz do documento. Era
-exatamente esse o defeito da versão anterior: seis telas embrulhavam o
+exatamente esse o defeito da versão anterior: seis ecrãs embrulhavam o
 conteúdo em `<div data-theme="light" className="contents">`, e num sistema com
 o SO em escuro isso pintava texto quase preto sobre fundo quase preto — o
 "contraste bugado" que a dona relatou tinha essa causa concreta, não era
@@ -193,42 +193,42 @@ mas as três agora atravessam os dois temas — nenhuma força mais um lado.
 O fluxo é unidade → serviços → horário → confirmar → **selo**.
 
 **Área de trabalho** (`/`, `/agenda`, `/avisos`, `/caixa`, `/clientes`) —
-densa, sóbria, sem foto decorativa. É a recepção de pé no tablet, sob luz de
+densa, sóbria, sem foto decorativa. É a receção de pé no tablet, sob luz de
 salão. Barra de tinta no topo, colunas estreitas, números tabulares.
 
 **Área de gestão** (`/admin`) — a mesma sobriedade, mas sentada e mensal em vez
 de em pé e diária: mais ar, tipografia maior, cartão de métrica em faixa,
 listas de resumo em vez de formulário justo. É onde a dona lê o mês e decide
-o que é estrutural — unidade, catálogo, equipe, comissão.
+o que é estrutural — unidade, catálogo, equipa, comissão.
 
-`lang="pt-PT"` na raiz e Bodoni só em títulos ≥28px continuam valendo nas três
+`lang="pt-PT"` na raiz e Bodoni só em títulos ≥28px continuam a valer nas três
 áreas por igual, nos dois temas.
 
-Vocabulário compartilhado entre as três — mudou num lugar, muda em todos:
+Vocabulário partilhado entre as três — mudou num sítio, muda em todos:
 
 - **A pastilha de horário** (`h-14`, `rounded-plate`, borda sutil, afunda 1px ao
   clicar) é idêntica em `/agendar/…/horarios`, `/agenda/…/encaixe` e
   `/agenda/…/remarcar/…`.
-- **O navegador de dia** — `[←] quarta-feira, 5 de agosto [→]` — é o mesmo nas
-  três telas em que se anda no calendário.
+- **O navegador de dia** — `[←] quarta-feira, 5 de agosto [→]` — é o mesmo nos
+  três ecrãs em que se anda no calendário.
 - **Selecionado é tinta** em todo o sistema. Não há um segundo idioma de seleção.
 
 ## 8. A grade do dia
 
 [`components/agenda/day-grid.tsx`](apps/web/src/components/agenda/day-grid.tsx)
-é a tela mais densa do produto e a que mais decisões carrega.
+é o ecrã mais denso do produto e o que mais decisões carrega.
 
 - **Estado é peso de tinta, não uma cor por estado.** Cinco pastéis obrigariam a
-  recepção a decorar uma legenda para ler a própria manhã. Aqui o bloco ganha
+  receção a decorar uma legenda para ler a própria manhã. Aqui o bloco ganha
   peso conforme a cliente avança: marcado é leve, chegou ganha o banho de
-  bronze, **em atendimento é o único bloco maciço da tela**, concluído afunda
+  bronze, **em atendimento é o único bloco maciço do ecrã**, concluído afunda
   para o tom da régua e sai do caminho.
 - **A coluna tem teto** (`18rem`). Com `1fr` e duas profissionais escaladas, um
-  corte de cabelo virava uma faixa de meia tela.
+  corte de cabelo passava a ser uma faixa de meio ecrã.
 - **O cabeçalho tem a medida da grade**, calculada da mesma fórmula
   (`3.5rem + 18rem × colunas`), e a ficha da cliente encosta na grade em vez de
-  ir para a outra ponta da tela.
-- **A linha do agora** só aparece no dia que está correndo. Em qualquer outra
+  ir para a outra ponta do ecrã.
+- **A linha do agora** só aparece no dia que está a correr. Em qualquer outra
   data seria mentira.
 
 ## 9. Imagem
@@ -253,17 +253,17 @@ retrato dos espelhos suspensos, que é a fotografia mais bonita das nove.
 > pedidos.
 >
 > ⚠️ **As 7 fotografias de serviço continuam ilustrativas** (Unsplash) e existem
-> para o desenho ter matéria. A lista de reposição está na seção 11.
+> para o desenho ter matéria. A lista de reposição está na secção 11.
 
 ## 10. O que este sistema recusa
 
-Regras de rejeição, não de estilo. Se você está prestes a escrever uma delas,
+Regras de rejeição, não de estilo. Se estiver prestes a escrever uma delas,
 reescreva o elemento com outra estrutura.
 
-- **Sobrolho em caixa alta acima de cada seção.** É o andaime que todo gerador
-  de tela desenha por reflexo. `.label-caps` só existe colado a um valor.
-- **Marcador numerado (01 / 02 / 03) como andaime.** Número se ganha quando a
-  seção *é* uma sequência.
+- **Sobrolho em caixa alta acima de cada secção.** É o andaime que todo o gerador
+  de ecrãs desenha por reflexo. `.label-caps` só existe colado a um valor.
+- **Marcador numerado (01 / 02 / 03) como andaime.** O número ganha-se quando a
+  secção *é* uma sequência.
 - **Faixa colorida na borda esquerda** de placa, item de lista ou alerta.
 - **Texto em gradiente.** Ênfase é peso ou tamanho.
 - **Vidro fosco decorativo.**
@@ -276,8 +276,8 @@ reescreva o elemento com outra estrutura.
   distância sem nada a separar. `Section` agora é só título + régua de bronze
   + conteúdo; a placa pertence ao objeto (tabela, lista), nunca ao invólucro.
 - **Alias de cor legado.** A ponte para a paleta antiga (`wine-*`, `gold-*`,
-  `cream-*`) foi removida depois da migração: alias que sobrevive vira porta dos
-  fundos para a paleta velha voltar sem ninguém notar.
+  `cream-*`) foi removida depois da migração: alias que sobrevive passa a ser a porta
+  por onde a paleta velha volta sem ninguém notar.
 
 ## 11. Pendências que dependem do cliente
 
@@ -290,7 +290,7 @@ Estão listadas aqui porque são bloqueios de conteúdo, não de código.
    (Corte feminino, Escova, Hidratação, Limpeza de pele, Manicure,
    Mechas / luzes, Progressiva). As de unidade já foram resolvidas com o material
    da dona. Ressalva que sobrevive: **uma das fotos de banco mostra a marca
-   "KEVIN.MURPHY" legível na prateleira** — sugere uma parceria de varejo que o
+   "KEVIN.MURPHY" legível na prateleira** — sugere uma parceria de retalho que o
    salão não declarou.
 3. **Originais das fotos das lojas.** As nove que temos passaram pela compressão
    do WhatsApp (1600 px, 110–235 KB). Pedir por e-mail ou Drive; reenviar por

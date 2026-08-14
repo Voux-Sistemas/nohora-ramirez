@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { assertGestao } from '@/server/auth/permissoes'
 import {
   addClientNote,
@@ -17,9 +18,16 @@ import {
  * recortar a ficha por unidade partiria o histórico dela em dois.
  */
 
-export async function atualizarCliente(formData: FormData): Promise<void> {
+export interface ClienteState {
+  error?: string
+}
+
+export async function atualizarCliente(
+  _state: ClienteState,
+  formData: FormData,
+): Promise<ClienteState> {
   const clientId = String(formData.get('clientId') ?? '')
-  if (!clientId) return
+  if (!clientId) return { error: 'Ficha não identificada. Recarregue a página.' }
   await assertGestao()
 
   const tags = String(formData.get('tags') ?? '')
@@ -27,9 +35,22 @@ export async function atualizarCliente(formData: FormData): Promise<void> {
     .map((t) => t.trim())
     .filter(Boolean)
 
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return { error: 'Preencha o nome.' }
+
+  /*
+    O telefone entra normalizado ou não entra. É a coluna por onde a cliente
+    faz login e por onde `findOrCreateClient` a reencontra na próxima marcação:
+    gravar `934 730 344` onde o resto do sistema guarda `+351934730344` não dá
+    erro nenhum na hora — só parte o login dela e cria uma segunda ficha na
+    marcação seguinte, semanas depois, sem ninguém ligar uma coisa à outra.
+  */
+  const phone = toE164(String(formData.get('phone') ?? ''))
+  if (!phone) return { error: telefoneInvalidoErro() }
+
   const input: ClientProfileInput = {
-    name: String(formData.get('name') ?? '').trim(),
-    phone: String(formData.get('phone') ?? '').trim(),
+    name,
+    phone,
     email: String(formData.get('email') ?? '').trim() || undefined,
     birthdate: String(formData.get('birthdate') ?? '').trim() || undefined,
     document: String(formData.get('document') ?? '').trim() || undefined,
@@ -39,10 +60,10 @@ export async function atualizarCliente(formData: FormData): Promise<void> {
     tags,
     requiresDeposit: formData.get('requiresDeposit') === 'on',
   }
-  if (!input.name || !input.phone) return
 
   await updateClientProfile(clientId, input)
   revalidatePath(`/clientes/${clientId}`)
+  return {}
 }
 
 export async function adicionarNota(formData: FormData): Promise<void> {

@@ -174,8 +174,8 @@ export async function listNotices(
     const detalhe = detalhes.get(row.appointmentId)
     const vars = {
       cliente: primeiroNome(row.clientName),
-      servicos: detalhe?.services ?? 'seu atendimento',
-      profissional: detalhe?.staffName ?? 'a equipe',
+      servicos: detalhe?.services ?? 'o seu atendimento',
+      profissional: detalhe?.staffName ?? 'a equipa',
       data: formatDateLong(isoDateInZone(row.start, unit.timezone)),
       hora: formatTime(row.start, unit.timezone),
       unidade: unit.name,

@@ -123,14 +123,14 @@ export default async function ClientesPage({
 
       <form className="mt-6" role="search">
         <label htmlFor="busca-cliente" className="sr-only">
-          Buscar cliente por nome ou telefone
+          Procurar cliente por nome ou telefone
         </label>
         <input
           id="busca-cliente"
           className="field"
           type="search"
           name="q"
-          placeholder="Buscar por nome ou telefone…"
+          placeholder="Procurar por nome ou telefone…"
           defaultValue={q ?? ''}
         />
       </form>
@@ -139,11 +139,11 @@ export default async function ClientesPage({
         <p className="text-muted mt-8 border-t border-(--border-strong) pt-8 text-sm">
           {q ? (
             <>
-              Nenhuma cliente com <strong className="text-(--text-strong)">{q}</strong>. O cadastro
+              Nenhuma cliente com <strong className="text-(--text-strong)">{q}</strong>. O registo
               novo nasce na primeira reserva, ou pela importação de CSV.
             </>
           ) : (
-            'Nenhuma cliente cadastrada ainda. A primeira entra sozinha na primeira reserva.'
+            'Nenhuma cliente registada ainda. A primeira entra sozinha na primeira reserva.'
           )}
         </p>
       ) : (

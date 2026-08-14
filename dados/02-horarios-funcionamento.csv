@@ -6,14 +6,14 @@ centro;quinta;09:00;20:00;
 centro;sexta;09:00;20:00;
 centro;sabado;08:00;18:00;
 centro;domingo;;;fechado - deixe abre e fecha em branco
-zona-sul;segunda;10:00;19:00;
-zona-sul;terca;10:00;19:00;
-zona-sul;quarta;10:00;19:00;
-zona-sul;quinta;10:00;20:00;
-zona-sul;sexta;10:00;20:00;
-zona-sul;sabado;09:00;18:00;
-zona-sul;domingo;;;fechado
-shopping;segunda;10:00;22:00;horario do shopping
+gaia;segunda;10:00;19:00;
+gaia;terca;10:00;19:00;
+gaia;quarta;10:00;19:00;
+gaia;quinta;10:00;20:00;
+gaia;sexta;10:00;20:00;
+gaia;sabado;09:00;18:00;
+gaia;domingo;;;fechado
+shopping;segunda;10:00;22:00;horário do centro comercial
 shopping;terca;10:00;22:00;
 shopping;quarta;10:00;22:00;
 shopping;quinta;10:00;22:00;

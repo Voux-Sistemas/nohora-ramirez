@@ -13,7 +13,7 @@ export function CancelButton({ id }: { id: string }) {
     <form
       action={action}
       onSubmit={(e) => {
-        if (!confirm('Cancelar esse agendamento?')) e.preventDefault()
+        if (!confirm('Cancelar esta marcação?')) e.preventDefault()
       }}
     >
       <input type="hidden" name="id" value={id} />
@@ -27,7 +27,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <button type="submit" disabled={pending} className={cn(buttonVariants({ variant: 'danger', size: 'sm' }))}>
-      {pending ? 'Cancelando…' : 'Cancelar'}
+      {pending ? 'A cancelar…' : 'Cancelar'}
     </button>
   )
 }

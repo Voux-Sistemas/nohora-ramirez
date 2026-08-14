@@ -1,99 +1,124 @@
-# Coleta de dados — Fase 0
+# O formato de importação, em dez ficheiros
 
-Estes arquivos são o que falta para o sistema sair do papel. Sem eles, qualquer
-tela que eu construir vai usar dado inventado, e a gente descobre o que estava
-errado só no dia do piloto.
+Estes dez `.csv` são **material de referência**: mostram, coluna a coluna, o
+formato em que o sistema espera receber os dados de um salão novo. Não são
+pré-requisito para arrancar nada — o sistema sobe com o seed e funciona sem eles
+(ADR-008 em `docs/DECISOES.md`). Servem para duas coisas:
+
+- **recolher os dados junto da dona** antes de os escrever em `/admin`, na ordem
+  em que os ecrãs os pedem (a ordem de registo está em `ops/onboarding.md`);
+- **fixar o formato** que o onboarding vai ler quando for construído.
+
+O conteúdo que está aqui é exemplo — um salão inventado no distrito do Porto,
+com três lojas.
+
+> **Os ficheiros com dados a sério vão para `dados/real/`, não por cima destes.**
+> Essa pasta está no `.gitignore`: nome, telemóvel e e-mail de clientes de
+> verdade não entram no repositório. Copie o modelo para lá (`dados/real/
+> 10-clientes.csv`) e preencha a cópia. Os dez daqui ficam como estão, que é
+> para isso que servem — mostrar o formato à próxima pessoa.
+
+Só o `10-clientes.csv` entra sozinho no sistema, pelo ecrã *Clientes →
+Importar*. Os outros nove são para preencher à mão nos formulários.
+
+| Ordem | Ficheiro | O que carrega |
+|---|---|---|
+| 1 | `01-unidades.csv` | as lojas. Sem unidade não existe agenda, equipa nem caixa |
+| 2 | `02-horarios-funcionamento.csv` | quando cada loja abre — é o que define onde há agenda |
+| 3 | `05-servicos.csv` | **o mais importante.** Preço e duração; duração errada é agenda errada |
+| 4 | `03-profissionais.csv` | quem são e em que lojas atendem |
+| 5 | `06-quem-faz-o-que.csv` | sem isto a cliente marca com quem não faz aquele serviço |
+| 6 | `04-escalas.csv` | quando cada uma trabalha. Sem escala a profissional não tem coluna na agenda |
+| 7 | `07-recursos.csv` | lavatórios, cadeiras e cabines — é o que impede duas clientes na mesma cabine |
+| 8 | `08-precos-excecoes.csv` | só se o preço variar por profissional ou por loja |
+| 9 | `09-comissoes.csv` | fase seguinte, mas recolhe-se junto para não haver segunda ronda de perguntas |
+| 10 | `10-clientes.csv` | a carteira de clientes — o único que o sistema importa sozinho |
+
+A ordem da tabela não é a ordem dos números no nome do ficheiro: é a ordem em
+que os dados fazem falta. Cada linha depende de a anterior já estar respondida —
+o catálogo antes da equipa, porque a ficha da profissional marca os serviços que
+ela executa.
 
 ## Como preencher
 
-- Abra os `.csv` no Excel ou Google Sheets. O separador é **ponto e vírgula (`;`)**,
-  que é o padrão do Excel em português.
-- Cada arquivo já vem com **linhas de exemplo** — apague-as e coloque as suas.
-- Não precisa ficar bonito. Preencha do jeito que der; eu limpo depois.
-- Se for mais fácil mandar foto do caderno, print da agenda ou a planilha que
-  você já usa, manda. Eu converto.
+- Abra os `.csv` na folha de cálculo (Excel, Numbers, Google Sheets). O
+  separador aqui é **ponto e vírgula (`;`)**, que é o que o Excel em português
+  grava, porque a vírgula já é o separador decimal.
+- Não é preciso acertar o separador antes de enviar: o leitor de CSV descobre-o
+  sozinho a partir do cabeçalho — aceita `;`, `,` ou tabulação — e ignora o BOM
+  que o Excel escreve no início do ficheiro (`packages/core/src/csv/parse.ts`).
+- Não precisa de ficar bonito. Se for mais fácil mandar fotografia do caderno ou
+  a folha que o salão já usa, mande; converte-se depois.
 
-## Ordem de prioridade
+## O campo que mais gera dúvida: a duração do serviço
 
-Se não der para preencher tudo de uma vez, siga esta ordem — é a ordem em que
-eu preciso dos dados para construir:
-
-| # | Arquivo | Por que é crítico |
-|---|---|---|
-| 1 | `01-unidades.csv` | Sem as unidades, nada mais existe |
-| 2 | `02-horarios-funcionamento.csv` | Define quando existe agenda |
-| 3 | `05-servicos.csv` | **O mais importante.** Duração errada = agenda errada |
-| 4 | `03-profissionais.csv` | Quem são e onde atendem |
-| 5 | `06-quem-faz-o-que.csv` | Sem isso o cliente marca com quem não sabe fazer |
-| 6 | `04-escalas.csv` | Quando cada um trabalha |
-| 7 | `07-recursos.csv` | Evita duas clientes na mesma cabine |
-| 8 | `08-precos-excecoes.csv` | Só se preço varia por profissional/unidade |
-| 9 | `09-comissoes.csv` | Fase 2, mas melhor coletar junto |
-| 10 | `10-clientes.csv` | Sua carteira de clientes — veja abaixo |
-
-## O campo que mais gera dúvida: duração do serviço
-
-- **`duracao_min`** — o tempo total da cliente com a profissional, do começo ao
-  fim. Numa coloração conte tudo: aplicar, esperar a tinta agir e finalizar. Se
-  a coloração leva 1h40, escreva `100`.
-- **`folga_depois_min`** — tempo de limpeza/troca entre uma cliente e outra.
-  Se você sempre precisa de 10 minutos para arrumar a estação, coloque 10.
+- **`duracao_min`** — o tempo total da cliente com a profissional, do princípio
+  ao fim. Numa coloração conta tudo: aplicar, esperar que a tinta atue e
+  finalizar. Se a coloração leva 1h40, escreva `100`.
+- **`folga_depois_min`** — o tempo de limpeza e troca entre uma cliente e a
+  seguinte. Se são sempre 10 minutos a arrumar a estação, escreva 10.
 
 Duração errada é o erro que mais dói: a agenda passa a prometer horário que não
-existe. Na dúvida, cronometre dois atendimentos e use o maior.
+existe. Na dúvida, cronometre dois atendimentos e use o maior — errar para mais
+deixa a cabeleireira à espera, errar para menos põe duas clientes na mesma
+cadeira.
 
-## Convenções que valem para todos os arquivos
+## Convenções que valem para todos os ficheiros
 
-- **Coluna em branco = herda / não se aplica.** Em `08-precos-excecoes.csv`, se
-  você preencher só o preço e deixar as durações vazias, o sistema mantém a
-  duração padrão do serviço. Em `02-horarios-funcionamento.csv`, `abre` e `fecha`
-  vazios significam **fechado naquele dia**.
-- **Código** (`centro`, `ana`, `corte-fem`) é o apelido curto que amarra um
-  arquivo no outro. Use letras minúsculas, sem acento e sem espaço — e repita
-  exatamente o mesmo código nos outros arquivos.
-- **Dinheiro** com vírgula, do jeito brasileiro: `180,00`.
+- **Coluna em branco = herda ou não se aplica.** Em `08-precos-excecoes.csv`, se
+  preencher só o preço e deixar a duração vazia, fica a duração base do serviço.
+  Em `02-horarios-funcionamento.csv`, `abre` e `fecha` vazios significam
+  **fechado nesse dia**.
+- **Código** (`centro`, `ana`, `corte-senhora`) é o nome curto que amarra um
+  ficheiro ao outro. Minúsculas, sem acento e sem espaço — e repetido
+  exatamente igual nos outros ficheiros.
+- **Dinheiro em euros, com vírgula decimal:** `50,00`. Sem o símbolo `€` e sem
+  separador de milhares.
 - **Listas dentro de uma célula** separadas por vírgula, sem espaço:
-  `corte-fem,escova,coloracao`.
-- **Sim/não** escreva `sim` ou `nao`.
+  `corte-senhora,brushing,coloracao`.
+- **Sim/não** escreve-se `sim` ou `nao`.
+- **Telemóvel português tem nove dígitos** e começa por 9; o fixo do Porto começa
+  por 22. Escreva-os como quiser (`912 345 678`, `912345678`), que o sistema
+  normaliza. Código postal no formato `4440-123`, e a região é o **distrito**
+  (`Porto`), não uma sigla de duas letras.
 
 ### Sobre `08-precos-excecoes.csv`
 
-Só preencha se o preço ou a duração mudar em algum caso. A regra de desempate,
-da mais específica para a mais genérica:
+Só se preenche se o preço ou a duração mudarem nalgum caso. A regra de
+desempate, da mais específica para a mais genérica:
 
 ```
 profissional + unidade  →  profissional  →  unidade  →  preço base do serviço
 ```
 
-Ou seja: se a Ana cobra mais caro por mechas em qualquer unidade, é uma linha
-com `profissional=ana` e `unidade` vazio.
+Ou seja: se a Ana cobra mais caro por madeixas em qualquer loja, é uma linha com
+`profissional=ana` e `unidade` vazia.
 
 ### Sobre `09-comissoes.csv`
 
-É Fase 2, mas coletar agora evita uma segunda rodada de perguntas. Preencha
-**ou** `percentual` **ou** `valor_fixo`, nunca os dois na mesma linha. Deixar
-`servico` e `categoria` vazios significa "regra geral desta profissional".
+Preencha **ou** `percentual` **ou** `valor_fixo`, nunca os dois na mesma linha.
+Deixar `servico` e `categoria` vazios significa "regra geral desta
+profissional".
 
 ### Sobre `10-clientes.csv`
 
-É o único arquivo que **entra sozinho no sistema**, pela tela *Clientes →
-Importar*. Os outros eu cadastro na mão junto com você.
+É o único ficheiro que entra sozinho no sistema, em *Clientes → Importar* — o
+ecrã pede sessão de gestão, porque importar cria fichas de gente.
 
-Só duas colunas são obrigatórias: `nome` e `telefone`. `email` pode ficar em
-branco à vontade.
+Só duas colunas são obrigatórias: `nome` e `telefone`. O `email` pode ficar em
+branco à vontade. O cabeçalho é lido por nome, e as variantes reconhecidas estão
+em `apps/web/src/app/clientes/importar/actions.ts`: para o número servem
+`telefone`, `telemóvel`, `telemovel`, `contacto`, `celular` ou `phone`; para o
+nome, `nome` ou `name`. Uma coluna com outro nome qualquer é ignorada em
+silêncio, e a importação parece vazia sem ninguém desconfiar do cabeçalho.
 
-O telefone pode vir do jeito que estiver na sua agenda — `(11) 98888-0001`,
-`11988880001`, `+55 11 98888-0001`. O sistema arruma. Só precisa ter DDD.
+O número pode vir como estiver na agenda do salão — `912 345 678`, `912345678`,
+`+351 912 345 678` ou `00351912345678`. O sistema arruma. O que ele não arruma é
+falta de dígitos: com `PAIS=PT` só passam os nove dígitos nacionais, e a linha
+que não os tiver é saltada e devolvida na lista de ignoradas, com o motivo.
 
-**Quem já existe não vira cópia.** A conferência é pelo telefone: se a cliente
-já está cadastrada, a linha não cria uma segunda — no máximo preenche o e-mail
-que estava faltando. Então pode reenviar o arquivo depois de completar, sem
-medo de duplicar ninguém.
-
-Essa é a lista que faz as rotinas de WhatsApp terem para quem falar no primeiro
-dia. Sem ela, o sistema só conhece quem marcar do zero.
-
-## Depois de preencher
-
-Me avise. Eu carrego os dados no banco, e a partir daí a agenda que você vai
-ver na tela é a agenda real do seu estúdio, não um exemplo.
+**Quem já existe não vira cópia.** A conferência é pelo telemóvel: se a cliente
+já está registada, a linha não cria uma segunda — quando muito preenche o
+e-mail que faltava, e nunca por cima de um que já lá esteja. O nome também não é
+substituído. Então dá para reenviar o ficheiro depois de o completar, sem medo
+de duplicar ninguém.

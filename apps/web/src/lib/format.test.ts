@@ -66,7 +66,7 @@ describe('telefone português', () => {
 
   it('erro de telefone fala telemóvel e nove dígitos, nunca DDD', () => {
     emPais('PT', () => {
-      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Informe o telemóvel com 9 dígitos.')
+      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Indique o telemóvel com 9 dígitos.')
     })
   })
 })
@@ -91,7 +91,7 @@ describe('telefone brasileiro', () => {
 
   it('erro de telefone troca de vocabulário junto com o país', () => {
     emPais('BR', () => {
-      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Informe o celular com 10 ou 11 dígitos.')
+      expect(telefoneInvalidoErro()).toBe('Telefone inválido. Indique o celular com 10 ou 11 dígitos.')
     })
   })
 })

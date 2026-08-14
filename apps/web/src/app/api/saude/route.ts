@@ -37,7 +37,6 @@ export async function GET() {
     ])
     return NextResponse.json({ ok: true, ms: Date.now() - inicio })
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('[saude] banco fora:', String(error))
     return NextResponse.json({ ok: false }, { status: 503 })
   }

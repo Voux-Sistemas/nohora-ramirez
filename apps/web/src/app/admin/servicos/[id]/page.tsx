@@ -178,7 +178,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
                   name="onlineBookable"
                   defaultChecked={service.onlineBookable}
                 />
-                Aparece no agendamento online do cliente (desmarque para "só recepção")
+                Aparece na marcação online da cliente (desmarque para “só receção”)
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -248,7 +248,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
                 </label>
               ))}
               {assignables.staff.length === 0 ? (
-                <p className="text-muted text-sm">Nenhum profissional ativo cadastrado ainda.</p>
+                <p className="text-muted text-sm">Nenhum profissional ativo registado ainda.</p>
               ) : null}
             </div>
           </Section>
@@ -270,12 +270,12 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
                 </label>
               ))}
               {assignables.resourceTypes.length === 0 ? (
-                <p className="text-muted text-sm">Nenhum tipo de recurso cadastrado ainda.</p>
+                <p className="text-muted text-sm">Nenhum tipo de recurso registado ainda.</p>
               ) : null}
             </div>
           </Section>
 
-          <FormActions label="Salvar serviço" />
+          <FormActions label="Guardar serviço" />
         </form>
       </Ficha>
     </AdminShell>

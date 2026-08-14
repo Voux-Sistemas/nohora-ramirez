@@ -1,4 +1,4 @@
-import { addDaysInZone, isoDateInZone, zonedDateTime } from '@studio/core'
+import { agruparPorFuso, isoDateInZone, janelaDoMes, zonedDateTime } from '@studio/core'
 import { LIVE_APPOINTMENT_STATUSES, appointments, units } from '@studio/db'
 import { and, asc, count, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
@@ -85,67 +85,37 @@ interface MesResumo {
   atendimentosAnterior: number
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0')
-}
-
 /**
  * O mês em duas somas, para a placa ao lado da pauta.
  *
  * Reaproveita as mesmas unidades que `loadToday` já carregou — não abre outra
- * consulta a `units` nem repete o corte de visibilidade. Mesma janela "mesmo
- * trecho do mês anterior" do painel em `/admin`, porque é a mesma pergunta
- * respondida em miniatura.
+ * consulta a `units` nem repete o corte de visibilidade. A janela vem de
+ * `janelaDoMes`, a mesma que o painel em `/admin` usa, porque é a mesma
+ * pergunta respondida em miniatura.
  */
 async function loadMesResumo(unidades: { id: string; timezone: string }[]): Promise<MesResumo> {
   const total: MesResumo = { faturamento: 0, faturamentoAnterior: 0, atendimentos: 0, atendimentosAnterior: 0 }
   if (unidades.length === 0) return total
 
-  const porFuso = new Map<string, string[]>()
-  for (const unit of unidades) {
-    const grupo = porFuso.get(unit.timezone) ?? []
-    grupo.push(unit.id)
-    porFuso.set(unit.timezone, grupo)
-  }
+  const agora = new Date()
 
-  for (const [timezone, ids] of porFuso) {
-    const hoje = isoDateInZone(new Date(), timezone)
-    const [year, month, diaAtual] = hoje.split('-').map(Number) as [number, number, number]
-    const monthStartIso = `${year}-${pad2(month)}-01`
-    const [nextYear, nextMonth] = month === 12 ? [year + 1, 1] : [year, month + 1]
-    const nextMonthStartIso = `${nextYear}-${pad2(nextMonth)}-01`
-    const [prevYear, prevMonth] = month === 1 ? [year - 1, 12] : [year, month - 1]
-    const prevMonthStartIso = `${prevYear}-${pad2(prevMonth)}-01`
-    const cutoffCandidate = addDaysInZone(prevMonthStartIso, diaAtual)
-    const prevPeriodEndIso = cutoffCandidate < monthStartIso ? cutoffCandidate : monthStartIso
-
-    const monthStart = zonedDateTime(monthStartIso, '00:00', timezone)
-    const monthEnd = zonedDateTime(nextMonthStartIso, '00:00', timezone)
-    const prevMonthStart = zonedDateTime(prevMonthStartIso, '00:00', timezone)
-    const prevPeriodEnd = zonedDateTime(prevPeriodEndIso, '00:00', timezone)
-
-    /* `sql` template interpolation não passa pelo mapeamento de tipo da coluna
-       que `gte`/`lt` fazem — o driver recebe o `Date` cru e quebra ao
-       serializar o pacote ("must be of type string or an instance of Buffer").
-       Dentro de `filter (where …)` isso só se resolve com string ISO. */
-    const monthStartTs = monthStart.toISOString()
-    const monthEndTs = monthEnd.toISOString()
-    const prevMonthStartTs = prevMonthStart.toISOString()
-    const prevPeriodEndTs = prevPeriodEnd.toISOString()
+  for (const [timezone, doFuso] of agruparPorFuso(unidades)) {
+    const mes = janelaDoMes(agora, timezone)
+    const ids = doFuso.map((unit) => unit.id)
 
     const [row] = await db
       .select({
-        atendimentos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs})::int`,
-        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${monthStartTs} and ${appointments.startsAt} < ${monthEndTs}), 0)::int`,
-        atendimentosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs})::int`,
-        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${prevMonthStartTs} and ${appointments.startsAt} < ${prevPeriodEndTs}), 0)::int`,
+        atendimentos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs})::int`,
+        faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs}), 0)::int`,
+        atendimentosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs})::int`,
+        faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs}), 0)::int`,
       })
       .from(appointments)
       .where(
         and(
           inArray(appointments.unitId, ids),
-          gte(appointments.startsAt, prevMonthStart),
-          lt(appointments.startsAt, monthEnd),
+          gte(appointments.startsAt, mes.anteriorInicio),
+          lt(appointments.startsAt, mes.fim),
         ),
       )
 
@@ -260,19 +230,19 @@ export default async function HomePage() {
                 <p className="text-muted border-b border-(--border-subtle) px-1 py-8 text-sm">
                   {acesso.papel === 'dona' ? (
                     <>
-                      Nenhuma unidade ativa. Cadastre a primeira em{' '}
+                      Nenhuma unidade ativa. Registe a primeira em{' '}
                       <Link
                         href="/admin/unidades"
                         className="text-(--text-strong) underline underline-offset-4"
                       >
-                        Cadastros
+                        Unidades
                       </Link>
                       .
                     </>
                   ) : (
                     /* Mandar o gerente para uma tela que ele não abre seria pior do
                        que não dizer nada. Quem cadastra unidade é a dona. */
-                    'Nenhuma loja atribuída a você ainda. Fale com a administração.'
+                    'Nenhuma loja atribuída a si ainda. Fale com a administração.'
                   )}
                 </p>
               ) : null}

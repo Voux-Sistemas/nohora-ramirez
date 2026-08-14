@@ -27,6 +27,46 @@ const config: NextConfig = {
     serverActions: { bodySizeLimit: '24mb' },
   },
   typedRoutes: true,
+  /*
+    Cabeçalhos de segurança em todas as respostas. Não havia nenhum, e nenhum
+    deles custa nada em runtime — é configuração, não código.
+
+    Falta aqui a `Content-Security-Policy` que trava a origem dos scripts. Ela
+    exige nonce por pedido, e nonce por pedido exige middleware, que no App
+    Router desliga a cache estática de tudo o que passa por ele. É uma decisão
+    de arquitetura com preço, não uma linha a acrescentar — está registada em
+    `docs/ROADMAP.md` como pendente. O `frame-ancestors` abaixo, que é a parte
+    da CSP que protege contra clickjacking, esse já vai.
+  */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Ninguém embute este site num iframe para enganar a cliente a
+          // clicar onde não vê. Vale nos dois vocabulários: o antigo, que o
+          // Safari ainda prefere, e o da CSP, que é o que os outros leem.
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          // O navegador respeita o `Content-Type` que mandamos em vez de
+          // adivinhar pelo conteúdo — é o que impede uma fotografia enviada
+          // pela recepção de ser servida como script.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // O link que a cliente clica para fora não leva o caminho completo
+          // de onde ela estava. `/conta/marcacoes/<id>` não é da conta de
+          // ninguém a não ser dela.
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // O site não pede câmara, microfone nem localização em lado nenhum;
+          // dizê-lo fecha a porta antes de alguém a abrir sem reparar.
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+          // Dois anos de HTTPS obrigatório. O Railway já serve só em TLS —
+          // isto tira do caminho o primeiro pedido em claro, que é onde a
+          // sessão da dona seria apanhada numa rede de café.
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+        ],
+      },
+    ]
+  },
   images: {
     /*
       As fotos do catálogo de demonstração são hospedadas fora. Quando o salão

@@ -136,13 +136,18 @@ async function papeisPorUsuario(userIds: readonly string[]): Promise<Map<string,
  * Quem é a pessoa por trás do perfil e em que lojas ela atende.
  *
  * As ações de equipe recebem só o `staffId` do formulário. É por aqui que ele
- * vira "conta de quem" e "loja de quem", para o porteiro perguntar ao banco em
- * vez de acreditar num campo escondido — trocar o `userId` do formulário era um
- * jeito de trocar a senha de qualquer conta, inclusive a da dona.
+ * vira "conta de quem", "loja de quem" e "degrau de quem", para o porteiro
+ * perguntar ao banco em vez de acreditar num campo escondido — trocar o
+ * `userId` do formulário era um jeito de trocar a senha de qualquer conta,
+ * inclusive a da dona.
+ *
+ * O `papel` vem junto porque estar ao alcance não basta: numa rede de duas
+ * lojas a dona também atende, então ela partilha unidade com o gerente dela, e
+ * "temos uma loja em comum" sozinho deixava o gerente abrir a ficha da patroa.
  */
 export async function alcanceDoStaff(
   id: string,
-): Promise<{ userId: string; unitIds: string[] } | null> {
+): Promise<{ userId: string; unitIds: string[]; papel: PapelEquipe } | null> {
   const [row] = await db
     .select({ userId: staffProfiles.userId })
     .from(staffProfiles)
@@ -155,7 +160,13 @@ export async function alcanceDoStaff(
     .from(staffUnits)
     .where(eq(staffUnits.staffId, id))
 
-  return { userId: row.userId, unitIds: lotacoes.map((item) => item.unitId) }
+  const papeis = await papeisPorUsuario([row.userId])
+
+  return {
+    userId: row.userId,
+    unitIds: lotacoes.map((item) => item.unitId),
+    papel: papeis.get(row.userId) ?? 'profissional',
+  }
 }
 
 export interface StaffDetail {

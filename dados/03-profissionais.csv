@@ -1,6 +1,6 @@
-codigo;nome;celular;email;especialidade;unidade_principal;outras_unidades;aceita_agendamento_online
-ana;Ana Souza;(11) 99999-0001;ana@exemplo.com;Coloração e mechas;centro;zona-sul;sim
-bia;Beatriz Lima;(11) 99999-0002;;Corte e escova;centro;;sim
-carla;Carla Dias;(11) 99999-0003;;Manicure e pedicure;zona-sul;;sim
-duda;Eduarda Reis;(11) 99999-0004;;Sobrancelha e cílios;shopping;centro;sim
-elis;Elis Prado;(11) 99999-0005;;Estética facial;shopping;;nao
+codigo;nome;telemovel;email;especialidade;unidade_principal;outras_unidades;aceita_agendamento_online
+ana;Ana Sousa;912 345 601;ana@exemplo.pt;Coloração e madeixas;centro;gaia;sim
+bia;Beatriz Antunes;912 345 602;;Corte e brushing;centro;;sim
+carla;Carla Nogueira;912 345 603;;Manicure e pedicure;gaia;;sim
+duda;Eduarda Faria;912 345 604;;Sobrancelhas e pestanas;shopping;centro;sim
+elis;Elisa Pinto;912 345 605;;Estética facial;shopping;;nao

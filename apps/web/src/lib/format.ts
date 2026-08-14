@@ -23,6 +23,24 @@ export function simboloMoeda(): string {
     .replace(/[\d.,\s]/g, '')
 }
 
+/**
+ * O campo de dinheiro como a pessoa o escreve → cêntimos, ou `null` se não for
+ * número. Vírgula e ponto valem os dois: o teclado do telemóvel oferece um, o
+ * teclado numérico oferece o outro, e quem está ao balcão não está a pensar em
+ * nenhum dos dois. Campo vazio é zero, não erro — é assim que se deixa em
+ * branco um desconto que não houve.
+ *
+ * Vive aqui, e não em cada tela, porque a conta que o formulário mostra ao vivo
+ * e a conta que a ação confere no servidor têm de ser a mesma conta.
+ */
+export function paraCentimos(texto: string): number | null {
+  const limpo = texto.trim()
+  if (limpo === '') return 0
+  const numero = Number(limpo.replace(',', '.'))
+  if (!Number.isFinite(numero) || numero < 0) return null
+  return Math.round(numero * 100)
+}
+
 /** Sem cêntimos — para números grandes de painel. */
 export function formatMoneyShort(cents: number): string {
   const { locale, moeda } = pais()
@@ -151,12 +169,5 @@ export function telefoneInvalidoErro(): string {
     digitosNacionais.length === 1
       ? `${digitosNacionais[0]} dígitos`
       : `${digitosNacionais.join(' ou ')} dígitos`
-  return `Telefone inválido. Informe o ${rotulos.telemovel.toLowerCase()} com ${digitos}.`
-}
-
-export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  const first = parts[0]?.[0] ?? ''
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''
-  return (first + last).toUpperCase()
+  return `Telefone inválido. Indique o ${rotulos.telemovel.toLowerCase()} com ${digitos}.`
 }

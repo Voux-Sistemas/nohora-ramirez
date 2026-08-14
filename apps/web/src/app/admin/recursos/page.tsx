@@ -44,7 +44,7 @@ export default async function RecursosPage() {
         >
           {resources.length === 0 ? (
             <p className="text-muted plate mb-4 p-10 text-center text-sm">
-              Nenhum recurso cadastrado ainda.
+              Nenhum recurso registado ainda.
             </p>
           ) : (
             <div className="plate mb-4 overflow-x-auto">
@@ -139,7 +139,7 @@ export default async function RecursosPage() {
               </li>
             ))}
             {types.length === 0 ? (
-              <li className="text-muted text-sm">Nenhum tipo cadastrado ainda.</li>
+              <li className="text-muted text-sm">Nenhum tipo registado ainda.</li>
             ) : null}
           </ul>
           {suporte ? (

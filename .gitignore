@@ -31,3 +31,10 @@ Thumbs.db
 # Não é código do produto e não é nosso para redistribuir.
 .claude/skills/
 .impeccable/
+
+# os CSVs preenchidos com dados verdadeiros do salão no onboarding.
+# Os dez `dados/*.csv` versionados são o modelo do formato, com um salão
+# inventado. Nomes, telemóveis e e-mails de clientes reais moram aqui e não
+# entram no repositório — nem "só para eu testar", porque um commit não se
+# desfaz de um histórico que já foi empurrado.
+dados/real/

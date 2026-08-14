@@ -73,6 +73,19 @@ Se a prova falhar, o que se perde é a prova, não o backup: o `backup.sh` faz o
 dump e o upload **antes** de chamar o `verificar.sh`, e o ficheiro já está no
 bucket quando ela corre.
 
+O primeiro ciclo completo contra o Supabase correu a 14 de agosto de 2026 e
+saiu assim: `BACKUP OK … (52.0K)`, `restore: 41 tabelas, 2 travas de exclusão`,
+`RESTORE OK`, e a retenção a expirar o ficheiro mais antigo. Os 52 KB são o
+número que interessa guardar de cor: os dumps que estavam no bucket antes do
+corte tinham 8 KB, porque eram de um banco que já não é este. Um backup que
+volte a encolher para esse tamanho está a apontar para o sítio errado, e o
+`verificar.sh` não apanha isso — ele prova que o ficheiro restaura, não que
+restaura o banco certo.
+
+Uma linha `sh: locale: not found` aparece no meio da saída do `initdb`. É a
+imagem Alpine, que não traz esse comando; o Postgres efémero levanta na mesma e
+a prova corre até ao fim. Ruído, não aviso.
+
 ## Variáveis
 
 | Variável | Origem |

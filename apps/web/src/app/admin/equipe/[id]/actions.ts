@@ -41,10 +41,17 @@ function parseStaff(formData: FormData): StaffInput {
   }
 }
 
-export async function salvarProfissional(formData: FormData): Promise<void> {
+export interface ProfissionalState {
+  error?: string
+}
+
+export async function salvarProfissional(
+  _state: ProfissionalState,
+  formData: FormData,
+): Promise<ProfissionalState> {
   const id = String(formData.get('id') ?? '')
   const input = parseStaff(formData)
-  if (!input.name || !input.phone) return
+  if (!input.name || !input.phone) return { error: 'preencha nome e telefone' }
 
   const acesso = id === 'novo' ? await assertGestao() : (await autorizarStaff(id)).acesso
 
@@ -75,7 +82,7 @@ export async function salvarProfissional(formData: FormData): Promise<void> {
     if (input.papel && input.papel !== 'dona' && id !== 'novo') {
       const alvo = await alcanceDoStaff(id)
       if (alvo?.userId === acesso.session.userId) {
-        throw new Error('você não pode tirar o próprio acesso de dona')
+        return { error: 'você não pode tirar o próprio acesso de dona' }
       }
     }
   }
@@ -83,19 +90,27 @@ export async function salvarProfissional(formData: FormData): Promise<void> {
   /* Marcar uma loja fora do alcance seria lotar alguém onde quem salva não
      manda — e, no caso do gerente, escrever o próprio acesso em outra unidade. */
   for (const unitId of input.unitIds) {
-    if (!veUnidade(acesso, unitId)) throw new Error(NEGADO)
+    if (!veUnidade(acesso, unitId)) return { error: NEGADO }
   }
 
   /* Sem lotação nenhuma, quem tem alcance recortado cria alguém que ela mesma
      não enxerga na lista no instante seguinte. A dona pode: cadastrar hoje e
      alocar depois é fluxo dela. */
   if (acesso.unidadeIds !== null && input.unitIds.length === 0) {
-    throw new Error('marque ao menos uma unidade')
+    return { error: 'marque ao menos uma unidade' }
   }
 
+  /* `toE164` recusa um telefone fora do formato do país — validação normal de
+     formulário, não uma falha do sistema. Vira mensagem ao lado do campo em
+     vez de derrubar a página inteira (era o que fazia antes, sem este catch). */
   const escopo = acesso.unidadeIds
-  const staffId = id === 'novo' ? await createStaff(input, escopo) : id
-  if (id !== 'novo') await updateStaff(id, input, escopo)
+  let staffId: string
+  try {
+    staffId = id === 'novo' ? await createStaff(input, escopo) : id
+    if (id !== 'novo') await updateStaff(id, input, escopo)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'não foi possível salvar' }
+  }
 
   revalidatePath('/admin/equipe')
   redirect(`/admin/equipe/${staffId}` as never)

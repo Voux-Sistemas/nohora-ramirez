@@ -121,7 +121,14 @@ export function BookingShell({
       </main>
 
       {footer ? (
-        <div className="fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-(--border-subtle) bg-(--surface-raised)/95 shadow-(--shadow-lift) backdrop-blur-md">
+        <div
+          className={cn(
+            'fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-(--border-subtle) bg-(--surface-raised)/95 shadow-(--shadow-lift) backdrop-blur-md',
+            // Com rail, o rodapé é o resumo de quem não vê a coluna lateral —
+            // a partir de `lg` o rail já mostra o mesmo, e duplicar era ruído.
+            hasRail && 'lg:hidden',
+          )}
+        >
           <div className={cn('mx-auto w-full px-5 py-3 sm:px-8', outer)}>{footer}</div>
         </div>
       ) : null}

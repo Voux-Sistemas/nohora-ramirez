@@ -158,7 +158,7 @@ export function ImageField({
             <button
               type="button"
               onClick={clear}
-              className="self-start text-(--color-signal-bad) transition-opacity hover:opacity-70"
+              className="self-start text-(--estado-mau) transition-opacity hover:opacity-70"
             >
               Remover foto
             </button>
@@ -171,7 +171,7 @@ export function ImageField({
           <input type="hidden" name={`${name}_remover`} value={removed ? '1' : ''} />
 
           {error ? (
-            <p role="alert" className="text-(--color-signal-bad)">
+            <p role="alert" className="text-(--estado-mau)">
               {error}
             </p>
           ) : null}

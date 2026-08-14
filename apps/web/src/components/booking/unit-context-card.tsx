@@ -20,7 +20,7 @@ export function UnitContextCard({ unit }: { unit: UnitInfo }) {
         />
         <div className="scrim-photo pointer-events-none absolute inset-0" aria-hidden />
         <div className="absolute inset-x-0 bottom-0 p-4">
-          <p className="display text-[1.375rem] leading-tight text-(--color-stone-50)">
+          <p className="display text-[1.375rem] leading-tight text-(--on-ink)">
             {unit.name}
           </p>
         </div>

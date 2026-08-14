@@ -16,6 +16,13 @@ export function formatMoney(cents: number): string {
   return (cents / 100).toLocaleString(locale, { style: 'currency', currency: moeda })
 }
 
+/** "€" — para rótulo de campo (`Preço (€)`), onde `formatMoney` já formataria
+ *  o número inteiro e seria demais. */
+export function simboloMoeda(): string {
+  return (0).toLocaleString(pais().locale, { style: 'currency', currency: pais().moeda })
+    .replace(/[\d.,\s]/g, '')
+}
+
 /** Sem cêntimos — para números grandes de painel. */
 export function formatMoneyShort(cents: number): string {
   const { locale, moeda } = pais()

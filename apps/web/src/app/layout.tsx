@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Bodoni_Moda } from 'next/font/google'
+import { lerTema } from '@/lib/tema'
 import './globals.css'
 
 /*
@@ -38,19 +39,26 @@ export const metadata: Metadata = {
   description: 'Agendamento e gestão do Nohora Ramirez Beauty Studio.',
 }
 
-export const viewport: Viewport = {
-  // a recepção usa tablet e a cliente usa celular
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f0ea' },
-    { media: '(prefers-color-scheme: dark)', color: '#16110f' },
-  ],
+/*
+  O tema já está resolvido quando esta página é servida (cookie, lido no
+  layout) — não faz mais sentido anunciar duas cores por `prefers-color-scheme`
+  quando só uma delas é a que a página realmente vai vestir. `generateViewport`
+  em vez de um `viewport` estático porque a cor depende do cookie da pessoa.
+*/
+export async function generateViewport(): Promise<Viewport> {
+  const tema = await lerTema()
+  return {
+    // a recepção usa tablet e a cliente usa celular
+    width: 'device-width',
+    initialScale: 1,
+    themeColor: tema.resolvido === 'dark' ? '#16110f' : '#f5f0ea',
+  }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const tema = await lerTema()
   return (
-    <html lang="pt-PT" className={`${bodoni.variable} ${archivo.variable}`}>
+    <html lang="pt-PT" data-theme={tema.resolvido} className={`${bodoni.variable} ${archivo.variable}`}>
       <body>
         {/*
           ── CONTRATO DE DIREÇÃO ───────────────────────────────────────────────

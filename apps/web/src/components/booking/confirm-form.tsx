@@ -101,7 +101,7 @@ export function ConfirmForm({
       {state.error ? (
         <p
           role="alert"
-          className="rounded-plate border border-(--color-signal-bad)/40 bg-(--color-signal-bad)/8 p-3.5 text-sm text-(--color-signal-bad)"
+          className="rounded-plate border border-(--estado-mau)/40 bg-(--estado-mau)/8 p-3.5 text-sm text-(--estado-mau)"
         >
           {state.error}
         </p>

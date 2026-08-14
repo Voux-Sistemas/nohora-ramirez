@@ -17,7 +17,7 @@ export function CancelButton({ id }: { id: string }) {
       }}
     >
       <input type="hidden" name="id" value={id} />
-      {state.error ? <p className="text-xs text-(--color-signal-bad)">{state.error}</p> : null}
+      {state.error ? <p className="text-xs text-(--estado-mau)">{state.error}</p> : null}
       <SubmitButton />
     </form>
   )

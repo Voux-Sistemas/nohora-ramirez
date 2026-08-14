@@ -115,13 +115,13 @@
 /*
   Papéis semânticos. Componente nunca chama cor bruta — chama papel. É o que faz
   o white-label funcionar sem tocar em componente.
-*/
-/*
-  `[data-theme='light']` além de `:root`: o mesmo claro precisa poder ser
-  aplicado numa sub-árvore (a área de gestão, que fica clara mesmo com o
-  sistema em escuro — ver DESIGN.md secção 7), não só no documento inteiro.
-  Um atributo direto no elemento sempre vence o valor herdado do :root escuro,
-  então isto basta — sem precisar duplicar o bloco embaixo.
+
+  O tema é sempre explícito em `<html data-theme="light|dark">`, decidido no
+  servidor a partir do cookie da pessoa (ver `lib/tema.ts`) — nunca por
+  `prefers-color-scheme`. Por isso não há media query aqui: cada tema é um
+  bloco só, e o atributo em qualquer elemento (não só `:root`) permite forçar
+  um tema numa sub-árvore quando um dia isso for preciso. `:root` sozinho, sem
+  atributo, cai no claro — a rede de segurança para JavaScript desligado.
 */
 :root,
 [data-theme='light'] {
@@ -169,6 +169,14 @@
 
   --focus: var(--color-ink-900);
 
+  /* Estado — papel semântico. Componente pede `--estado-bom`, nunca
+     `--color-signal-good` cru: é o que permite recalibrar por tema sem tocar
+     em componente. No claro, o próprio tom já foi escurecido para passar
+     4.5:1 sobre o fundo rebaixado (ver `@theme`); aqui só empresta o valor. */
+  --estado-bom: var(--color-signal-good);
+  --estado-aviso: var(--color-signal-warn);
+  --estado-mau: var(--color-signal-bad);
+
   /* Sombra tingida do próprio chão, nunca preta. Elevação é rara: barra fixa,
      diálogo, menu. Placa de conteúdo usa fio, não sombra. */
   --shadow-raise: 0 1px 2px oklch(0.44 0.014 54 / 0.06), 0 2px 8px oklch(0.44 0.014 54 / 0.05);
@@ -180,54 +188,24 @@
   Escuro. Carvão quente com a mesma temperatura da pedra — o mesmo salão com a
   luz baixa, não o negativo do claro. A tinta some como superfície (já é o
   fundo), então quem carrega a ação principal aqui é a pedra clara.
+
+  Bloco único: nada de `prefers-color-scheme` aqui. O atributo em `<html>` é
+  sempre explícito (o controlo de tema resolve "Sistema" no cliente e grava o
+  resultado no cookie), então não existe um segundo lugar para este bloco
+  divergir do claro.
 */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    color-scheme: dark;
-
-    --surface: var(--color-stone-950);
-    --surface-raised: var(--color-stone-900);
-    --surface-sunken: oklch(0.15 0.009 48);
-
-    /* Tinta continua tinta: um degrau ABAIXO da pedra escura (L 0.145 contra
-       0.185), para o cabeçalho e o selo lerem como faixa própria em vez de
-       sumirem no fundo. `--on-ink*` e `--border-on-ink` não são redeclarados
-       de propósito — a superfície não virou clara, então o que vai sobre ela
-       não muda. */
-    --surface-ink: var(--color-ink-950);
-
-    --surface-invert: var(--color-stone-50);
-    --surface-invert-hover: #ffffff;
-    --on-invert: var(--color-ink-950);
-    --on-invert-muted: oklch(0.42 0.012 52);
-
-    --border-subtle: oklch(0.29 0.011 50);
-    --border-strong: oklch(0.38 0.012 52);
-
-    --text-strong: oklch(0.955 0.006 80);
-    --text-body: oklch(0.8 0.008 70);
-    --text-muted: oklch(0.68 0.01 68);
-
-    --accent: var(--color-bronze-400);
-    --accent-ink: var(--color-bronze-300);
-    --accent-wash: oklch(0.3 0.03 70);
-
-    --focus: var(--color-bronze-300);
-
-    --shadow-raise: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.3);
-    --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.4), 0 12px 28px oklch(0 0 0 / 0.45);
-    --shadow-modal: 0 24px 64px oklch(0 0 0 / 0.6);
-  }
-}
-
-/* o seletor explícito precisa vencer a preferência do sistema nos dois sentidos */
-:root[data-theme='dark'] {
+[data-theme='dark'] {
   color-scheme: dark;
 
   --surface: var(--color-stone-950);
   --surface-raised: var(--color-stone-900);
   --surface-sunken: oklch(0.15 0.009 48);
 
+  /* Tinta continua tinta: um degrau ABAIXO da pedra escura (L 0.145 contra
+     0.185), para o cabeçalho e o selo lerem como faixa própria em vez de
+     sumirem no fundo. `--on-ink*` e `--border-on-ink` não são redeclarados de
+     propósito — a superfície não virou clara, então o que vai sobre ela não
+     muda. */
   --surface-ink: var(--color-ink-950);
 
   --surface-invert: var(--color-stone-50);
@@ -247,6 +225,14 @@
   --accent-wash: oklch(0.3 0.03 70);
 
   --focus: var(--color-bronze-300);
+
+  /* As mesmas três leituras (bom/aviso/mau), clareadas: o tom do claro foi
+     calibrado para o fundo claro e cai para ~3.3:1 sobre `stone-950`. Aqui
+     sobem para L ≈ 0.72–0.78, medidos sobre `--surface-sunken` escuro (o pior
+     caso — selo dentro de linha de tabela), ≥ 4.5:1. */
+  --estado-bom: oklch(0.75 0.11 155);
+  --estado-aviso: oklch(0.78 0.13 68);
+  --estado-mau: oklch(0.73 0.15 27);
 
   --shadow-raise: 0 1px 2px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.3);
   --shadow-lift: 0 2px 4px oklch(0 0 0 / 0.4), 0 12px 28px oklch(0 0 0 / 0.45);

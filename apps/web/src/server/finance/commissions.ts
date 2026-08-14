@@ -15,6 +15,7 @@ import {
 } from '@studio/db'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
+import { pais } from '@/lib/pais'
 
 export interface CommissionRuleRow {
   id: string
@@ -156,7 +157,7 @@ export async function commissionSummaryByStaff(): Promise<CommissionSummaryRow[]
     else row.paidAmount += entry.amount
     byStaff.set(entry.staffId, row)
   }
-  return [...byStaff.values()].sort((a, b) => a.staffName.localeCompare(b.staffName, 'pt-BR'))
+  return [...byStaff.values()].sort((a, b) => a.staffName.localeCompare(b.staffName, pais().locale))
 }
 
 export async function markCommissionsPaid(staffId: string): Promise<void> {

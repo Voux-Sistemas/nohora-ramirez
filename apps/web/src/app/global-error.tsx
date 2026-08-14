@@ -80,7 +80,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-PT">
       <body>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         <div className="caixa">

@@ -10,9 +10,9 @@ import { requireGestao } from '@/server/auth/permissoes'
 export default async function AvisosLayout({ children }: { children: React.ReactNode }) {
   const acesso = await requireGestao()
   return (
-    <div data-theme="light" className="contents">
+    <>
       <OperateTopbar acesso={acesso} active="avisos" />
       {children}
-    </div>
+    </>
   )
 }

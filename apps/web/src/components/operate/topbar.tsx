@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/mark'
+import { SeletorTema } from '@/components/tema/seletor-tema'
 import { sair } from '@/server/auth/actions'
 import type { Acesso } from '@/server/auth/permissoes'
 import { cn, href } from '@/lib/utils'
@@ -132,6 +133,7 @@ export function OperateTopbar({
           <span className="text-(--on-ink-muted) hidden max-w-40 truncate md:inline">
             {acesso.session.name}
           </span>
+          <SeletorTema />
           <form action={sair}>
             <button
               type="submit"

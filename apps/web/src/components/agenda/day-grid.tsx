@@ -29,6 +29,27 @@ const PX_PER_MIN = 1.25
 const COMPACT_PX = 42
 const MIN_MS = 60_000
 
+/*
+  Medida da prancheta — régua fixa mais um teto por coluna de profissional.
+  `agenda/[unidade]/page.tsx` usa exatamente estas constantes (via
+  `boardMaxWidthRem`) para o cabeçalho nunca ficar mais largo que a grade: eram
+  dois cálculos que só coincidiam por acaso, e um contava as colunas errado
+  para o dia de uma profissional só. Um lugar decide a medida agora.
+*/
+const RAIL_REM = 3.5
+const MAX_COL_REM = 18
+const MIN_COL_REM = 11
+
+/** Largura máxima da prancheta para `n` colunas — o que o cabeçalho respeita. */
+export function boardMaxWidthRem(columns: number): number {
+  return RAIL_REM + MAX_COL_REM * columns
+}
+
+/** Identificador estável da linha do "agora" — alvo da rolagem automática ao abrir. */
+export const NOW_MARKER_ID = 'agenda-agora'
+/** Prefixo do identificador de cada atendimento — mesmo alvo usado quando não há "agora" no dia. */
+export const APPOINTMENT_ANCHOR_PREFIX = 'apt-'
+
 export interface GridColumn {
   staff: StaffInfo
   /** Escala do dia já cruzada com o horário da unidade. */
@@ -81,6 +102,14 @@ const STATUS_STYLE: Record<string, string> = {
   completed: 'bg-(--surface-sunken) border-(--border-subtle) text-(--text-muted)',
 }
 
+/*
+  Cinco estados por peso de tinta funcionam para quem já sabe o código; quem
+  está aprendendo (ou substituindo por telefone às pressas) precisa de uma
+  chave. A legenda usa as mesmas classes de `STATUS_STYLE` — não reinventa a
+  cor, só mostra a amostra fora do bloco.
+*/
+const STATUS_LEGEND = ['scheduled', 'confirmed', 'checked_in', 'in_progress', 'completed'] as const
+
 export function DayGrid({
   timezone,
   from,
@@ -126,112 +155,129 @@ export function DayGrid({
       quando" some quando a coluna é mais larga que alta. Coluna tem teto; o
       quadro encolhe para caber nele e rola quando a equipe é grande.
     */
-    <div className="surface rounded-card w-fit max-w-full overflow-x-auto">
-      <div
-        className="grid min-w-max"
-        style={{ gridTemplateColumns: `3.5rem repeat(${columns.length}, minmax(11rem, 18rem))` }}
-      >
-        {/* cabeçalho */}
-        <div className="sticky top-0 z-20 border-b border-(--border-subtle) bg-(--surface-raised)" />
-        {columns.map((column) => (
-          <div
-            key={column.staff.id}
-            className="sticky top-0 z-20 border-b border-l border-(--border-subtle) bg-(--surface-raised) px-3 py-2.5"
-          >
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <span
-                aria-hidden
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: column.staff.color }}
-              />
-              <span className="truncate">{column.staff.name}</span>
-            </span>
-            <span className="text-muted text-xs">
-              {column.working.length === 0
-                ? 'folga'
-                : column.working
-                    .map((range) => `${formatTime(range.start, timezone)}–${formatTime(range.end, timezone)}`)
-                    .join(' · ')}
-            </span>
-          </div>
+    <div className="surface rounded-card w-fit max-w-full overflow-hidden">
+      {/*
+        Legenda fora da área que rola: se ela entrasse no `overflow-x-auto` de
+        baixo, sumiria assim que a equipe fosse grande o bastante para rolar —
+        exatamente quando mais se precisa dela.
+      */}
+      <ul className="border-(--border-subtle) flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b px-3 py-2 text-xs">
+        {STATUS_LEGEND.map((status) => (
+          <li key={status} className="flex items-center gap-1.5">
+            <span aria-hidden className={cn('h-3 w-4 shrink-0 rounded-sm border', STATUS_STYLE[status])} />
+            <span className="text-muted">{STATUS_LABEL[status]}</span>
+          </li>
         ))}
+      </ul>
 
-        {/*
-          Régua de horas. A primeira e a última marca não podem ser centradas
-          na linha: a grade rola, então metade do "09:00" ficava cortada no topo
-          e o fechamento sumiria embaixo. Extremos encostam por dentro, o miolo
-          fica centrado — é como uma régua impressa se comporta.
-        */}
-        <div className="relative" style={{ height }}>
-          {hours.map((hour, i) => (
-            <span
-              key={hour.getTime()}
-              className={cn(
-                'tnum text-muted absolute right-2 text-xs',
-                i === 0 ? '' : i === hours.length - 1 ? '-translate-y-full' : '-translate-y-1/2',
-              )}
-              style={{ top: offset(hour) }}
+      <div className="overflow-x-auto">
+        <div
+          className="grid min-w-max"
+          style={{
+            gridTemplateColumns: `${RAIL_REM}rem repeat(${columns.length}, minmax(${MIN_COL_REM}rem, ${MAX_COL_REM}rem))`,
+          }}
+        >
+          {/* cabeçalho */}
+          <div className="sticky top-0 z-20 border-b border-(--border-subtle) bg-(--surface-raised)" />
+          {columns.map((column) => (
+            <div
+              key={column.staff.id}
+              className="sticky top-0 z-20 border-b border-l border-(--border-subtle) bg-(--surface-raised) px-3 py-2.5"
             >
-              {formatTime(hour, timezone)}
-            </span>
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <span
+                  aria-hidden
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: column.staff.color }}
+                />
+                <span className="truncate">{column.staff.name}</span>
+              </span>
+              <span className="text-muted text-xs">
+                {column.working.length === 0
+                  ? 'folga'
+                  : column.working
+                      .map((range) => `${formatTime(range.start, timezone)}–${formatTime(range.end, timezone)}`)
+                      .join(' · ')}
+              </span>
+            </div>
           ))}
-          {nowOffset === null ? null : (
-            <span
-              aria-hidden
-              className="absolute right-0 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-(--accent)"
-              style={{ top: nowOffset }}
-            />
-          )}
-        </div>
 
-        {/* colunas */}
-        {columns.map((column) => (
-          <div
-            key={column.staff.id}
-            className="relative border-l border-(--border-subtle) bg-(--surface-sunken)"
-            style={{ height }}
-          >
-            {/* escala do dia: o que está fora fica afundado */}
-            {column.working.map((range) => (
-              <div
-                key={range.start.getTime()}
-                className="absolute inset-x-0 bg-(--surface-raised)"
-                style={{ top: offset(range.start), height: span(range.start, range.end) }}
-              />
-            ))}
-
-            {hours.map((hour) => (
-              <div
+          {/*
+            Régua de horas. A primeira e a última marca não podem ser centradas
+            na linha: a grade rola, então metade do "09:00" ficava cortada no topo
+            e o fechamento sumiria embaixo. Extremos encostam por dentro, o miolo
+            fica centrado — é como uma régua impressa se comporta.
+          */}
+          <div className="relative" style={{ height }}>
+            {hours.map((hour, i) => (
+              <span
                 key={hour.getTime()}
-                className="absolute inset-x-0 border-t border-(--border-subtle)"
+                className={cn(
+                  'tnum text-muted absolute right-2 text-xs',
+                  i === 0 ? '' : i === hours.length - 1 ? '-translate-y-full' : '-translate-y-1/2',
+                )}
                 style={{ top: offset(hour) }}
-              />
+              >
+                {formatTime(hour, timezone)}
+              </span>
             ))}
-
             {nowOffset === null ? null : (
-              <div
+              <span
+                id={NOW_MARKER_ID}
                 aria-hidden
-                className="pointer-events-none absolute inset-x-0 z-10 border-t border-(--accent)"
+                className="absolute right-0 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-(--accent)"
                 style={{ top: nowOffset }}
               />
             )}
-
-            {(byStaff.get(column.staff.id) ?? []).map(({ appointment, item }) => (
-              <ItemBlock
-                key={item.id}
-                appointment={appointment}
-                item={item}
-                timezone={timezone}
-                top={offset(item.start)}
-                height={span(item.start, item.end)}
-                href={toRoute(
-                  `${baseHref}${baseHref.includes('?') ? '&' : '?'}sel=${appointment.id}`,
-                )}
-                selected={appointment.id === selectedId}
-              />
-            ))}
           </div>
-        ))}
+
+          {/* colunas */}
+          {columns.map((column) => (
+            <div
+              key={column.staff.id}
+              className="relative border-l border-(--border-subtle) bg-(--surface-sunken)"
+              style={{ height }}
+            >
+              {/* escala do dia: o que está fora fica afundado */}
+              {column.working.map((range) => (
+                <div
+                  key={range.start.getTime()}
+                  className="absolute inset-x-0 bg-(--surface-raised)"
+                  style={{ top: offset(range.start), height: span(range.start, range.end) }}
+                />
+              ))}
+
+              {hours.map((hour) => (
+                <div
+                  key={hour.getTime()}
+                  className="absolute inset-x-0 border-t border-(--border-subtle)"
+                  style={{ top: offset(hour) }}
+                />
+              ))}
+
+              {nowOffset === null ? null : (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 z-10 border-t border-(--accent)"
+                  style={{ top: nowOffset }}
+                />
+              )}
+
+              {(byStaff.get(column.staff.id) ?? []).map(({ appointment, item }) => (
+                <ItemBlock
+                  key={item.id}
+                  appointment={appointment}
+                  item={item}
+                  timezone={timezone}
+                  top={offset(item.start)}
+                  height={span(item.start, item.end)}
+                  href={toRoute(`${baseHref}${baseHref.includes('?') ? '&' : '?'}sel=${appointment.id}`)}
+                  selected={appointment.id === selectedId}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {openRanges.length === 0 ? (
@@ -264,6 +310,13 @@ function ItemBlock({
 
   return (
     <Link
+      /*
+        Ancorado no item, não no atendimento: uma cliente com escova numa
+        cadeira e coloração noutra gera dois blocos para o mesmo `appointment.id`
+        — se o alvo fosse esse id, os dois cartões disputariam o mesmo `id` de
+        HTML e a rolagem pousaria num dos dois por sorte.
+      */
+      id={`${APPOINTMENT_ANCHOR_PREFIX}${item.id}`}
       href={href}
       scroll={false}
       className={cn(

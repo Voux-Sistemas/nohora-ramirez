@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AdminShell, Section, backTo } from '@/components/admin/shell'
+import { FormActions } from '@/components/admin/form-actions'
 import { PasswordForm } from '@/components/admin/password-form'
 import { Button } from '@/components/ui/button'
 import { listServicesAdmin } from '@/server/admin/services'
@@ -190,9 +191,7 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
           </div>
         </Section>
 
-        <Button type="submit" size="lg">
-          Salvar profissional
-        </Button>
+        <FormActions label="Salvar profissional" />
       </form>
 
       {isNew ? null : (
@@ -210,8 +209,11 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
                  escala apagaria em silêncio um dia de trabalho de outra unidade. */
               if (row && !veUnidade(acesso, row.unitId)) {
                 return (
-                  <div key={weekday} className="grid grid-cols-[100px_1fr] items-center gap-3 text-sm">
-                    <span className="text-muted">{label}</span>
+                  <div
+                    key={weekday}
+                    className="grid grid-cols-1 gap-1 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                  >
+                    <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">{label}</span>
                     <span className="text-muted">
                       escalada em outra unidade — {row.startsAt} às {row.endsAt}
                     </span>
@@ -220,8 +222,11 @@ export default async function ProfissionalFormPage({ params }: { params: Promise
               }
 
               return (
-                <div key={weekday} className="grid grid-cols-[100px_1fr_1fr_1fr] items-center gap-3 text-sm">
-                  <span className="text-muted">{label}</span>
+                <div
+                  key={weekday}
+                  className="grid grid-cols-1 gap-2 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr_1fr_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                >
+                  <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">{label}</span>
                   <select className="field" name={`sc${weekday}_unit`} defaultValue={row?.unitId ?? ''}>
                     <option value="">Folga</option>
                     {units.map((u) => (

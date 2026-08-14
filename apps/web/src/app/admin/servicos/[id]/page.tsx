@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AdminShell, Section, backTo } from '@/components/admin/shell'
+import { FormActions } from '@/components/admin/form-actions'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
+import { simboloMoeda } from '@/lib/format'
 import { getServiceAdmin, listAssignables, listCategories, type ServiceRow } from '@/server/admin/services'
 import { requireRede } from '@/server/auth/permissoes'
 import { salvarServico } from './actions'
@@ -76,7 +78,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
               <textarea className="field" name="description" rows={2} defaultValue={service.description ?? ''} />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Preço (R$)
+              Preço ({simboloMoeda()})
               <input
                 className="field"
                 type="number"
@@ -166,11 +168,11 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
                 Tipo
                 <select className="field" name="depositType" defaultValue={service.depositType ?? 'percent'}>
                   <option value="percent">% do serviço</option>
-                  <option value="fixed">Valor fixo (R$)</option>
+                  <option value="fixed">Valor fixo ({simboloMoeda()})</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                Valor (% ou R$)
+                Valor (% ou {simboloMoeda()})
                 <input
                   className="field"
                   type="number"
@@ -219,9 +221,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
           </div>
         </Section>
 
-        <Button type="submit" size="lg">
-          Salvar serviço
-        </Button>
+        <FormActions label="Salvar serviço" />
       </form>
     </AdminShell>
   )

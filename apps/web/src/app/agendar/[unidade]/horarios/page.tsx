@@ -1,4 +1,4 @@
-import { addDaysInZone, isoDateInZone } from '@studio/core'
+import { addDaysInZone, isoDateInZone, isoTimeInZone, priceRange } from '@studio/core'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
@@ -23,6 +23,22 @@ export const metadata = { title: 'Escolher horário' }
 
 /** Duas semanas de cada vez: além disso a agenda ainda muda muito. */
 const HORIZON_DAYS = 14
+
+/**
+ * Três turnos, não catorze botões iguais numa grelha corrida. O limite de
+ * cada um é o fim do turno (exclusivo): quem entra às 12:00 já é da tarde.
+ */
+const PERIODOS = [
+  { id: 'manha', label: 'Manhã', ateMin: 12 * 60 },
+  { id: 'tarde', label: 'Tarde', ateMin: 18 * 60 },
+  { id: 'noite', label: 'Noite', ateMin: 24 * 60 },
+] as const
+
+function periodoDoHorario(startIso: string, timeZone: string): (typeof PERIODOS)[number] {
+  const [h, m] = isoTimeInZone(new Date(startIso), timeZone).split(':').map(Number)
+  const minutosDoDia = h! * 60 + m!
+  return PERIODOS.find((periodo) => minutosDoDia < periodo.ateMin) ?? PERIODOS[PERIODOS.length - 1]!
+}
 
 interface SearchParams {
   /** Serviços escolhidos, separados por vírgula. */
@@ -69,6 +85,27 @@ export default async function EscolherHorarioPage({
   const team = staffForCart(ctx, serviceIds, { onlineOnly: true })
   const staffId = query.p && team.some((person) => person.id === query.p) ? query.p : undefined
 
+  /*
+    Mesmo piso que o passo anterior mostrou, calculado do mesmo jeito — soma do
+    mínimo de cada serviço entre quem pode executá-lo. Não é o preço do horário
+    escolhido (esse muda com o dia e a profissional); é o "a partir de" que
+    acompanha a cliente enquanto ela ainda está decidindo quando vir.
+  */
+  const totalDurationMin = chosen.reduce((sum, service) => sum + service.clientDurationMin, 0)
+  const priceFloor = chosen.reduce((sum, service) => {
+    const range = priceRange(
+      ctx.priceOverrides,
+      {
+        serviceId: service.id,
+        unitId: unit.id,
+        basePrice: service.basePrice,
+        baseDurationMin: service.clientDurationMin,
+      },
+      staffForCart(ctx, [service.id], { onlineOnly: true }).map((person) => person.id),
+    )
+    return { min: sum.min + range.min, varies: sum.varies || range.varies }
+  }, { min: 0, varies: false })
+
   const slots = findSlots(ctx, {
     cart: serviceIds.map((id) => ({ serviceId: id, ...(staffId ? { staffId } : {}) })),
     onlineOnly: true,
@@ -87,6 +124,14 @@ export default async function EscolherHorarioPage({
   const selected =
     query.d && byDate.has(query.d) ? query.d : (days.find((date) => byDate.has(date)) ?? today)
   const daySlots = byDate.get(selected) ?? []
+
+  const slotsByPeriodo = new Map<string, SlotOption[]>()
+  for (const slot of daySlots) {
+    const periodo = periodoDoHorario(slot.start, unit.timezone)
+    const list = slotsByPeriodo.get(periodo.id) ?? []
+    list.push(slot)
+    slotsByPeriodo.set(periodo.id, list)
+  }
 
   const base = `/agendar/${unidade}/horarios?s=${serviceIds.join(',')}`
   const withStaff = (id?: string) => `${base}${id ? `&p=${id}` : ''}&d=${selected}`
@@ -118,11 +163,32 @@ export default async function EscolherHorarioPage({
                 <li key={service.id}>{service.name}</li>
               ))}
             </ul>
-            <p className="text-muted tnum mt-4 border-t border-(--border-subtle) pt-3 text-sm">
-              {formatDuration(chosen.reduce((sum, service) => sum + service.clientDurationMin, 0))}{' '}
-              no salão
+            <p className="text-muted tnum mt-4 flex items-baseline justify-between border-t border-(--border-subtle) pt-3 text-sm">
+              <span>{formatDuration(totalDurationMin)} no salão</span>
+              <span className="text-(--text-strong)">
+                {priceFloor.varies ? 'a partir de ' : ''}
+                {formatMoney(priceFloor.min)}
+              </span>
             </p>
           </div>
+        </div>
+      }
+      /*
+        Na coluna do rail, este resumo só existe a partir de `lg` — no
+        telemóvel ele nasce depois de tudo, atrás do calendário e da lista de
+        horários. O rodapé fixo é a mesma informação, sempre à vista, sem
+        depender de rolar até o fim.
+      */
+      footer={
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <span className="min-w-0 truncate">
+            {chosen.length} {chosen.length === 1 ? 'serviço' : 'serviços'} ·{' '}
+            {formatDuration(totalDurationMin)}
+          </span>
+          <span className="tnum shrink-0 font-medium">
+            {priceFloor.varies ? 'a partir de ' : ''}
+            {formatMoney(priceFloor.min)}
+          </span>
         </div>
       }
     >
@@ -298,41 +364,65 @@ export default async function EscolherHorarioPage({
           </div>
         ) : (
           <>
-            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {daySlots.map((slot) => {
-                /*
-                  A legenda embaixo da hora só existe se disser algo que a
-                  cliente ainda não sabe. Com profissional já escolhida ela não
-                  diz nada; e "2 serviços" repetido em catorze botões idênticos
-                  é ruído — o que decide é QUEM atende, que é o que aparece
-                  quando a escolha ainda está em aberto.
-                */
-                const people = [...new Set(slot.items.map((item) => item.staffName))]
-                const caption = staffId
-                  ? null
-                  : people.length === 1
-                    ? firstName(people[0]!)
-                    : `${people.length} profissionais`
+            {/*
+              Três turnos com régua de bronze, não uma grelha corrida de trinta
+              botões iguais — é o momento mais denso do fluxo, e o que decide
+              ali é o período do dia antes da hora exata. Turno sem horário
+              nenhum some da tela: dizer "Manhã" sobre uma lista vazia não
+              ajuda ninguém a escolher.
+            */}
+            <div className="space-y-8">
+              {PERIODOS.map((periodo) => {
+                const periodoSlots = slotsByPeriodo.get(periodo.id)
+                if (!periodoSlots || periodoSlots.length === 0) return null
 
                 return (
-                  <li key={slot.start}>
-                    <Link
-                      href={
-                        `/agendar/${unidade}/confirmar?s=${serviceIds.join(',')}&t=${encodeURIComponent(slot.start)}${staffId ? `&p=${staffId}` : ''}` as never
-                      }
-                      className="flex h-16 flex-col items-center justify-center gap-0.5 rounded-plate border border-(--border-subtle) bg-(--surface-raised) transition-[border-color,background-color,transform] duration-150 hover:border-(--surface-invert) hover:bg-(--surface-sunken) active:translate-y-px"
-                    >
-                      <span className="tnum text-[1.0625rem] font-medium">
-                        {formatTime(slot.start, unit.timezone)}
-                      </span>
-                      {caption ? (
-                        <span className="text-muted text-[0.6875rem]">{caption}</span>
-                      ) : null}
-                    </Link>
-                  </li>
+                  <div key={periodo.id}>
+                    <div className="mb-3 flex items-baseline gap-3">
+                      <h3 className="label-caps text-muted">{periodo.label}</h3>
+                      <span className="rule-bronze min-w-0 flex-1" aria-hidden />
+                    </div>
+
+                    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {periodoSlots.map((slot) => {
+                        /*
+                          A legenda embaixo da hora só existe se disser algo que
+                          a cliente ainda não sabe. Com profissional já
+                          escolhida ela não diz nada; e "2 serviços" repetido em
+                          catorze botões idênticos é ruído — o que decide é QUEM
+                          atende, que é o que aparece quando a escolha ainda
+                          está em aberto.
+                        */
+                        const people = [...new Set(slot.items.map((item) => item.staffName))]
+                        const caption = staffId
+                          ? null
+                          : people.length === 1
+                            ? firstName(people[0]!)
+                            : `${people.length} profissionais`
+
+                        return (
+                          <li key={slot.start}>
+                            <Link
+                              href={
+                                `/agendar/${unidade}/confirmar?s=${serviceIds.join(',')}&t=${encodeURIComponent(slot.start)}${staffId ? `&p=${staffId}` : ''}` as never
+                              }
+                              className="flex h-16 flex-col items-center justify-center gap-0.5 rounded-plate border border-(--border-subtle) bg-(--surface-raised) transition-[border-color,background-color,transform] duration-150 hover:border-(--surface-invert) hover:bg-(--surface-sunken) active:translate-y-px"
+                            >
+                              <span className="tnum text-[1.0625rem] font-medium">
+                                {formatTime(slot.start, unit.timezone)}
+                              </span>
+                              {caption ? (
+                                <span className="text-muted text-[0.6875rem]">{caption}</span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
                 )
               })}
-            </ul>
+            </div>
 
             <p className="text-muted tnum mt-6 border-t border-(--border-subtle) pt-4 text-sm">
               {formatDuration(daySlots[0]!.totalDurationMin)} no salão ·{' '}

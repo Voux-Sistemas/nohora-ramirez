@@ -15,8 +15,8 @@ import { resolveImageField } from '@/server/storage/form'
 function parseService(formData: FormData): ServiceInput {
   const requiresDeposit = formData.get('requiresDeposit') === 'on'
   const depositType = String(formData.get('depositType') ?? 'percent') as 'percent' | 'fixed'
-  // 'percent' guarda pontos-base (input "50" → 5000); 'fixed' guarda centavos
-  // (input "50" → 5000 centavos = R$50) — mesma conta em ambos os casos.
+  // 'percent' guarda pontos-base (input "50" → 5000); 'fixed' guarda cêntimos
+  // (input "50" → 5000 cêntimos = 50 na moeda do país) — mesma conta nos dois casos.
   const depositValue = Math.round(Number(formData.get('depositValueInput') ?? 0) * 100)
 
   return {

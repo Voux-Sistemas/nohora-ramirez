@@ -107,11 +107,11 @@ export default async function ConfirmarPage({
               margem sem tirar a presença.
             */}
             <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <p className="display text-[1.375rem] leading-tight text-(--color-stone-50) sm:text-[1.75rem]">
+              <p className="display text-[1.375rem] leading-tight text-(--on-ink) sm:text-[1.75rem]">
                 {unit.name}
               </p>
               {unit.addressLine ? (
-                <p className="mt-1 text-[0.8125rem] text-(--color-stone-200) sm:text-sm">
+                <p className="mt-1 text-[0.8125rem] text-(--on-ink-muted) sm:text-sm">
                   {unit.addressLine}
                   {unit.district ? ` · ${unit.district}` : ''}
                 </p>

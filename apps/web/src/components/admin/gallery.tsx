@@ -289,7 +289,7 @@ function Envio({
       {/* O aviso local ganha do erro do servidor: é o mais recente, e é o único
           que a pessoa ainda pode corrigir sem enviar de novo. */}
       {(aviso ?? estado.erro) ? (
-        <p role="alert" className="text-sm text-(--color-signal-bad)">
+        <p role="alert" className="text-sm text-(--estado-mau)">
           {aviso ?? estado.erro}
         </p>
       ) : null}

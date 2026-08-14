@@ -47,6 +47,7 @@ import {
 } from '@studio/db'
 import { and, asc, eq, gt, inArray, lt, lte, or, sql, type AnyColumn } from 'drizzle-orm'
 import { db } from '@/lib/db'
+import { pais } from '@/lib/pais'
 
 // ─── tipos ──────────────────────────────────────────────────────────────────
 
@@ -662,7 +663,7 @@ export function deliverableServices(
       if (!usable.has(service.id)) return false
       return service.spec.requiredResourceTypeIds.every((type) => resourceTypesPresent.has(type))
     })
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'pt-BR'))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, pais().locale))
 }
 
 /** Profissionais que podem executar TODO o carrinho. */

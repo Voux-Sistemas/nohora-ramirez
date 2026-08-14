@@ -45,10 +45,11 @@ export default async function ServicosPage() {
         lida na vertical. A categoria vira uma linha de intertítulo dentro da
         mesma grade — a coluna continua sendo uma coluna.
       */}
-      {services.length === 0 ? (
-        <p className="text-muted">Nenhum serviço cadastrado ainda.</p>
-      ) : (
-        <div className="surface rounded-card mb-5 overflow-x-auto">
+      <Section title="Catálogo" hint="Preço e duração já compostos; ressalvas como legenda sob o nome.">
+        {services.length === 0 ? (
+          <p className="text-muted">Nenhum serviço cadastrado ainda.</p>
+        ) : (
+          <div className="surface rounded-card overflow-x-auto">
           <table className="w-full min-w-3xl text-[0.9375rem]">
             {/*
               O preço fecha a linha. Ele era a terceira de quatro colunas, com
@@ -111,6 +112,7 @@ export default async function ServicosPage() {
           </table>
         </div>
       )}
+      </Section>
 
       <Section title="Categorias" hint="Organizam o catálogo na tela de agendamento.">
         <ul className="mb-4 flex flex-wrap gap-2">

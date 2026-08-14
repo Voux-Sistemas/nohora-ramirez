@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime, simboloMoeda } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { PAYMENT_METHOD_LABEL, getComanda } from '@/server/finance/comanda'
@@ -98,7 +98,7 @@ export default async function ComandaPage({
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
-                Desconto (R$)
+                Desconto ({simboloMoeda()})
                 <input className="field" type="number" step="0.01" min="0" name="discountAmount" defaultValue="0" />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -126,7 +126,7 @@ export default async function ComandaPage({
                       step="0.01"
                       min="0"
                       name={`p${i}_amount`}
-                      placeholder="R$ 0,00"
+                      placeholder={formatMoney(0)}
                     />
                   </div>
                 ))}

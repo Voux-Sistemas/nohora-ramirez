@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AdminShell, Section, backTo } from '@/components/admin/shell'
+import { FormActions } from '@/components/admin/form-actions'
 import { GaleriaDaLoja } from '@/components/admin/gallery'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
@@ -175,7 +176,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           title="Regras de agendamento"
           hint="Valem para o agendamento online do cliente. A recepção pode ignorar essas regras no encaixe."
         >
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="flex flex-col gap-1 text-sm">
               Antecedência mín. (min)
               <input
@@ -235,8 +236,11 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
             {WEEKDAY_LABEL.map((label, weekday) => {
               const [first, second] = slotsFor(weekday, hours)
               return (
-                <div key={weekday} className="grid grid-cols-[100px_1fr_1fr] items-center gap-3 text-sm">
-                  <span className="text-muted">{label}</span>
+                <div
+                  key={weekday}
+                  className="grid grid-cols-1 gap-2 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                >
+                  <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">{label}</span>
                   <div className="flex items-center gap-1">
                     <input
                       className="field"
@@ -273,9 +277,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           </div>
         </Section>
 
-        <Button type="submit" size="lg">
-          Salvar unidade
-        </Button>
+        <FormActions label="Salvar unidade" />
       </form>
 
       {/*
@@ -329,7 +331,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
             {exceptions.length === 0 ? <li className="text-muted text-sm">Nenhuma exceção cadastrada.</li> : null}
           </ul>
 
-          <form action={adicionarExcecao} className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <form action={adicionarExcecao} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <input type="hidden" name="unitId" value={unit.id} />
             <label className="flex flex-col gap-1 text-sm">
               Data

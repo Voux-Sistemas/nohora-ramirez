@@ -6,9 +6,9 @@ import { requireGestao } from '@/server/auth/permissoes'
 export default async function ClientesLayout({ children }: { children: React.ReactNode }) {
   const acesso = await requireGestao()
   return (
-    <div data-theme="light" className="contents">
+    <>
       <OperateTopbar acesso={acesso} active="clientes" />
       {children}
-    </div>
+    </>
   )
 }

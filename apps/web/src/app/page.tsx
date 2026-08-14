@@ -7,6 +7,7 @@ import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { Photo } from '@/components/ui/photo'
 import { db } from '@/lib/db'
 import { formatMoney } from '@/lib/format'
+import { pais } from '@/lib/pais'
 import { href } from '@/lib/utils'
 import { requireGestao, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
@@ -107,14 +108,14 @@ export default async function HomePage() {
     { agendados: 0, concluidos: 0, faturamento: 0, previsto: 0 },
   )
 
-  const agora = new Date().toLocaleDateString('pt-BR', {
+  const agora = new Date().toLocaleDateString(pais().locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
 
   return (
-    <div data-theme="light" className="contents">
+    <>
       <OperateTopbar acesso={acesso} active="hoje" />
 
       {/*
@@ -185,7 +186,7 @@ export default async function HomePage() {
           ) : null}
         </div>
       </main>
-    </div>
+    </>
   )
 }
 

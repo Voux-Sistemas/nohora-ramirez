@@ -44,6 +44,16 @@ Tudo em OKLCH. Componente **nunca** chama cor bruta — chama papel semântico. 
 que faz o white-label funcionar sem tocar em componente: trocar de salão é
 trocar valores em `:root`.
 
+**As cores de estado são recalibradas por tema, não reaproveitadas.** O
+componente pede sempre `--estado-bom` / `--estado-aviso` / `--estado-mau`,
+nunca `--color-signal-*` cru — é essa indireção que permite dois pares de
+valores sem tocar em componente nenhum. No claro (L 0.485–0.5) o verde, o
+âmbar e o vermelho passam 4.5:1 sobre `--surface-sunken` claro; sobre o
+`--surface-sunken` escuro (bem mais próximo do preto) esses mesmos tons
+chumbam a uns 3.3:1. `[data-theme='dark']` redefine os três para versões
+claras (L 0.73–0.78, mesmo matiz), verificadas de novo contra o pior caso —
+selo de estado dentro de linha de tabela.
+
 ### Papéis semânticos
 
 `--surface` · `--surface-raised` · `--surface-sunken` · `--surface-ink` ·
@@ -130,14 +140,57 @@ círculo** da coroa. É intencional e vem da logo original; não é um traço so
 Derivada gráfica: `.rule-bronze`, o fio que fecha um bloco — vem da coroa
 botânica.
 
-## 7. Assinaturas por área
+## 7. Tema claro/escuro
 
-O sistema tem três áreas com temperaturas diferentes de propósito.
+**O claro é o padrão de todo o produto** — inclusive na área da cliente, que
+antes escurecia sozinha seguindo o sistema operacional. Agora ninguém escurece
+sem escolher: quem quiser escuro pede, no controlo da barra.
+
+### Mecanismo
+
+O tema vive em `<html data-theme="light" | "dark">`, nunca em `div` nem em
+`prefers-color-scheme` sozinho. É decisão de servidor, a partir de um cookie
+(`tema`, lido por [`lib/tema.ts`](apps/web/src/lib/tema.ts)): `app/layout.tsx`
+é `async`, lê o cookie antes de render, e já entrega o `data-theme` certo no
+primeiro HTML. Sem script inline, sem flash, sem divergência de hidratação —
+e `color-scheme` finalmente vale para barra de rolagem e controlo nativo,
+coisa que só funciona a partir de `<html>`, nunca de um nó qualquer da árvore.
+
+Por que tem de ser `<html>` e não uma `div` de embrulho: uma `div` com
+`data-theme` carrega o atributo mas não pinta nada — se ela não tiver caixa
+própria (`display: contents`, ou simplesmente sem `bg-`), o que aparece por
+trás é o que `:root` resolveu para `body`, que é a raiz do documento. Era
+exatamente esse o defeito da versão anterior: seis telas embrulhavam o
+conteúdo em `<div data-theme="light" className="contents">`, e num sistema com
+o SO em escuro isso pintava texto quase preto sobre fundo quase preto — o
+"contraste bugado" que a dona relatou tinha essa causa concreta, não era
+impressão. Um atributo em `<html>` não tem essa ambiguidade: é a raiz, resolve
+uma vez, para a árvore inteira.
+
+**"Sistema" é o único caso em que o servidor não sabe de antemão** — ele não
+vê a preferência do sistema operativo de quem pediu a página. Por isso o
+cookie não guarda só a escolha, guarda-a já resolvida
+(`sistema-claro` / `sistema-escuro`): o controlo do lado do cliente
+([`components/tema/seletor-tema.tsx`](apps/web/src/components/tema/seletor-tema.tsx))
+resolve por `matchMedia`, aplica na hora (`document.documentElement.dataset.theme`,
+sem `router.refresh()`), ouve a mudança do sistema, e regrava o cookie sempre
+que ela muda — o servidor fica no máximo um passo atrás, nunca errado por
+muito tempo, e certo já na visita seguinte.
+
+### O controlo
+
+O seletor é de três estados — Sistema / Claro / Escuro — e mora no
+`OperateTopbar`, ao lado do nome e do "sair". A barra aparece nos seis layouts
+da operação e da gestão, então um controlo só cobre toda a área da dona; sobre
+tinta, usa os tokens `--on-ink*` que a barra já redefine.
+
+### As três áreas
+
+O sistema continua a ter três áreas com temperaturas diferentes de propósito,
+mas as três agora atravessam os dois temas — nenhuma força mais um lado.
 
 **Área da cliente** (`/agendar/…`) — fotografia, ar, escala grande. É venda.
-O fluxo é unidade → serviços → horário → confirmar → **selo**. É a única área
-que segue o tema do sistema operacional: à noite, no celular da cliente, pode
-escurecer.
+O fluxo é unidade → serviços → horário → confirmar → **selo**.
 
 **Área de trabalho** (`/`, `/agenda`, `/avisos`, `/caixa`, `/clientes`) —
 densa, sóbria, sem foto decorativa. É a recepção de pé no tablet, sob luz de
@@ -148,12 +201,8 @@ de em pé e diária: mais ar, tipografia maior, cartão de métrica em faixa,
 listas de resumo em vez de formulário justo. É onde a dona lê o mês e decide
 o que é estrutural — unidade, catálogo, equipe, comissão.
 
-Trabalho e gestão têm o claro forçado (`data-theme="light"` na raiz de cada
-layout, que o `globals.css` lê como se fosse `:root`) **mesmo com o sistema em
-modo escuro**. O escuro é a temperatura da cliente à noite; a pessoa que
-trabalha aqui está de dia, no balcão ou na mesa, e a informação — preço, caixa,
-comissão — precisa ler-se sem ambiguidade nenhuma. `lang="pt-PT"` na raiz e
-Bodoni só em títulos ≥28px continuam valendo nas três áreas por igual.
+`lang="pt-PT"` na raiz e Bodoni só em títulos ≥28px continuam valendo nas três
+áreas por igual, nos dois temas.
 
 Vocabulário compartilhado entre as três — mudou num lugar, muda em todos:
 
@@ -220,7 +269,12 @@ reescreva o elemento com outra estrutura.
 - **Vidro fosco decorativo.**
 - **Grade de cartões idênticos** — ícone + título + parágrafo, repetido.
 - **Cartão como resposta padrão.** Agrupar com fio, `divide-y` ou espaço vem
-  antes. Cartão dentro de cartão é sempre erro.
+  antes. Cartão dentro de cartão é sempre erro. Era exatamente o defeito do
+  `Section` antigo em [`components/admin/shell.tsx`](apps/web/src/components/admin/shell.tsx):
+  ele próprio era `surface rounded-card p-6` — uma caixa — e lá dentro as
+  tabelas eram outra vez `surface rounded-card`, dois fios paralelos a 24px de
+  distância sem nada a separar. `Section` agora é só título + régua de bronze
+  + conteúdo; a placa pertence ao objeto (tabela, lista), nunca ao invólucro.
 - **Alias de cor legado.** A ponte para a paleta antiga (`wine-*`, `gold-*`,
   `cream-*`) foi removida depois da migração: alias que sobrevive vira porta dos
   fundos para a paleta velha voltar sem ninguém notar.
@@ -250,4 +304,4 @@ Estão listadas aqui porque são bloqueios de conteúdo, não de código.
 
 ---
 
-*Última revisão: 5 de agosto de 2026.*
+*Última revisão: 13 de agosto de 2026.*

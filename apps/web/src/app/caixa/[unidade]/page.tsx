@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatDateLong, formatTime, simboloMoeda } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { getOpenSession, listMovements, listSessionsForUnit } from '@/server/finance/caixa'
@@ -114,7 +114,7 @@ export default async function CaixaUnidadePage({
                     </select>
                   </label>
                   <label className="flex flex-col gap-1 text-sm">
-                    Valor (R$)
+                    Valor ({simboloMoeda()})
                     <input
                       className="field"
                       type="number"
@@ -140,7 +140,7 @@ export default async function CaixaUnidadePage({
                   <input type="hidden" name="sessionId" value={session.id} />
                   <input type="hidden" name="unitSlug" value={unit.slug} />
                   <label className="flex flex-col gap-1 text-sm">
-                    Valor contado (R$)
+                    Valor contado ({simboloMoeda()})
                     <input
                       className="field"
                       type="number"
@@ -168,7 +168,7 @@ export default async function CaixaUnidadePage({
             <input type="hidden" name="unitId" value={unit.id} />
             <input type="hidden" name="unitSlug" value={unit.slug} />
             <label className="flex flex-col gap-1 text-sm">
-              Valor de abertura (R$)
+              Valor de abertura ({simboloMoeda()})
               <input
                 className="field"
                 type="number"
@@ -203,8 +203,8 @@ export default async function CaixaUnidadePage({
                         h.difference === 0
                           ? 'text-muted'
                           : h.difference > 0
-                            ? 'text-(--color-signal-good)'
-                            : 'text-(--color-signal-bad)'
+                            ? 'text-(--estado-bom)'
+                            : 'text-(--estado-mau)'
                       }
                     >
                       {h.difference > 0 ? '+' : ''}
@@ -230,7 +230,7 @@ function StatusPill({ open }: { open: boolean }) {
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium',
         open
-          ? 'border-(--color-signal-good)/30 text-(--color-signal-good)'
+          ? 'border-(--estado-bom)/30 text-(--estado-bom)'
           : 'border-(--border-subtle) text-(--text-muted)',
       )}
     >
@@ -238,7 +238,7 @@ function StatusPill({ open }: { open: boolean }) {
         aria-hidden
         className={cn(
           'h-1.5 w-1.5 rounded-full',
-          open ? 'bg-(--color-signal-good)' : 'bg-(--text-muted)',
+          open ? 'bg-(--estado-bom)' : 'bg-(--text-muted)',
         )}
       />
       {open ? 'Caixa aberto' : 'Caixa fechado'}

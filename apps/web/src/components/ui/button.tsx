@@ -45,8 +45,8 @@ export const buttonVariants = cva(
           'hover:border-(--on-ink) hover:bg-(--on-ink)/8',
         ],
         danger: [
-          'border border-(--color-signal-bad)/35 text-(--color-signal-bad)',
-          'hover:bg-(--color-signal-bad)/8 hover:border-(--color-signal-bad)/60',
+          'border border-(--estado-mau)/35 text-(--estado-mau)',
+          'hover:bg-(--estado-mau)/8 hover:border-(--estado-mau)/60',
         ],
       },
       size: {

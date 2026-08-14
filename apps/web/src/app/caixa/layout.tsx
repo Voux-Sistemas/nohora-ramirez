@@ -5,9 +5,9 @@ import { requireGestao } from '@/server/auth/permissoes'
 export default async function CaixaLayout({ children }: { children: React.ReactNode }) {
   const acesso = await requireGestao()
   return (
-    <div data-theme="light" className="contents">
+    <>
       <OperateTopbar acesso={acesso} active="caixa" />
       {children}
-    </div>
+    </>
   )
 }

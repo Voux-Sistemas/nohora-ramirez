@@ -1,4 +1,5 @@
 import { AdminShell, Section } from '@/components/admin/shell'
+import { Estado } from '@/components/admin/estado'
 import { Button } from '@/components/ui/button'
 import { listResourceAssignables, listResourcesAdmin, listResourceTypes } from '@/server/admin/resources'
 import { podeSuporte, requireGestao } from '@/server/auth/permissoes'
@@ -51,55 +52,75 @@ export default async function RecursosPage() {
       </Section>
 
       <Section title="Instâncias" hint="Cada linha é um recurso físico de verdade — duas cabines são duas linhas.">
-        <div className="surface rounded-card mb-4 overflow-hidden overflow-x-auto">
-          <table className="w-full text-[0.9375rem]">
-            <thead className="text-muted border-b border-(--border-subtle) text-left">
-              <tr>
-                <th className="p-3.5 font-medium">Nome</th>
-                <th className="p-3.5 font-medium">Unidade</th>
-                <th className="p-3.5 font-medium">Tipo</th>
-                <th className="p-3.5 font-medium">Prioridade</th>
-                <th className="p-3.5 font-medium">Status</th>
-                <th className="p-3.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {resources.map((r) => (
-                <tr key={r.id} className="border-b border-(--border-subtle) last:border-0">
-                  <td className="p-3.5 font-medium">{r.name}</td>
-                  <td className="text-muted p-3.5">{r.unitName}</td>
-                  <td className="text-muted p-3.5">{r.resourceTypeName}</td>
-                  <td className="text-muted p-3.5">{r.priority}</td>
-                  <td className="p-3.5">
-                    <span className={r.active ? 'text-(--color-signal-good)' : 'text-muted'}>
-                      {r.active ? 'ativo' : 'inativo'}
-                    </span>
-                  </td>
-                  <td className="p-3.5 text-right">
-                    <form action={alternarRecurso}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <input type="hidden" name="name" value={r.name} />
-                      <input type="hidden" name="unitId" value={r.unitId} />
-                      <input type="hidden" name="resourceTypeId" value={r.resourceTypeId} />
-                      <input type="hidden" name="priority" value={r.priority} />
-                      <input type="hidden" name="active" value={String(r.active)} />
-                      <Button type="submit" variant="ghost" size="sm">
-                        {r.active ? 'desativar' : 'ativar'}
-                      </Button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-              {resources.length === 0 ? (
+        {resources.length === 0 ? (
+          <p className="text-muted mb-4 p-6 text-center text-sm">Nenhum recurso cadastrado ainda.</p>
+        ) : (
+          <div className="surface rounded-card mb-4 overflow-hidden">
+            <table className="hidden w-full text-[0.9375rem] sm:table">
+              <thead className="text-muted border-b border-(--border-subtle) text-left">
                 <tr>
-                  <td colSpan={6} className="text-muted p-6 text-center">
-                    Nenhum recurso cadastrado ainda.
-                  </td>
+                  <th className="p-3.5 font-medium">Nome</th>
+                  <th className="p-3.5 font-medium">Unidade</th>
+                  <th className="p-3.5 font-medium">Tipo</th>
+                  <th className="p-3.5 font-medium">Prioridade</th>
+                  <th className="p-3.5 font-medium">Estado</th>
+                  <th className="p-3.5" />
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {resources.map((r) => (
+                  <tr key={r.id} className="border-b border-(--border-subtle) last:border-0">
+                    <td className="p-3.5 font-medium">{r.name}</td>
+                    <td className="text-muted p-3.5">{r.unitName}</td>
+                    <td className="text-muted p-3.5">{r.resourceTypeName}</td>
+                    <td className="text-muted tnum p-3.5">{r.priority}</td>
+                    <td className="p-3.5">
+                      <Estado ativo={r.active} />
+                    </td>
+                    <td className="p-3.5 text-right">
+                      <form action={alternarRecurso}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="name" value={r.name} />
+                        <input type="hidden" name="unitId" value={r.unitId} />
+                        <input type="hidden" name="resourceTypeId" value={r.resourceTypeId} />
+                        <input type="hidden" name="priority" value={r.priority} />
+                        <input type="hidden" name="active" value={String(r.active)} />
+                        <Button type="submit" variant="ghost" size="sm">
+                          {r.active ? 'desativar' : 'ativar'}
+                        </Button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <ul className="sm:hidden">
+              {resources.map((r) => (
+                <li key={r.id} className="border-b border-(--border-subtle) p-3.5 last:border-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate font-medium">{r.name}</span>
+                    <Estado ativo={r.active} />
+                  </div>
+                  <div className="text-muted mt-1 text-sm">
+                    {r.unitName} · {r.resourceTypeName} · prioridade {r.priority}
+                  </div>
+                  <form action={alternarRecurso} className="mt-2">
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="name" value={r.name} />
+                    <input type="hidden" name="unitId" value={r.unitId} />
+                    <input type="hidden" name="resourceTypeId" value={r.resourceTypeId} />
+                    <input type="hidden" name="priority" value={r.priority} />
+                    <input type="hidden" name="active" value={String(r.active)} />
+                    <Button type="submit" variant="ghost" size="sm">
+                      {r.active ? 'desativar' : 'ativar'}
+                    </Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <form action={criarRecurso} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <input className="field" name="name" placeholder="Nome (ex.: Cabine 1)" required />

@@ -1,11 +1,19 @@
 import { addDaysInZone, zonedDateTime, type TimeRange } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { DayGrid, type GridColumn } from '@/components/agenda/day-grid'
+import {
+  APPOINTMENT_ANCHOR_PREFIX,
+  DayGrid,
+  NOW_MARKER_ID,
+  boardMaxWidthRem,
+  type GridColumn,
+} from '@/components/agenda/day-grid'
 import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { RolarParaAgora } from '@/components/agenda/rolar-para-agora'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
 import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
+import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
 import { podeGerir, requireAcesso, requireUnidade } from '@/server/auth/permissoes'
 import { todayInUnit } from '@/server/scheduling/availability'
@@ -62,21 +70,48 @@ export default async function AgendaDoDiaPage({
   const baseHref = `/agenda/${unit.slug}?d=${date}`
   const selected = sel ? (appointments.find((item) => item.id === sel) ?? null) : null
 
+  /*
+    Para onde a tela rola sozinha ao abrir. "Agora" só é honesto quando a data
+    aberta é hoje e a hora corrente cai dentro da janela desenhada — fora
+    disso, mira no primeiro item do dia (não no primeiro atendimento: um
+    atendimento com dois serviços em cadeiras diferentes gera dois blocos, e o
+    alvo precisa ser um id que existe de verdade num só lugar da tela).
+  */
+  const now = new Date()
+  const agoraNaTela = now.getTime() >= from.getTime() && now.getTime() < to.getTime()
+  const primeiroItem = live
+    .flatMap((appointment) => appointment.items.map((item) => ({ id: item.id, start: item.start })))
+    .reduce<{ id: string; start: Date } | null>(
+      (min, item) => (min === null || item.start < min.start ? item : min),
+      null,
+    )
+  const alvoRolagem = agoraNaTela
+    ? NOW_MARKER_ID
+    : primeiroItem
+      ? `${APPOINTMENT_ANCHOR_PREFIX}${primeiroItem.id}`
+      : null
+
   return (
     <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       {/* Dia que já passou não muda mais — ali o tique seria só gasto. */}
       <AtualizaSozinho ativo={date >= today} />
+      {/* `key={date}`: reaparece a cada dia aberto, mas ignora as
+          atualizações automáticas da própria tela — ver o componente. */}
+      <RolarParaAgora key={date} alvo={alvoRolagem} />
 
       {/*
         O cabeçalho tem a medida da grade, não a da tela.
         Ele era `justify-between` dentro de 1400px enquanto a prancheta de duas
         profissionais mede 632: título num canto, botões no outro, e setecentos
-        pixels de nada no meio ligando as duas coisas. A largura da grade é
-        conhecida — `3.5rem` da régua mais `18rem` por coluna — então o
-        cabeçalho toma exatamente essa medida e o "Encaixar" cai sobre a borda
-        direita da última coluna. Vira um objeto só.
+        pixels de nada no meio ligando as duas coisas. `boardMaxWidthRem` é a
+        mesma conta que `DayGrid` usa para as próprias colunas — antes eram
+        dois cálculos, e um arredondava para cima de 2 mesmo num dia de uma
+        profissional só, deixando o cabeçalho mais largo que a grade. Com uma
+        conta só, o "Encaixar" sempre cai sobre a borda direita da última
+        coluna de verdade. `Math.max(…, 1)` é só o piso para o dia sem
+        ninguém escalado, onde `DayGrid` nem chega a desenhar a grade.
       */}
-      <header className="mb-5" style={{ maxWidth: `${3.5 + 18 * Math.max(columns.length, 2)}rem` }}>
+      <header className="mb-5" style={{ maxWidth: `${boardMaxWidthRem(Math.max(columns.length, 1))}rem` }}>
         <div>
           {/* Quem trabalha numa loja só não tem para onde voltar: `/agenda` a
               devolveria para cá. Link que dá em si mesmo é ruído. */}
@@ -235,7 +270,21 @@ export default async function AgendaDoDiaPage({
                         </span>
                         {item.clientName}
                       </span>
-                      <span className="text-muted shrink-0 text-xs">
+                      {/*
+                        Faltou e cancelou não são o mesmo aviso: uma é a loja
+                        perdendo o horário sem ter sido avisada. O ponto marca
+                        a diferença para quem varre a lista rápido; o texto
+                        continua a dizer a mesma coisa para quem lê devagar ou
+                        usa leitor de tela.
+                      */}
+                      <span className="text-muted flex shrink-0 items-center gap-1.5 text-xs">
+                        <span
+                          aria-hidden
+                          className={cn(
+                            'h-1.5 w-1.5 shrink-0 rounded-full',
+                            item.status === 'no_show' ? 'bg-(--estado-aviso)' : 'bg-(--border-strong)',
+                          )}
+                        />
                         {STATUS_LABEL[item.status] ?? item.status}
                       </span>
                     </Link>
@@ -297,7 +346,7 @@ function buildColumns(
       return staff ? { staff, working: person.workingRanges } : null
     })
     .filter((column): column is GridColumn => column !== null)
-    .sort((a, b) => a.staff.name.localeCompare(b.staff.name, 'pt-BR'))
+    .sort((a, b) => a.staff.name.localeCompare(b.staff.name, pais().locale))
 }
 
 /**

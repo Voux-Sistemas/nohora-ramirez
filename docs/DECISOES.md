@@ -151,4 +151,22 @@ O `drizzle-orm` era o que importava. Ele é o caminho de **toda** a leitura e es
 
 **Porque não o Next 16.** É a única correção para as duas primeiras, e é uma versão maior — muda APIs, tira o `next lint` e obriga a revalidar o produto inteiro. Fazê-lo na véspera de pôr o primeiro cliente a trabalhar troca um risco teórico por um risco real. Fica marcado no `docs/ROADMAP.md` para logo depois do arranque, e não mais tarde do que isso.
 
+---
+
+## ADR-012 · A prova do restore corre num Postgres efémero, não no banco vivo
+**Data:** 2026-08-14 · **Status:** aceita
+
+A verificação semanal do backup (`ops/backup/verificar.sh`) deixa de se ligar ao servidor de produção como administrador para criar um banco ao lado (`create database restore_check`). Passa a levantar um Postgres próprio dentro do contentor do cron — `initdb` numa pasta em `/tmp`, sem TCP, a atender num socket de ficheiro — e a restaurar aí. Ele morre com a execução.
+
+**O gatilho foi o ADR-009**, mas não é o motivo. Com o banco no Supabase o desenho antigo não tinha como correr: o papel da aplicação não cria bases, e o pooler amarra a ligação a uma base só — toda a string termina em `/postgres`. Isso obrigou a olhar para o script, e o que se viu foi pior do que a incompatibilidade.
+
+**O motivo é que a prova nunca devia ter tocado em produção.** Ela existe para responder a uma pergunta sobre um ficheiro no bucket: *este ficheiro volta a ser um banco?* Nada nessa pergunta precisa do banco vivo. O desenho antigo pedia credencial de administrador do servidor da cliente, e criava e destruía bases ao lado dos dados reais dela, uma vez por semana, de madrugada, sem ninguém a ver — para provar uma coisa que se prova sozinha noutro sítio. O risco não era teórico: era um `create`/`drop` recorrente com privilégio máximo, no único sítio onde um engano não tem volta.
+
+**Consequências:**
+- **O serviço de backup deixa de precisar de papel privilegiado.** A `DATABASE_URL` dele serve só ao `pg_dump`. Se um dia se quiser um papel de leitura para o dump, nada no `verificar.sh` se opõe.
+- **A prova ficou mais forte, não mais fraca.** O destino é um Postgres virgem, portanto o restore não se apoia em nada que já estivesse lá — extensão, tipo, papel. É o cenário do dia do resgate, que é o cenário que interessa.
+- **A imagem `postgres:18-alpine` passa a ser exigida por inteiro.** Era escolhida pelo `pg_dump`; agora o servidor que ela traz também é usado. Trocá-la por um cliente solto parte a verificação — está escrito no `Dockerfile`.
+- **O `restore_check` ainda existe, e agora é mesmo descartável.** O nome continua fixo no código, sem passar por variável de ambiente: nada configurável decide onde este script escreve.
+- **Custa alguns segundos de CPU e algum espaço em `/tmp` por semana.** `fsync` desligado no efémero paga a maior parte disso. Um contentor de cron que morre a seguir não tem o que proteger de uma falha de energia.
+
 **O linter passou a existir.** Havia nove `// eslint-disable-next-line` no código a pedir dispensa a um ESLint que ninguém tinha instalado — comentário que não desliga nada e faz quem lê supor uma regra que não existe. Agora existe: `npm run lint`, com `next/core-web-vitals` e `no-console` (ver `apps/web/eslint.config.mjs`). Apanhou logo cinco erros a sério, incluindo dois `<a>` onde devia estar `<Link>`.

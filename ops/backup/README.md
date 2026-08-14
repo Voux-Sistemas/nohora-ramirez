@@ -37,59 +37,78 @@ descartar o fim da lista.
 
 ## A prova do restore
 
-Todos os domingos, logo depois do dump, o `verificar.sh` descarrega o ficheiro **do
-bucket**, restaura num banco descartável (`restore_check`, criado e apagado
-na mesma execução) e conta o que voltou. Se vierem menos de 30 tabelas ou
-menos de 2 travas de exclusão, ele falha — as duas travas são as
-anti-overbooking, e um restore sem elas passaria por bom a aceitar dois
+Todos os domingos, logo depois do dump, o `verificar.sh` descarrega o ficheiro
+**do bucket**, confere que o gzip está inteiro, levanta um Postgres efémero
+dentro do próprio contentor, restaura lá e conta o que voltou. Se vierem menos
+de 30 tabelas ou menos de 2 travas de exclusão, ele falha — as duas travas são
+as anti-overbooking, e um restore sem elas passaria por bom a aceitar dois
 clientes no mesmo horário.
 
-Descarrega do bucket em vez de reaproveitar o ficheiro local de propósito: a prova precisa de
-cobrir o upload e a leitura de volta, não só o `pg_dump`.
-
-O nome do banco de rascunho é constante no código, não variável de ambiente.
-Nada configurável decide onde esse script escreve.
+Descarrega do bucket em vez de reaproveitar o ficheiro local de propósito: a
+prova precisa de cobrir o upload e a leitura de volta, não só o `pg_dump`.
 
 Para conferir na hora, sem esperar domingo: `VERIFICAR=sempre`.
 
-**A prova ainda não passou contra o Supabase.** O `verificar.sh` cria um banco
-ao lado do de origem (`create database restore_check`) e liga-se a ele; no
-pooler do Supabase toda a string termina em `/postgres` e o tenant está amarrado
-a um banco só, portanto é provável que falhe ali. Se falhar, o que se perde é a
-prova, não o backup: o `backup.sh` faz o dump e o upload **antes** de chamar o
-`verificar.sh`, e o ficheiro já está no bucket quando a prova corre. As saídas em
-aberto são três — provar num schema descartável em vez de num banco, abrir uma
-ligação direta só para esta parte, ou um projeto Supabase de rascunho. Até isto
-estar decidido, o serviço está com `VERIFICAR=sempre` de propósito, para que a
-primeira execução diga logo o que acontece.
+### Porque é que o restore acontece dentro do contentor
+
+Até à migração, o `verificar.sh` fazia `create database restore_check` **no
+próprio servidor de produção**, ligado como administrador, e restaurava aí ao
+lado do banco vivo. Isso morreu por dois motivos, e o segundo é o importante.
+
+O primeiro é que deixou de correr. O banco passou a ser o Supabase (ADR-009),
+onde a aplicação não tem papel para criar bases e onde o pooler amarra a ligação
+a um banco só — toda a string termina em `/postgres`. O `create database` não
+tinha como funcionar.
+
+O segundo é que nunca devia ter sido assim. Uma prova de backup que precisa de
+credencial de administrador do banco vivo, e que cria e destrói bases ao lado
+dos dados reais da cliente, é um risco a correr toda a semana para provar uma
+coisa que não precisa de tocar em produção nenhuma. Agora não toca: o
+`verificar.sh` só lê o ficheiro do bucket, e o destino é um Postgres levantado
+com `initdb` em `/tmp`, sem TCP, a atender num socket de ficheiro, que morre com
+o contentor. É também por isto que a imagem é a do `postgres` inteiro e não um
+cliente solto — o servidor que ela traz é exatamente o que se usa aqui.
+
+Se a prova falhar, o que se perde é a prova, não o backup: o `backup.sh` faz o
+dump e o upload **antes** de chamar o `verificar.sh`, e o ficheiro já está no
+bucket quando ela corre.
 
 ## Variáveis
 
 | Variável | Origem |
 | --- | --- |
-| `DATABASE_URL` | colada à mão: pooler de **sessão** do Supabase (5432), papel dono |
+| `DATABASE_URL` | `${{web.DIRECT_URL}}` — pooler de **sessão** do Supabase (5432) |
 | `BUCKET` `ENDPOINT` | `${{backups.BUCKET}}` `${{backups.ENDPOINT}}` |
 | `AWS_ACCESS_KEY_ID` `AWS_SECRET_ACCESS_KEY` `AWS_DEFAULT_REGION` | bucket `backups` |
 | `RETENCAO` | quantos ficheiros guardar (30) |
 | `VERIFICAR` | `semanal` (padrão), `sempre` ou `nunca` |
 
-As do bucket vão por referência, que é como uma credencial não passa por
-terminal nem por histórico de shell. A do banco **não pode ir** — e é a única
-linha desta tabela que exige explicação.
+Tudo por referência, sem uma credencial escrita à mão neste serviço. É assim que
+nenhuma delas passa por terminal nem por histórico de shell.
 
-Ela já foi `${{Postgres.DATABASE_URL}}`, quando o banco era o serviço `Postgres`
-do mesmo projeto Railway. Deixou de ser: o banco é um Postgres do Supabase
-(ADR-009 em `docs/DECISOES.md`), que é outro fornecedor, e não há serviço no
-projeto de onde referenciar. Nada em `ops/backup/` aponta para lado nenhum — o
-`railway.json` só carrega build e cron, e o `backup.sh` limita-se a exigir que a
-variável exista (`: "${DATABASE_URL:?...}"`). Quem escolhe o banco é o valor
-posto no painel do serviço, e mais nada.
+A linha do banco é a que exige explicação. Ela já foi
+`${{Postgres.DATABASE_URL}}`, quando o banco era o serviço `Postgres` do mesmo
+projeto Railway. Esse serviço deixou de existir: o banco é um Postgres do
+Supabase (ADR-009 em `docs/DECISOES.md`), que é outro fornecedor, e não há
+serviço de banco no projeto de onde referenciar.
 
-O valor é o pooler de **sessão** (porta 5432), com o papel dono, e não o de
-transação: o `pg_dump` e o `create database` do `verificar.sh` precisam de uma
-sessão que sobreviva entre comandos, pelo mesmo motivo que o site tem
-`DIRECT_URL` além de `DATABASE_URL`. Multiplexada, a ligação perde a sessão a
-meio do trabalho.
+O que há é o `web`, que já precisa da mesma string para correr migrações — é a
+`DIRECT_URL` dele. Então o valor real vive **só lá**, e aqui referencia-se.
+Colar a credencial nos dois serviços funcionaria igual hoje, e é precisamente
+esse o problema: no dia em que a senha do Supabase rodar, um dos dois fica para
+trás, e o que fica para trás é o que ninguém vê falhar — o backup corre de
+madrugada e ninguém lê o log de um serviço que sempre funcionou. Com a
+referência há um sítio só para mudar.
+
+Nada em `ops/backup/` aponta para banco nenhum — o `railway.json` só carrega
+build e cron, e o `backup.sh` limita-se a exigir que a variável exista
+(`: "${DATABASE_URL:?...}"`). Quem escolhe o banco é o painel do serviço.
+
+O valor referenciado é o pooler de **sessão** (porta 5432), com o papel dono, e
+não o de transação: o `pg_dump` precisa de uma ligação que sobreviva entre
+comandos, pelo mesmo motivo que o site tem `DIRECT_URL` além de `DATABASE_URL`.
+Multiplexada, a ligação perde a sessão a meio do trabalho. O `verificar.sh` já
+não usa esta variável — o restore acontece dentro do contentor.
 
 ## Restaurar
 

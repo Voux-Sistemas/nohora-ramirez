@@ -12,6 +12,7 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
+    "preflight": "tsx src/preflight.ts",
     "migrate": "drizzle-kit migrate",
     "constraints": "tsx src/apply-constraints.ts",
     "push": "drizzle-kit push",

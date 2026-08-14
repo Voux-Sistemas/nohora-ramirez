@@ -134,7 +134,7 @@ entrou. O wizard do ADR-008, ponto 3, está por construir.
 
 ### Testes: falta o que só banco real prova
 
-127 testes, quase todos de função pura. Não há teste de integração contra banco, e o caso que
+135 testes, quase todos de função pura. Não há teste de integração contra banco, e o caso que
 mais interessaria é justamente esse: dois pedidos simultâneos no mesmo horário, um a passar e o
 outro a receber o erro tratado. A trava está provada por construção e conferida no deploy, mas
 não por um teste que a tente furar. Também não há E2E nem teste de carga.
@@ -144,7 +144,23 @@ não por um teste que a tente furar. Também não há E2E nem teste de carga.
 O registo de erros em produção não existe — não há Sentry nem equivalente, e o que se sabe de
 uma falha é o que o Railway mostra no log. E os dois buckets de ficheiros nasceram em San Jose antes
 de o ADR-009 mover o site para Amesterdão, portanto cada fotografia atravessa o Atlântico de ida
-e volta — a correção está descrita em `ops/README.md` e é coordenação, não volume.
+e volta — a correção está descrita em `ops/README.md` e é coordenação, não volume. O serviço
+`backup` tem o mesmo problema pela mesma razão: corre em US East e o banco está em Frankfurt,
+portanto o dump diário atravessa o Atlântico. É uma vez por dia e num banco pequeno, por isso
+custa segundos, não minutos — mas move-se junto com os buckets quando isso for feito.
+
+### O papel dono mora no ambiente do site
+
+O ADR-009 pôs o site a ligar-se como `app_web`, um papel que só faz DML, para que uma injeção de
+SQL não conseguisse derrubar tabela. Só que o `preDeployCommand` corre migrations no mesmo
+serviço, e migrations precisam do dono — portanto a `DIRECT_URL`, com a credencial de dono, está
+no ambiente do `web` e é legível por qualquer código que corra lá dentro. O `app_web` continua a
+valer contra injeção de SQL, que é o ataque para que foi desenhado, mas não contra execução de
+código arbitrário no servidor.
+
+Fechar isto quer dizer tirar as migrations do deploy do site e pô-las num job à parte que seja o
+único a ter a credencial de dono. É mais uma peça no projeto, contra a decisão de o manter com
+duas — fica para depois do arranque da cliente, e é decisão dela, não dívida escondida.
 
 ---
 

@@ -9,6 +9,6 @@
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/api/saude",
     "healthcheckTimeout": 120,
-    "preDeployCommand": "npm run migrate --workspace=@studio/db && npm run constraints --workspace=@studio/db"
+    "preDeployCommand": "npm run preflight --workspace=@studio/db && npm run migrate --workspace=@studio/db && npm run constraints --workspace=@studio/db"
   }
 }

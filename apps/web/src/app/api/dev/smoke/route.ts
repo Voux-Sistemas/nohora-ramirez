@@ -1,5 +1,6 @@
 import { isoDateInZone } from '@studio/core'
 import { NextResponse } from 'next/server'
+import { ambiente } from '@/lib/ambiente'
 import {
   advanceStatus,
   cancelAppointment,
@@ -21,7 +22,20 @@ import { getAppointment } from '@/server/scheduling/queries'
  *   GET /api/dev/smoke?unidade=centro
  */
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
+  /*
+    Duas trancas em série, e não uma, porque esta rota **escreve**: ela marca,
+    remarca e cancela de verdade, com uma cliente chamada "Cliente de Teste".
+    Aberta por engano no salão, o que aparece é lixo na agenda de amanhã — e
+    aparece pelo GET de qualquer pessoa que saiba o endereço, sem sessão.
+
+    A tranca era só `NODE_ENV`, que é uma variável que o processo pode não ter
+    (fora do `next start`, num arranque à mão, num container mal configurado) e
+    cujo valor em falta abria a porta. `ambiente()` fecha por omissão e ainda
+    olha para `AMBIENTE`, que é a variável que este produto de facto usa para
+    dizer onde está. Exigir as duas nunca abre nada que já não estivesse aberto:
+    só fecha mais.
+  */
+  if (process.env.NODE_ENV === 'production' || ambiente() !== 'teste') {
     return NextResponse.json({ error: 'indisponível' }, { status: 404 })
   }
   const steps: unknown[] = []

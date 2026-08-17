@@ -48,6 +48,25 @@ export async function storeUploadedImage(
 }
 
 /**
+ * Confere sem gravar.
+ *
+ * Serve a quem precisa de recusar a fotografia **antes** de criar o registo que
+ * ela acompanha. A chave do ficheiro é montada com o id do dono, portanto num
+ * serviço ou numa loja nova a gravação só pode acontecer depois do insert — e
+ * uma recusa nessa altura deixava o registo criado e a dona de volta ao
+ * formulário, onde carregar em Guardar outra vez criava um segundo. Com esta
+ * pergunta feita primeiro, os motivos comuns (ficheiro grande demais, HEIC do
+ * telemóvel) recusam antes de existir seja o que for.
+ *
+ * Custa ler os bytes duas vezes, porque `storeUploadedImage` volta a lê-los.
+ * `MAX_IMAGE_BYTES` mantém isso barato, e passar o buffer de mão em mão por
+ * quatro camadas custava mais em confusão do que em memória.
+ */
+export async function conferirImagem(file: File): Promise<void> {
+  await conferir(file)
+}
+
+/**
  * Um lote de imagens — tudo ou nada.
  *
  * A galeria da loja recebe várias fotos de uma vez, e gravar as três primeiras

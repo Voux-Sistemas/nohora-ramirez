@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { useEstadoDoForm } from '@/components/ui/erro-do-form'
 import { cn } from '@/lib/utils'
 
 /**
@@ -18,6 +20,17 @@ import { cn } from '@/lib/utils'
  * `input`/`change` — não precisa que cada campo seja controlado. Antes do
  * primeiro toque, ou logo depois de um envio bem-sucedido, o formulário está
  * limpo e a barra diz isso.
+ *
+ * ── Por que a recusa aparece aqui ─────────────────────────────────────────
+ * É o único sítio da ficha onde se sabe que a pessoa está a olhar: ela acabou
+ * de carregar no botão que está aqui. Uma frase no topo de um formulário de
+ * cinco seções ficaria fora do ecrã. E como o estado vem por contexto, a barra
+ * continua a funcionar tal e qual nos formulários que ainda não foram
+ * convertidos — sem provedor, o estado é `{}` e nada muda.
+ *
+ * O botão desativa-se enquanto grava. Não é enfeite: era o segundo toque em
+ * "Guardar", enquanto o primeiro ainda corria, que criava o serviço em
+ * duplicado.
  */
 export function FormActions({
   label = 'Guardar',
@@ -28,6 +41,8 @@ export function FormActions({
 }) {
   const [dirty, setDirty] = useState(false)
   const marcadorRef = useRef<HTMLDivElement>(null)
+  const { error, success } = useEstadoDoForm()
+  const { pending } = useFormStatus()
 
   useEffect(() => {
     const form = marcadorRef.current?.closest('form')
@@ -44,6 +59,13 @@ export function FormActions({
     }
   }, [])
 
+  /* A ficha que grava sem mudar de página (a escala, por exemplo) fica no
+     mesmo ecrã com os campos que a pessoa acabou de escrever. Sem isto, a
+     barra continuava a dizer "alterações por gravar" logo depois de gravar. */
+  useEffect(() => {
+    if (success) setDirty(false)
+  }, [success])
+
   return (
     <div
       ref={marcadorRef}
@@ -52,11 +74,15 @@ export function FormActions({
         className,
       )}
     >
-      <p className="text-muted text-sm" aria-live="polite">
-        {dirty ? 'Alterações por gravar.' : 'Tudo gravado.'}
+      <p
+        className={cn('text-sm', error ? 'text-(--estado-mau)' : 'text-muted')}
+        role={error ? 'alert' : undefined}
+        aria-live="polite"
+      >
+        {error ?? (pending ? 'A guardar…' : dirty ? 'Alterações por gravar.' : 'Tudo gravado.')}
       </p>
-      <Button type="submit" size="lg">
-        {label}
+      <Button type="submit" size="lg" disabled={pending}>
+        {pending ? 'A guardar…' : label}
       </Button>
     </div>
   )

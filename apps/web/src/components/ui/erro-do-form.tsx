@@ -27,8 +27,9 @@ import { createContext, useContext } from 'react'
  * aparecer.
  */
 
-interface EstadoDeFormulario {
+export interface EstadoDeFormulario {
   error?: string
+  success?: boolean
 }
 
 const Contexto = createContext<EstadoDeFormulario>({})
@@ -41,6 +42,11 @@ export function FornecerEstadoDoForm({
   children: React.ReactNode
 }) {
   return <Contexto.Provider value={estado}>{children}</Contexto.Provider>
+}
+
+/** O resultado da última tentativa de gravar. `{}` fora de um formulário. */
+export function useEstadoDoForm(): EstadoDeFormulario {
+  return useContext(Contexto)
 }
 
 /** A recusa da última tentativa de gravar, ou nada. */

@@ -1,6 +1,8 @@
 import { AdminShell, Section } from '@/components/admin/shell'
 import { ConfirmarPagamento } from '@/components/admin/confirmar-pagamento'
 import { Button } from '@/components/ui/button'
+import { ErroDoForm } from '@/components/ui/erro-do-form'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import { listServicesAdmin } from '@/server/admin/services'
 import { listStaffAdmin } from '@/server/admin/staff'
@@ -159,7 +161,7 @@ export default async function ComissoesPage() {
             </ul>
           )}
 
-          <form action={salvarRegra} className="flex flex-col gap-3">
+          <FormComEstado action={salvarRegra} className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
               <label className="text-muted flex flex-col gap-1 text-sm">
                 Profissional
@@ -201,7 +203,8 @@ export default async function ComissoesPage() {
                 Guardar regra
               </Button>
             </div>
-          </form>
+            <ErroDoForm className="text-sm text-(--estado-mau)" />
+          </FormComEstado>
         </Section>
       </div>
     </AdminShell>

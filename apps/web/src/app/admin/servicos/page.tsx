@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Button } from '@/components/ui/button'
+import { ErroDoForm } from '@/components/ui/erro-do-form'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import { formatMoney, formatDuration } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listCategories, listServicesAdmin } from '@/server/admin/services'
@@ -163,12 +165,13 @@ export default async function ServicosPage() {
               <li className="text-muted text-sm">Nenhuma categoria ainda.</li>
             ) : null}
           </ul>
-          <form action={criarCategoria} className="flex flex-col gap-2">
+          <FormComEstado action={criarCategoria} className="flex flex-col gap-2">
             <input className="field" name="name" placeholder="Nome da categoria" required />
             <Button type="submit" variant="outline" size="sm">
               + adicionar
             </Button>
-          </form>
+            <ErroDoForm className="text-sm text-(--estado-mau)" />
+          </FormComEstado>
         </Section>
       </div>
     </AdminShell>

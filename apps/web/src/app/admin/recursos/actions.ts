@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { type EstadoDeFormulario } from '@/components/ui/erro-do-form'
 import {
   createResource,
   createResourceType,
@@ -8,6 +9,7 @@ import {
   updateResource,
 } from '@/server/admin/resources'
 import { assertSuporte, assertUnidade } from '@/server/auth/permissoes'
+import { mensagemDoErro } from '@/server/erros'
 
 /**
  * Cadastro de recursos. Nenhuma das três ações conferia nada — com o id de um
@@ -21,23 +23,48 @@ import { assertSuporte, assertUnidade } from '@/server/auth/permissoes'
  * unidade que vale é sempre a lida do banco, não a do formulário.
  */
 
-export async function criarTipoRecurso(formData: FormData): Promise<void> {
+export async function criarTipoRecurso(
+  _estado: EstadoDeFormulario,
+  formData: FormData,
+): Promise<EstadoDeFormulario> {
   const name = String(formData.get('name') ?? '').trim()
-  if (!name) return
-  await assertSuporte()
-  await createResourceType(name)
+  if (!name) return { error: 'Dê um nome ao tipo de recurso.' }
+
+  try {
+    await assertSuporte()
+    await createResourceType(name)
+  } catch (e) {
+    return { error: mensagemDoErro(e, 'não foi possível criar este tipo') }
+  }
+
   revalidatePath('/admin/recursos')
+  return { success: true }
 }
 
-export async function criarRecurso(formData: FormData): Promise<void> {
+export async function criarRecurso(
+  _estado: EstadoDeFormulario,
+  formData: FormData,
+): Promise<EstadoDeFormulario> {
   const name = String(formData.get('name') ?? '').trim()
   const unitId = String(formData.get('unitId') ?? '')
   const resourceTypeId = String(formData.get('resourceTypeId') ?? '')
   const priority = Number(formData.get('priority') ?? 0)
-  if (!name || !unitId || !resourceTypeId) return
-  await assertUnidade(unitId)
-  await createResource({ name, unitId, resourceTypeId, active: true, priority })
+  /* As três recusas eram um `return` mudo, e a escolha de loja e de tipo abre
+     em branco: quem carregava em "+ adicionar" sem as escolher via a linha não
+     aparecer e não sabia porquê. */
+  if (!name) return { error: 'Dê um nome ao recurso — "Cabine 1", por exemplo.' }
+  if (!unitId) return { error: 'Escolha a loja onde este recurso fica.' }
+  if (!resourceTypeId) return { error: 'Escolha o tipo do recurso.' }
+
+  try {
+    await assertUnidade(unitId)
+    await createResource({ name, unitId, resourceTypeId, active: true, priority })
+  } catch (e) {
+    return { error: mensagemDoErro(e, 'não foi possível criar este recurso') }
+  }
+
   revalidatePath('/admin/recursos')
+  return { success: true }
 }
 
 export async function alternarRecurso(formData: FormData): Promise<void> {

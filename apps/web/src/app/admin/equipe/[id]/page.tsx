@@ -242,8 +242,9 @@ export default async function ProfissionalFormPage({
             </div>
           </Section>
 
-          <ErroDoForm />
-
+          {/* A recusa aparece na barra fixa, ao lado do botão que a provocou —
+              ver `FormActions`. Aqui, no fim de sete secções, ficava fora do
+              ecrã em que a pessoa estava a olhar. */}
           <FormActions label="Guardar profissional" />
         </StaffForm>
 

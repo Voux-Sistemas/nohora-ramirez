@@ -1,6 +1,8 @@
 import { AdminShell, Section } from '@/components/admin/shell'
 import { Estado } from '@/components/admin/estado'
 import { Button } from '@/components/ui/button'
+import { ErroDoForm } from '@/components/ui/erro-do-form'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import {
   listResourceAssignables,
   listResourcesAdmin,
@@ -92,7 +94,7 @@ export default async function RecursosPage() {
             </div>
           )}
 
-          <form action={criarRecurso} className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <FormComEstado action={criarRecurso} className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <input className="field" name="name" placeholder="Nome (ex.: Cabine 1)" required />
             <select className="field" name="unitId" required defaultValue="">
               <option value="" disabled>
@@ -124,7 +126,8 @@ export default async function RecursosPage() {
             <Button type="submit" variant="outline">
               + adicionar
             </Button>
-          </form>
+            <ErroDoForm className="col-span-2 text-sm text-(--estado-mau) lg:col-span-5" />
+          </FormComEstado>
         </Section>
 
         <Section title="Tipos" className="mb-0 xl:sticky xl:top-8">
@@ -143,12 +146,13 @@ export default async function RecursosPage() {
             ) : null}
           </ul>
           {suporte ? (
-            <form action={criarTipoRecurso} className="flex flex-col gap-2">
+            <FormComEstado action={criarTipoRecurso} className="flex flex-col gap-2">
               <input className="field" name="name" placeholder="Ex.: Cabine, Lavatório" required />
               <Button type="submit" variant="outline" size="sm">
                 + adicionar tipo
               </Button>
-            </form>
+              <ErroDoForm className="text-sm text-(--estado-mau)" />
+            </FormComEstado>
           ) : (
             <p className="text-muted text-sm">
               Um tipo novo muda todas as lojas de uma vez e não tem como apagar depois — quem cria é

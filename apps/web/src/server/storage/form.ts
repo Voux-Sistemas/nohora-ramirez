@@ -1,5 +1,23 @@
 import 'server-only'
-import { discardImage, storeUploadedImage, type UploadScope } from './images'
+import { UploadError, conferirImagem, discardImage, storeUploadedImage, type UploadScope } from './images'
+
+/**
+ * A recusa da fotografia deste campo, ou `null` se não há o que recusar.
+ *
+ * Perguntado antes do insert por quem cria — ver `conferirImagem`. Campo vazio
+ * é `null`: não escolher fotografia nenhuma é o caso normal, não um erro.
+ */
+export async function recusaDaImagem(formData: FormData, name: string): Promise<string | null> {
+  const file = formData.get(name)
+  if (!(file instanceof File) || file.size === 0) return null
+  try {
+    await conferirImagem(file)
+    return null
+  } catch (erro) {
+    if (erro instanceof UploadError) return erro.message
+    throw erro
+  }
+}
 
 /**
  * Resolve o que o `ImageField` mandou no formulário.

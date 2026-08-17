@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { AdminShell, Ficha, Section } from '@/components/admin/shell'
 import { FormActions } from '@/components/admin/form-actions'
 import { ImageField } from '@/components/admin/image-field'
-import { Button } from '@/components/ui/button'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import { simboloMoeda } from '@/lib/format'
 import {
   getServiceAdmin,
@@ -35,8 +35,18 @@ const BLANK_SERVICE: ServiceRow = {
   imageUrl: null,
 }
 
-export default async function ServicoFormPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ServicoFormPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ foto?: string }>
+}) {
   const { id } = await params
+  /* Só chega aqui quando o serviço ficou gravado e a fotografia não subiu —
+     ver o fim de `salvarServico`. A pessoa está na ficha do serviço que já
+     existe, portanto tentar outra vez edita em vez de duplicar. */
+  const fotoFalhou = (await searchParams).foto === 'falhou'
   const acesso = await requireRede()
   const isNew = id === 'novo'
 
@@ -59,7 +69,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
       meta={isNew ? undefined : (service.categoryName ?? undefined)}
     >
       <Ficha voltarPara="/admin/servicos" voltarLabel="serviços">
-        <form action={salvarServico}>
+        <FormComEstado action={salvarServico}>
           <input type="hidden" name="id" value={id} />
 
           <Section title="Dados">
@@ -162,6 +172,11 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
             title="Foto do serviço"
             hint="Aparece ao lado do nome na lista que a cliente escolhe. Um trabalho pronto do próprio salão vale mais que banco de imagem."
           >
+            {fotoFalhou ? (
+              <p className="mb-4 text-sm text-(--estado-mau)" role="alert">
+                O serviço ficou guardado, mas a fotografia não subiu. Escolha-a outra vez.
+              </p>
+            ) : null}
             <ImageField
               name="imagem"
               current={service.imageUrl}
@@ -276,7 +291,7 @@ export default async function ServicoFormPage({ params }: { params: Promise<{ id
           </Section>
 
           <FormActions label="Guardar serviço" />
-        </form>
+        </FormComEstado>
       </Ficha>
     </AdminShell>
   )

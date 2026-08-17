@@ -4,6 +4,7 @@ import { FormActions } from '@/components/admin/form-actions'
 import { GaleriaDaLoja } from '@/components/admin/gallery'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import { pais } from '@/lib/pais'
 import { getUnitAdmin, listUnitPhotos, type HoursRow, type UnitRow } from '@/server/admin/units'
 import { podeSuporte, requireRede, requireSuporte } from '@/server/auth/permissoes'
@@ -45,8 +46,18 @@ function slotsFor(weekday: number, hours: readonly HoursRow[]) {
   return [rows[0] ?? null, rows[1] ?? null] as const
 }
 
-export default async function UnidadeFormPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function UnidadeFormPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ foto?: string }>
+}) {
   const { id } = await params
+  /* Só chega aqui quando a loja ficou gravada e a fotografia não subiu — ver o
+     fim de `salvarUnidade`. A pessoa está na ficha da loja que já existe,
+     portanto tentar outra vez edita em vez de abrir uma segunda. */
+  const fotoFalhou = (await searchParams).foto === 'falhou'
   const isNew = id === 'nova'
   /* Abrir loja nova é do suporte; a ficha de uma loja que já existe é da dona. */
   const acesso = isNew ? await requireSuporte() : await requireRede()
@@ -70,7 +81,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
       meta={isNew ? undefined : `/${unit.slug}`}
     >
       <Ficha voltarPara="/admin/unidades" voltarLabel="unidades">
-        <form action={salvarUnidade}>
+        <FormComEstado action={salvarUnidade}>
           <input type="hidden" name="id" value={id} />
 
           <Section title="Dados">
@@ -172,6 +183,11 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
             title="Foto da unidade"
             hint="Aparece no primeiro ecrã da marcação, do tamanho de um cartão. Vale uma foto da sala com luz acesa e sem gente de costas."
           >
+            {fotoFalhou ? (
+              <p className="mb-4 text-sm text-(--estado-mau)" role="alert">
+                A loja ficou guardada, mas a fotografia não subiu. Escolha-a outra vez.
+              </p>
+            ) : null}
             <ImageField
               name="imagem"
               current={unit.imageUrl}
@@ -291,7 +307,7 @@ export default async function UnidadeFormPage({ params }: { params: Promise<{ id
           </Section>
 
           <FormActions label="Guardar unidade" />
-        </form>
+        </FormComEstado>
 
         {/*
         Fora do formulário de cima, como as exceções: cada fotografia é gravada

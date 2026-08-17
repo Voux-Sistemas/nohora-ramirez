@@ -22,9 +22,39 @@ const WREATH_LEAVES =
 /** O swash que nasce no N, passa por baixo do R e rompe o círculo. */
 const SWASH = 'M 60 52 C 96 84 128 122 168 146'
 
+export const COROA_ID = 'nr-coroa'
+
+/**
+ * A coroa entra no documento uma vez, e as outras apontam para ela.
+ *
+ * As 78 folhas são 1,8 kB de `d=` — barato uma vez, caro sessenta e sete. Cada
+ * serviço sem fotografia usa a coroa de fundo na placa, e a lista de Valongo
+ * tem sessenta e sete serviços: a tela de marcação chegava ao telemóvel da
+ * cliente com 377 kB, dos quais 240 kB eram a mesma corrente de curvas repetida
+ * 134 vezes, para 2,3 kB de texto legível. Com `<use>` a repetição passa a
+ * custar quarenta bytes.
+ *
+ * Fica no `<body>` do layout, antes de tudo: `<use>` só resolve o que já está
+ * no documento, e o fragmento tem de existir antes da primeira placa pintar.
+ */
+export function CoroaDefinicao() {
+  return (
+    <svg width="0" height="0" aria-hidden className="absolute">
+      <defs>
+        <g id={COROA_ID}>
+          <path d={WREATH_STEM} stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+          <path d={WREATH_LEAVES} stroke="currentColor" strokeWidth="0.9" strokeLinejoin="round" />
+        </g>
+      </defs>
+    </svg>
+  )
+}
+
 /**
  * A coroa botânica sozinha. `drawn` liga o desenho do traço — usado uma única
- * vez no fluxo, na tela de confirmação.
+ * vez no fluxo, na tela de confirmação, e é o único caso que ainda desenha os
+ * caminhos inteiros: a animação precisa de agarrar cada traço pela sua classe,
+ * e conteúdo referenciado por `<use>` não se alcança pelo CSS da página.
  */
 export function Wreath({ className, drawn = false }: { className?: string; drawn?: boolean }) {
   return (
@@ -34,20 +64,26 @@ export function Wreath({ className, drawn = false }: { className?: string; drawn
       aria-hidden
       className={cn('h-full w-full', className)}
     >
-      <path
-        d={WREATH_STEM}
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeLinecap="round"
-        className={drawn ? 'seal-stem' : undefined}
-      />
-      <path
-        d={WREATH_LEAVES}
-        stroke="currentColor"
-        strokeWidth="0.9"
-        strokeLinejoin="round"
-        className={drawn ? 'seal-leaves' : undefined}
-      />
+      {drawn ? (
+        <>
+          <path
+            d={WREATH_STEM}
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeLinecap="round"
+            className="seal-stem"
+          />
+          <path
+            d={WREATH_LEAVES}
+            stroke="currentColor"
+            strokeWidth="0.9"
+            strokeLinejoin="round"
+            className="seal-leaves"
+          />
+        </>
+      ) : (
+        <use href={`#${COROA_ID}`} />
+      )}
     </svg>
   )
 }

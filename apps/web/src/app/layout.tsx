@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Bodoni_Moda } from 'next/font/google'
+import { CoroaDefinicao } from '@/components/brand/mark'
 import { lerTema } from '@/lib/tema'
 import './globals.css'
 
@@ -109,6 +110,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           alternativa em prefers-reduced-motion.
           ──────────────────────────────────────────────────────────────────────
         */}
+        <CoroaDefinicao />
         {children}
       </body>
     </html>

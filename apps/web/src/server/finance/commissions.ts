@@ -13,7 +13,7 @@ import {
   services,
   staffProfiles,
 } from '@studio/db'
-import { and, desc, eq, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { pais } from '@/lib/pais'
 
@@ -120,9 +120,52 @@ export async function commissionSummaryByStaff(): Promise<CommissionSummaryRow[]
   return [...byStaff.values()].sort((a, b) => a.staffName.localeCompare(b.staffName, pais().locale))
 }
 
-export async function markCommissionsPaid(staffId: string): Promise<void> {
-  await db
-    .update(commissionEntries)
-    .set({ status: 'paid', paidAt: new Date() })
-    .where(and(eq(commissionEntries.staffId, staffId), eq(commissionEntries.status, 'pending')))
+export type PagamentoDeComissoes =
+  | { pago: number }
+  /** Ninguém pagou nada: o pendente já não é o que estava no ecrã. */
+  | { divergiu: number }
+
+/**
+ * Liquida o que a dona confirmou — nem um cêntimo além.
+ *
+ * O `where` era `staffId + pending` e mais nada: marcava como pago tudo o que
+ * estivesse pendente no instante do clique, e não o valor que ela leu no ecrã e
+ * foi buscar em dinheiro. Os dois instantes são diferentes de propósito — a
+ * recepção fecha comandas ao balcão exactamente enquanto o acerto é feito no
+ * escritório, e cada fecho lança comissão nova. A dona entregava 340 € em mão e
+ * o sistema dava 415 € por pagos; os 75 € da diferença desapareciam de
+ * «Pendente» sem terem sido pagos, e nenhum ecrã lista lançamento a lançamento
+ * para dar por isso.
+ *
+ * Por isso o valor confirmado vem no formulário e é conferido aqui dentro, com
+ * as linhas trancadas: se a soma mudou, não se paga nada e quem está ao ecrã lê
+ * o valor novo para confirmar de novo.
+ */
+export async function markCommissionsPaid(
+  staffId: string,
+  esperado: number,
+): Promise<PagamentoDeComissoes> {
+  return db.transaction(async (tx) => {
+    const pendentes = await tx
+      .select({ id: commissionEntries.id, amount: commissionEntries.amount })
+      .from(commissionEntries)
+      .where(and(eq(commissionEntries.staffId, staffId), eq(commissionEntries.status, 'pending')))
+      .for('update')
+
+    const total = pendentes.reduce((soma, linha) => soma + linha.amount, 0)
+    if (total !== esperado) return { divergiu: total }
+    if (pendentes.length === 0) return { pago: 0 }
+
+    await tx
+      .update(commissionEntries)
+      .set({ status: 'paid', paidAt: new Date() })
+      .where(
+        inArray(
+          commissionEntries.id,
+          pendentes.map((linha) => linha.id),
+        ),
+      )
+
+    return { pago: total }
+  })
 }

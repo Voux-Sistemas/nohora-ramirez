@@ -15,7 +15,7 @@ import {
   staffProfiles,
   staffSkills,
 } from '@studio/db'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 
 export interface CategoryRow {
@@ -226,9 +226,36 @@ async function writeRequirementsAndSkills(
     )
   }
 
-  await tx.delete(staffSkills).where(eq(staffSkills.serviceId, serviceId))
+  /* Apagar-e-reinserir só pode alcançar quem o formulário desenha. «Quem
+     executa» lista apenas quem está ativo (`listAssignables`), portanto a linha
+     de quem está desativado nunca voltava no `staffIds` — e o `delete` por
+     serviço levava-a em QUALQUER gravação, mesmo a que só corrigia o preço. A
+     Rita saía de licença e voltava sem a Coloração: a marcação online deixava
+     de a oferecer, a recepção não a conseguia escolher, e nada ligava a perda
+     ao dia em que se mexeu no preçário. Quem quiser mesmo tirar a habilidade de
+     alguém desativado fá-lo na ficha dessa pessoa, que lista todos os serviços. */
+  const ativos = await tx
+    .select({ id: staffProfiles.id })
+    .from(staffProfiles)
+    .where(eq(staffProfiles.active, true))
+
+  await tx.delete(staffSkills).where(
+    and(
+      eq(staffSkills.serviceId, serviceId),
+      inArray(
+        staffSkills.staffId,
+        ativos.map((pessoa) => pessoa.id),
+      ),
+    ),
+  )
+
   if (input.staffIds.length > 0) {
-    await tx.insert(staffSkills).values(input.staffIds.map((staffId) => ({ staffId, serviceId })))
+    /* `onConflictDoNothing` porque o `delete` acima já não é total: um id de
+       alguém desativado, vindo por fora do formulário, bateria na unique. */
+    await tx
+      .insert(staffSkills)
+      .values(input.staffIds.map((staffId) => ({ staffId, serviceId })))
+      .onConflictDoNothing()
   }
 }
 

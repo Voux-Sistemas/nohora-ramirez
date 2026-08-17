@@ -25,6 +25,8 @@ import 'server-only'
  * pensadas para ser lidas.
  */
 
+import { unstable_rethrow } from 'next/navigation'
+
 /**
  * Erro que veio da base de dados ou do driver, e não da nossa validação.
  *
@@ -49,6 +51,18 @@ export function ehFalhaTecnica(e: unknown): boolean {
  * única pista que sobra para quem está a olhar.
  */
 export function mensagemDoErro(e: unknown, alternativa: string): string {
+  /* Nem tudo o que cai num `catch` é um erro. O `redirect()` do Next — o que os
+     porteiros usam para mandar quem perdeu a sessão de volta a `/entrar` — é
+     lançado como exceção, e a mensagem dele é a literal `NEXT_REDIRECT`. Não
+     começa por «Failed query», não tem código de cinco caracteres e não tem
+     `cause`: passava por frase nossa e ia inteira para o formulário. A recepção
+     escrevia «Cabine 2», carregava em adicionar e lia NEXT_REDIRECT a vermelho
+     ao lado do campo, sem nada que dissesse «a sua sessão terminou» e sem
+     caminho de volta ao login. `unstable_rethrow` devolve esses sinais ao Next,
+     que é quem sabe o que fazer com eles — e vale para todos os `catch` que
+     passam por aqui, incluindo os que ainda não existem. */
+  unstable_rethrow(e)
+
   if (ehFalhaTecnica(e)) {
     console.error('[recusa técnica]', e)
     return alternativa

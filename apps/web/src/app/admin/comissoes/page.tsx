@@ -82,13 +82,17 @@ export default async function ComissoesPage() {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         {row.pendingAmount > 0 ? (
-                          <form action={pagarComissoes}>
+                          <FormComEstado action={pagarComissoes}>
                             <input type="hidden" name="staffId" value={row.staffId} />
+                            {/* o valor lido no ecrã volta com o clique; a ação
+                                recusa se o pendente já não for este */}
+                            <input type="hidden" name="esperado" value={row.pendingAmount} />
+                            <ErroDoForm className="mb-2 text-xs text-(--estado-mau)" />
                             <ConfirmarPagamento
                               nome={row.staffName}
                               valor={formatMoney(row.pendingAmount)}
                             />
-                          </form>
+                          </FormComEstado>
                         ) : null}
                       </td>
                     </tr>

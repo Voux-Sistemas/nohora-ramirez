@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { type EstadoDeFormulario } from '@/components/ui/erro-do-form'
+import { formatMoney } from '@/lib/format'
 import { assertRede } from '@/server/auth/permissoes'
 import { mensagemDoErro } from '@/server/erros'
 import {
@@ -51,10 +52,31 @@ export async function excluirRegra(formData: FormData): Promise<void> {
   revalidatePath('/admin/comissoes')
 }
 
-export async function pagarComissoes(formData: FormData): Promise<void> {
+/**
+ * O valor confirmado viaja no formulário e é conferido lá dentro — pagar é o
+ * único ato desta tela que não tem volta, e o número que a dona leu tem de ser
+ * o número que o sistema liquida.
+ */
+export async function pagarComissoes(
+  _estado: EstadoDeFormulario,
+  formData: FormData,
+): Promise<EstadoDeFormulario> {
   const staffId = String(formData.get('staffId') ?? '')
-  if (!staffId) return
-  await assertRede()
-  await markCommissionsPaid(staffId)
-  revalidatePath('/admin/comissoes')
+  const esperado = Number(formData.get('esperado') ?? '')
+  if (!staffId || !Number.isInteger(esperado)) return {}
+
+  try {
+    await assertRede()
+    const resultado = await markCommissionsPaid(staffId, esperado)
+    revalidatePath('/admin/comissoes')
+    if ('divergiu' in resultado) {
+      return {
+        error: `O pendente mudou desde que este ecrã abriu — agora são ${formatMoney(resultado.divergiu)}. Não foi pago nada; confira o valor e confirme outra vez.`,
+      }
+    }
+  } catch (e) {
+    return { error: mensagemDoErro(e, 'não foi possível registar este pagamento') }
+  }
+
+  return { success: true }
 }

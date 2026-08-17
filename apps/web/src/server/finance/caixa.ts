@@ -115,6 +115,26 @@ export async function addMovement(
   note?: string,
 ): Promise<void> {
   if (amount <= 0) throw new Error('valor precisa ser positivo')
+
+  /*
+    Era a única das três operações do caixa que não perguntava se o caixa ainda
+    está aberto. Uma sangria lançada contra uma sessão já fechada entrava na
+    tabela e desaparecia: o fecho congela `expectedAmount` e `difference` em
+    colunas e nenhum ecrã volta a somar os movimentos de uma sessão fechada.
+    A pessoa vê o formulário limpar-se, dá o dinheiro ao estafeta, e os 50 €
+    não estão em conta nenhuma.
+
+    Acontece com dois separadores abertos no mesmo caixa — ou com a mesma
+    pessoa a fechar o turno num ecrã e a lançar no outro.
+  */
+  const [session] = await db
+    .select({ status: cashSessions.status })
+    .from(cashSessions)
+    .where(eq(cashSessions.id, sessionId))
+    .limit(1)
+  if (!session) throw new Error('caixa não encontrado')
+  if (session.status !== 'open') throw new Error('caixa já está fechado')
+
   await db.insert(cashMovements).values({ cashSessionId: sessionId, type, amount, note: note || null })
 }
 

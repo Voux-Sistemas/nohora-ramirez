@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { Readable } from 'node:stream'
+import { ambiente } from '@/lib/ambiente'
 
 /*
   Costura de storage.
@@ -14,7 +15,8 @@ import { Readable } from 'node:stream'
 
   O driver padrão é `local` de propósito: o produto precisa funcionar recém
   clonado, sem conta em lugar nenhum. Em produção com mais de uma instância,
-  disco local não serve (cada máquina enxerga o seu) — daí a troca.
+  disco local não serve (cada máquina enxerga o seu) — daí a troca. Em produção
+  gravar por omissão deixou de ser possível: ver `exigirDestinoDeclarado()`.
 */
 
 /** O que o driver devolve depois de guardar. */
@@ -108,6 +110,37 @@ export function imageStore(): ImageStore {
           'Um driver novo se implementa em apps/web/src/server/storage/.',
       )
   }
+}
+
+/**
+ * Recusa gravar em produção sem `IMAGE_STORE` declarada.
+ *
+ * O padrão de `imageStore()` é `local`, e num contentor isso é o disco que o
+ * próximo deploy deita fora. A falha não dá erro nenhum: a dona sobe a
+ * fotografia da loja, vê-a na tela, o cadastro guarda o caminho — e semanas
+ * depois, no deploy seguinte, que pode ser de uma correção sem relação nenhuma,
+ * as fotografias todas passam a dar 404 com os registos intactos a apontar para
+ * o vazio. Se forem as fotografias das salas dela, e forem as únicas cópias,
+ * não há como voltar atrás.
+ *
+ * A trava é só na gravação, e de propósito. Ler pelo padrão nunca destruiu
+ * nada: se este servidor já serve fotografias assim, continua a servi-las na
+ * mesma. O que passa a ser impossível é escrever uma fotografia nova para um
+ * sítio que ninguém escolheu.
+ *
+ * `local` continua a ser escolha legítima em produção — quem serve isto num
+ * servidor com disco que sobrevive ao deploy declara-o e segue. O que deixa de
+ * existir é cair nele por esquecimento.
+ */
+export function exigirDestinoDeclarado(): void {
+  if (process.env.IMAGE_STORE) return
+  if (ambiente() !== 'producao') return
+  throw new Error(
+    'IMAGE_STORE não está declarada. Em produção o destino das fotografias tem de ser dito por ' +
+      'escrito, senão elas ficam no disco do contentor e desaparecem no próximo deploy. ' +
+      'Defina IMAGE_STORE=s3 para o bucket, ou IMAGE_STORE=local se este servidor tiver disco ' +
+      'que sobreviva ao deploy — ver ops/README.md, "Onde as fotos ficam".',
+  )
 }
 
 /*

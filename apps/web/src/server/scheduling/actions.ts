@@ -64,7 +64,23 @@ export async function mudarStatus(formData: FormData): Promise<void> {
   if (!id || !LIVE_STATUSES.has(to)) return
 
   await autorizar(id, { precisaGerir: false })
-  await advanceStatus(id, to as LiveStatus)
+
+  /*
+    Este formulário não tem canal de erro — é `action={mudarStatus}` cru, e uma
+    excepção aqui troca a agenda inteira pela página de erro genérica. Mas a
+    recusa que interessa não é um erro do lado de quem carregou: é o painel
+    aberto noutro separador antes de alguém cancelar, e o botão "Confirmar" que
+    ficou lá de um estado que já não existe.
+    Engolir a recusa e revalidar é a resposta certa nesse caso — o ecrã
+    reaparece com a verdade, sem o cartão morto e sem os botões. Qualquer outra
+    falha continua a subir.
+  */
+  try {
+    await advanceStatus(id, to as LiveStatus)
+  } catch (e) {
+    if (!(e instanceof Error) || !e.message.startsWith('esta marcação foi cancelada')) throw e
+  }
+
   revalidateAgenda()
 }
 

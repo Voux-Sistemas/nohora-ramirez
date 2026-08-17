@@ -26,26 +26,36 @@ ARQUIVO="$(date -u +%Y-%m-%dT%H%M).sql.gz"
 # --no-owner e --no-privileges: os papéis do Postgres da Railway não existem
 # em outro lugar. Sem isso o restore quebra em cada GRANT de um dono ausente,
 # justamente quando o destino é outra máquina — que é o caso que importa.
-pg_dump --no-owner --no-privileges "$DATABASE_URL" | gzip -9 > "/tmp/$ARQUIVO"
-
-# Dump vazio é pior que dump nenhum: ele passa por bom até o dia do resgate.
-if [ ! -s "/tmp/$ARQUIVO" ]; then
-  echo "FALHOU: o dump saiu vazio" >&2
+#
+# Dump e compressão em dois passos, e não num cano.
+#
+# `set -e` não vê a morte do pg_dump dentro de um cano: em sh o estado de saída
+# de um cano é o do ÚLTIMO comando, que era o gzip, e o gzip teve sucesso. Com
+# a senha do banco rodada, ou o Supabase em baixo, o pg_dump morria em stderr,
+# o gzip lia EOF e escrevia um ficheiro válido de 20 bytes — cabeçalho e rodapé
+# de gzip, sem uma linha do salão lá dentro.
+#
+# A guarda de baixo foi escrita para apanhar exactamente isto, e não apanhava:
+# media o ficheiro COMPRIMIDO, e 20 bytes não é zero. Um `pipefail` resolveria,
+# mas o ash da imagem alpine não o garante; dois passos resolvem em qualquer sh.
+if ! pg_dump --no-owner --no-privileges "$DATABASE_URL" > /tmp/dump.sql; then
+  echo "FALHOU: o pg_dump não completou" >&2
   exit 1
 fi
 
-aws s3 cp "/tmp/$ARQUIVO" "s3://$BUCKET/$ARQUIVO" --endpoint-url "$ENDPOINT"
+# O piso é sobre o dump por comprimir, onde um banco vazio é mesmo pequeno. O
+# deste salão anda pelas centenas de KB; 50 KB apanha o dump truncado a meio e
+# o dump do banco errado (os antigos, pré-Supabase, tinham 8 KB).
+TAMANHO=$(wc -c < /tmp/dump.sql)
+if [ "$TAMANHO" -lt 51200 ]; then
+  echo "FALHOU: o dump saiu com $TAMANHO bytes — pequeno demais para ser este banco" >&2
+  exit 1
+fi
 
-# O nome é ISO, então ordem alfabética é ordem cronológica. Guarda os N mais
-# recentes e apaga o resto — senão o bucket cresce para sempre sem ninguém ver.
-aws s3 ls "s3://$BUCKET/" --endpoint-url "$ENDPOINT" \
-  | awk '{print $4}' \
-  | sort -r \
-  | tail -n "+$((RETENCAO + 1))" \
-  | while read -r antigo; do
-      echo "expirando $antigo"
-      aws s3 rm "s3://$BUCKET/$antigo" --endpoint-url "$ENDPOINT"
-    done
+gzip -9 -c /tmp/dump.sql > "/tmp/$ARQUIVO"
+rm -f /tmp/dump.sql
+
+aws s3 cp "/tmp/$ARQUIVO" "s3://$BUCKET/$ARQUIVO" --endpoint-url "$ENDPOINT"
 
 echo "BACKUP OK: $ARQUIVO ($(du -h "/tmp/$ARQUIVO" | cut -f1))"
 
@@ -70,3 +80,22 @@ case "$VERIFICAR" in
     exit 1
     ;;
 esac
+
+# A poda só depois da prova, e é de propósito.
+#
+# Estava antes, e por isso uma noite em que a cópia sai má fazia duas coisas ao
+# mesmo tempo: subia lixo e expirava um backup que prestava. Trinta noites assim
+# e o bucket tem trinta ficheiros com nomes certos e nada dentro. Agora uma
+# corrida que falha sai por `set -e` antes de aqui chegar, e a margem de trinta
+# dias fica intacta enquanto ninguém for ver o que se passou.
+#
+# O nome é ISO, então ordem alfabética é ordem cronológica. Guarda os N mais
+# recentes e apaga o resto — senão o bucket cresce para sempre sem ninguém ver.
+aws s3 ls "s3://$BUCKET/" --endpoint-url "$ENDPOINT" \
+  | awk '{print $4}' \
+  | sort -r \
+  | tail -n "+$((RETENCAO + 1))" \
+  | while read -r antigo; do
+      echo "expirando $antigo"
+      aws s3 rm "s3://$BUCKET/$antigo" --endpoint-url "$ENDPOINT"
+    done

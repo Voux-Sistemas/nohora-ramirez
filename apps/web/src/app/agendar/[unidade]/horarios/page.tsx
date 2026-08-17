@@ -146,6 +146,26 @@ export default async function EscolherHorarioPage({
    */
   const horizonEmpty = byDate.size === 0
 
+  /*
+    Vazio por lotação e vazio por falta de escala são o mesmo `byDate.size === 0`
+    e são coisas opostas para quem lê. Sem esta distinção, uma casa que ainda não
+    publicou a escala da equipa — que é o estado normal da semana de arranque, e
+    também o de quem está lotada nas duas lojas mas escalada só numa — dizia à
+    cliente "Agenda cheia" e, por baixo, "poucas profissionais a executam". As
+    duas frases eram inventadas: o salão está vazio e a combinação não tem nada
+    de longa. Perder uma cliente por parecer cheio é pior do que parecer novo.
+
+    `team` já traz a resposta: é a lista de quem pode executar este carrinho
+    nesta casa COM horário publicado (`staffForCart` descarta quem não tem
+    escala). Vazia significa que não há a quem pedir, não que não haja quando.
+
+    A distinção já existe no produto: `hoje.ts` criou o estado `sem-horario`
+    justamente para não dizer "Fechada" a uma loja que ainda não declarou
+    horário. Esta tela fazia o contrário.
+  */
+  const semEquipa = team.length === 0
+  const agendaCheia = horizonEmpty && !semEquipa
+
   return (
     <BookingShell
       step={3}
@@ -192,7 +212,10 @@ export default async function EscolherHorarioPage({
         </div>
       }
     >
-      <section aria-labelledby="profissional">
+      {/* Sem ninguém publicado, esta secção era um "Profissional" com uma única
+          bola cinzenta a dizer "Sem preferência" — um menu de escolha com zero
+          escolhas. Sai da tela, e a mensagem de baixo explica o estado. */}
+      <section aria-labelledby="profissional" className={cn(semEquipa && 'hidden')}>
         <SectionHead id="profissional">Profissional</SectionHead>
 
         <ul className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
@@ -297,21 +320,26 @@ export default async function EscolherHorarioPage({
 
       <section aria-labelledby="horarios" className="mt-10">
         <SectionHead id="horarios">
-          {horizonEmpty ? 'Agenda cheia' : formatDateLong(selected)}
+          {semEquipa ? 'Ainda sem horários' : agendaCheia ? 'Agenda cheia' : formatDateLong(selected)}
         </SectionHead>
 
         {horizonEmpty ? (
           <div className="rounded-plate border border-dashed border-(--border-strong) px-5 py-9 text-center">
             <p className="text-body measure mx-auto">
-              {staffId
-                ? 'Esta profissional não tem nenhum horário livre nas próximas duas semanas para esta combinação.'
-                : 'Não há horário livre nas próximas duas semanas para esta combinação de serviços. É longa e poucas profissionais a executam.'}
+              {semEquipa
+                ? 'Esta casa ainda não publicou horário para estes serviços. Não é que esteja cheia — é que a marcação online para eles ainda não abriu. A receção marca por telefone.'
+                : staffId
+                  ? 'Esta profissional não tem nenhum horário livre nas próximas duas semanas para esta combinação.'
+                  : 'Não há horário livre nas próximas duas semanas para esta combinação de serviços. É longa e poucas profissionais a executam.'}
             </p>
 
             {/* Saídas de verdade, na ordem em que resolvem: soltar a
-                preferência, encurtar a combinação, mudar de casa, ligar. */}
+                preferência, encurtar a combinação, mudar de casa, ligar.
+                Sem equipa publicada nenhuma das duas primeiras resolve nada —
+                mandar encurtar a combinação seria dar uma tarefa que não muda
+                o resultado —, então sobram a outra casa e o telefone. */}
             <div className="mt-6 flex flex-col items-center gap-3">
-              {staffId ? (
+              {semEquipa ? null : staffId ? (
                 <Link
                   href={withStaff(undefined) as never}
                   className={buttonVariants({ variant: 'outline', size: 'md' })}

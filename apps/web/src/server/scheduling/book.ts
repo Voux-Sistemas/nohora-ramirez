@@ -285,6 +285,27 @@ const TIMESTAMP_FIELD: Partial<Record<LiveStatus, 'checkedInAt' | 'startedAt' | 
   completed: 'completedAt',
 }
 
+/**
+ * Cancelar é ponto final. Depois dele não há para onde avançar.
+ *
+ * Cancelar APAGA os blocos de horário — é assim que o horário volta para a
+ * agenda. Uma marcação cancelada que voltasse a `confirmed` ou `completed`
+ * ressuscitava sem bloco nenhum: passava a desenhar-se por cima da cliente que
+ * entretanto ficou com aquela hora, e como `ItemBlock` ocupa a coluna inteira,
+ * quem desaparecia da vista era a cliente verdadeira. A recepção via um cartão
+ * de alguém que não vem e não via quem vem.
+ *
+ * A janela é curta — o painel de uma marcação já aberta noutro separador, antes
+ * do refresco de 45 s — mas o estrago é ver o dia errado. A ação irmã do lado
+ * da cliente (`conta/actions.ts`) já fazia esta guarda; esta porta nunca a
+ * recebeu.
+ */
+const ESTADOS_TERMINAIS = new Set<string>([
+  'cancelled_by_client',
+  'cancelled_by_studio',
+  'no_show',
+])
+
 export async function advanceStatus(
   appointmentId: string,
   to: LiveStatus,
@@ -298,6 +319,9 @@ export async function advanceStatus(
       .limit(1)
     if (!current) throw new Error(`Agendamento ${appointmentId} não existe`)
     if (current.status === to) return
+    if (ESTADOS_TERMINAIS.has(current.status)) {
+      throw new Error('esta marcação foi cancelada — para a retomar, marque de novo')
+    }
 
     const stamp = TIMESTAMP_FIELD[to]
     await tx
@@ -349,6 +373,15 @@ async function releaseAppointment(
     .where(eq(appointments.id, appointmentId))
     .limit(1)
   if (!current) throw new Error(`Agendamento ${appointmentId} não existe`)
+
+  /*
+    Cancelar o que já está cancelado não é inofensivo por causa da linha de
+    baixo: `no_show` soma uma falta à ficha da cliente. Dois toques em "Não
+    veio" — e o botão não se desliga enquanto o servidor responde — davam duas
+    faltas a quem faltou uma vez. A ficha dela passa a dizer que é reincidente,
+    e é por esse número que o salão decide pedir sinal.
+  */
+  if (ESTADOS_TERMINAIS.has(current.status)) return
 
   const items = await tx
     .select({ id: appointmentItems.id })

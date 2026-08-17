@@ -95,6 +95,36 @@ export default async function EncaixePage({
       }
     })
 
+    /*
+      Sem nenhum serviço entregável, o `ServicePicker` desenhava um corpo
+      completamente vazio por baixo do título "O que ela vai fazer?", com a
+      barra fixa a pedir "Escolha um ou mais serviços" e nada em que carregar.
+      É o ecrã que faz concluir que o sistema partiu — e não partiu: falta
+      configuração. O gémeo virado à cliente já dizia o que se passava; este,
+      que é onde está quem tem a correção na mão, nunca teve a frase.
+
+      As duas causas possíveis são exactamente estas, e cada uma tem link.
+    */
+    if (services.length === 0) {
+      return (
+        <Shell unit={unit.name} date={date} slug={unit.slug} title="Nada para marcar ainda">
+          <p className="text-body measure">
+            Nenhum serviço desta casa está pronto a ser executado. Ou ninguém tem os serviços
+            marcados em <strong className="font-medium">Serviços que executa</strong>, na ficha da
+            profissional, ou os serviços exigem um recurso que esta loja ainda não tem instalado.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href={href('/admin/equipe')} className={buttonVariants({ variant: 'outline' })}>
+              Abrir a equipa
+            </Link>
+            <Link href={href('/admin/recursos')} className={buttonVariants({ variant: 'outline' })}>
+              Abrir os recursos
+            </Link>
+          </div>
+        </Shell>
+      )
+    }
+
     return (
       <Shell unit={unit.name} date={date} slug={unit.slug} title="O que ela vai fazer?">
         <ServicePicker nextHref={base} services={services} ctaLabel="Ver horários" />

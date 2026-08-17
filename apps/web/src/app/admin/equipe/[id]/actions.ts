@@ -177,13 +177,32 @@ export interface EscalaState {
 export async function salvarEscala(_state: EscalaState, formData: FormData): Promise<EscalaState> {
   const staffId = String(formData.get('staffId') ?? '')
   if (!staffId) return { error: 'Profissional inválido.' }
-  const { acesso } = await autorizarStaff(staffId)
+  const { acesso, alvo } = await autorizarStaff(staffId)
 
   const lido = parseSchedule(formData)
   if ('error' in lido) return { error: lido.error }
 
   for (const row of lido.rows) {
     if (!veUnidade(acesso, row.unitId)) return { error: NEGADO }
+
+    /*
+      Escalar alguém para uma loja onde ela não está lotada gravava a linha e
+      nunca mais ninguém a lia: a agenda cruza `staff_schedules` com
+      `staff_units`, e sem a lotação a pessoa nem entra no contexto daquela
+      casa. O que a dona via era a escala escrita na ficha, um "Escala
+      atualizada." a verde, e a agenda da Maia a dizer "Ninguém escalado neste
+      dia." — duas telas a afirmar o contrário uma da outra, sem nada a ligar
+      a causa ao efeito. A loja perdia o dia inteiro de marcação online e
+      ninguém tinha por onde descobrir porquê.
+
+      A recusa nomeia o dia, porque a escala tem sete linhas e "loja inválida"
+      obrigaria a caçar qual delas.
+    */
+    if (!alvo.unitIds.includes(row.unitId)) {
+      return {
+        error: `Na ${DIA[row.weekday]} está escalada para uma loja onde não está lotada — a agenda dessa casa nunca leria essa escala. Marque a loja em "Unidades", guarde a ficha, e volte aqui.`,
+      }
+    }
   }
 
   /* "Hoje" é o dia do salão, não o do relógio do servidor. O contentor corre em

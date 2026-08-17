@@ -276,6 +276,30 @@ export default async function ProfissionalFormPage({
                   )
                 }
 
+                /* Escala escrita numa loja onde ela não está lotada. A agenda
+                   dessa casa nunca leu esta linha — cruza a escala com a
+                   lotação — portanto o que está aqui é um dia que parecia
+                   trabalhado e nunca esteve à venda. Não vai ao menu (ele só
+                   oferece as lojas dela), e por isso guardar a escala retira-o.
+                   Dizê-lo antes é a diferença entre arrumar e apagar. */
+                if (row && !unitIds.has(row.unitId)) {
+                  return (
+                    <div
+                      key={weekday}
+                      className="grid grid-cols-1 gap-1 border-b border-(--border-subtle) pb-3 text-sm last:border-0 last:pb-0 sm:grid-cols-[100px_1fr] sm:items-center sm:gap-3 sm:border-0 sm:pb-0"
+                    >
+                      <span className="text-(--text-strong) font-medium sm:text-muted sm:font-normal">
+                        {label}
+                      </span>
+                      <span className="text-(--estado-mau)">
+                        escalada numa loja onde não está lotada — a agenda dessa casa nunca mostrou
+                        este dia. Marque a loja em «Unidades» e guarde a ficha, ou guarde a escala
+                        para o retirar.
+                      </span>
+                    </div>
+                  )
+                }
+
                 return (
                   <div
                     key={weekday}
@@ -290,11 +314,19 @@ export default async function ProfissionalFormPage({
                       defaultValue={row?.unitId ?? ''}
                     >
                       <option value="">Folga</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
-                      ))}
+                      {/* Só as lojas onde ela está lotada. Oferecer as outras
+                          era oferecer uma escolha que grava e nunca é lida: a
+                          agenda cruza a escala com a lotação, e sem lotação a
+                          pessoa não existe naquela casa. O menu oferecia
+                          exactamente a loja que a secção "Unidades", dois
+                          palmos acima, mostrava desmarcada. */}
+                      {units
+                        .filter((u) => unitIds.has(u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
                     </select>
                     <input
                       className="field"

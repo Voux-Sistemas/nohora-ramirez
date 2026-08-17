@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import {
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
+  exigirDestinoDeclarado,
   extensionFor,
   imageStore,
   sniffImageType,
@@ -96,6 +97,16 @@ interface Conferida {
 }
 
 async function conferir(file: File): Promise<Conferida> {
+  /*
+    A primeira pergunta não é sobre o ficheiro, é sobre o destino.
+
+    Está aqui e não em `gravar` porque `conferirImagem` existe justamente para
+    recusar antes de criar o registo que a foto acompanha. Se o destino não
+    estiver declarado, a recusa tem de vir no mesmo momento — não depois da loja
+    já existir no banco. Toda a escrita passa por aqui; a leitura não passa.
+  */
+  exigirDestinoDeclarado()
+
   if (file.size === 0) throw new UploadError(MESSAGES.empty)
   if (file.size > MAX_IMAGE_BYTES) throw new UploadError(MESSAGES.tooBig)
 

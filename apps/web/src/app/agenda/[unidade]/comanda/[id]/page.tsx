@@ -101,7 +101,7 @@ export default async function ComandaPage({
           <ComandaForm
             appointmentId={comanda.appointmentId}
             unitSlug={unit.slug}
-            total={comanda.total}
+            total={comanda.grossTotal}
             metodos={metodos}
           />
         </section>

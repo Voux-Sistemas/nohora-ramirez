@@ -80,7 +80,22 @@ export interface ComandaView {
   subtotal: number
   discount: number
   discountReason: string | null
+  /**
+   * O líquido: o que a cliente paga depois do desconto.
+   *
+   * Devolvia o bruto, e o recibo de uma comanda fechada contradizia-se — dizia
+   * Subtotal 60,00 €, Desconto −10,00 € e Total 60,00 €, com 50,00 € pagos por
+   * baixo. Quem lê um recibo assim não sabe se cobrou a menos.
+   */
   total: number
+  /**
+   * O bruto, que é a base de que o fecho subtrai o desconto.
+   *
+   * Fica separado porque o formulário de fecho precisa exactamente do mesmo
+   * número que `closeComanda` usa em `expectedTotal` — se lhe passássemos o
+   * líquido, o botão só acenderia com o desconto contado duas vezes.
+   */
+  grossTotal: number
   payments: ComandaPaymentView[]
   paidTotal: number
   closed: boolean
@@ -150,7 +165,8 @@ export async function getComanda(appointmentId: string): Promise<ComandaView | n
     subtotal,
     discount,
     discountReason: discountRow[0]?.reason ?? null,
-    total: row.totalPrice,
+    total: row.totalPrice - discount,
+    grossTotal: row.totalPrice,
     payments: paymentRows,
     paidTotal,
     closed: closure.length > 0,

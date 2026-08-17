@@ -132,7 +132,9 @@ export default async function RemarcarPage({
                 <input type="hidden" name="id" value={id} />
                 <input type="hidden" name="unidade" value={unit.slug} />
                 <input type="hidden" name="data" value={date} />
-                <input type="hidden" name="cliente" value={appointment.clientId} />
+                {/* Não vai daqui a cliente: quem remarca é a ação, e ela lê-a do
+                    atendimento. Um campo escondido com o dono lá dentro era um
+                    campo por onde a marcação mudava de dona. */}
                 <input type="hidden" name="servicos" value={serviceIds.join(',')} />
                 <input type="hidden" name="inicio" value={slot.start} />
                 {staffId ? <input type="hidden" name="profissional" value={staffId} /> : null}

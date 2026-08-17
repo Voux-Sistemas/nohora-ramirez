@@ -46,15 +46,30 @@ export function ImageField({
 
   const shown = preview ?? (removed ? null : current)
 
+  /*
+    Recusar aqui tem de esvaziar o input, e não só escrever a frase.
+
+    O ficheiro recusado continuava dentro do `<input type="file">`, e o input
+    viaja no submit. A pessoa escolhia um HEIC de 20 MB vindo do telemóvel, lia
+    "Formato não aceite", desistia da foto, corrigia o nome e carregava em
+    Guardar — e o servidor recusava a gravação inteira por causa de uma foto que
+    ela já tinha dado por perdida. O que ela vê é o painel a recusar duas vezes
+    seguidas por um motivo que já resolveu ignorando-o.
+  */
+  function recusar(mensagem: string) {
+    setError(mensagem)
+    if (input.current) input.current.value = ''
+  }
+
   function accept(file: File | undefined) {
     setError(null)
     if (!file) return
     if (!ACCEPTED.includes(file.type)) {
-      setError('Formato não aceite. Envie JPG, PNG, WebP ou AVIF.')
+      recusar('Formato não aceite. Envie JPG, PNG, WebP ou AVIF.')
       return
     }
     if (file.size > MAX_BYTES) {
-      setError('A imagem passa de 8 MB. Reduza e tente de novo.')
+      recusar('A imagem passa de 8 MB. Reduza e tente de novo.')
       return
     }
     // objectURL em vez de FileReader: não carrega o arquivo inteiro na memória

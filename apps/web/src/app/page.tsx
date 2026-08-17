@@ -7,7 +7,7 @@ import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { Photo } from '@/components/ui/photo'
 import { Section } from '@/components/ui/section'
 import { db } from '@/lib/db'
-import { formatMoney, formatMoneyShort, formatMonthLong } from '@/lib/format'
+import { formatDateLong, formatMoney, formatMoneyShort, formatMonthLong } from '@/lib/format'
 import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
 import {
@@ -294,11 +294,12 @@ export default async function PainelPage() {
     .slice(0, 6)
 
   const maxMes = Math.max(1, ...unidades.map((u) => u.faturamento))
-  const data = new Date().toLocaleDateString(pais().locale, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
+  /* A data do cabeçalho no fuso da loja, e não no do servidor. O servidor corre
+     em UTC; no horário de verão Portugal está uma hora à frente, e entre as 23h
+     e a meia-noite esta linha escrevia a data de ontem por cima dos números de
+     hoje — que já vêm de `isoDateInZone`. A pauta fica aberta na recepção o dia
+     inteiro, incluindo à hora de fechar. */
+  const data = formatDateLong(isoDateInZone(new Date(), pais().fusoPadrao))
 
   return (
     <>

@@ -24,8 +24,7 @@ export async function remarcar(formData: FormData): Promise<void> {
   const inicio = String(formData.get('inicio') ?? '')
   const servicos = String(formData.get('servicos') ?? '')
   const profissional = String(formData.get('profissional') ?? '')
-  const clientId = String(formData.get('cliente') ?? '')
-  if (!id || !unidade || !inicio || !servicos || !clientId) return
+  if (!id || !unidade || !inicio || !servicos) return
 
   const appointment = await getAppointment(id)
   if (!appointment) throw new Error('atendimento não encontrado')
@@ -36,9 +35,14 @@ export async function remarcar(formData: FormData): Promise<void> {
   const destino = await getUnitBySlug(unidade)
   if (!destino || destino.id !== appointment.unitId) throw new Error('unidade inválida')
 
+  /* A cliente é a do atendimento que se está a mover, lida do banco. Vinha do
+     formulário, e `rescheduleAppointment` reserva com quem lhe passarem: um
+     campo trocado remarcava a hora em nome de outra pessoa — a marcação saía do
+     histórico de quem a fez e aparecia no de quem nunca lá esteve, com o nome
+     errado a chegar à porta no dia. Remarcar muda a hora, não a cliente. */
   const result = await rescheduleAppointment(id, {
     unitSlug: unidade,
-    clientId,
+    clientId: appointment.clientId,
     cart: servicos
       .split(',')
       .filter(Boolean)

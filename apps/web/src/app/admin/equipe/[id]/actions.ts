@@ -16,6 +16,7 @@ import {
   type StaffInput,
 } from '@/server/admin/staff'
 import { assertGestao, podeRede, podeSuporte, veUnidade, type Acesso } from '@/server/auth/permissoes'
+import { mensagemDoErro } from '@/server/erros'
 
 /**
  * Cadastro de equipe.
@@ -111,7 +112,7 @@ export async function salvarProfissional(
     staffId = id === 'novo' ? await createStaff(input, escopo) : id
     if (id !== 'novo') await updateStaff(id, input, escopo)
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'não foi possível guardar' }
+    return { error: mensagemDoErro(e, 'não foi possível guardar este profissional') }
   }
 
   revalidatePath('/admin/equipe')

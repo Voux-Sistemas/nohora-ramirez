@@ -279,6 +279,26 @@ export async function createStaff(input: StaffInput, escopo: EscopoEquipe = null
       .where(eq(users.phone, phone))
       .limit(1)
 
+    /* Uma pessoa, um perfil de equipa: `staff_profiles.user_id` é único.
+       Sem esta pergunta, cadastrar alguém com o telefone de quem já atende
+       batia na unique e devolvia o SQL cru à dona — foi o que aconteceu ao
+       tentar criar a ficha com o número do Kauan, que já estava na equipa.
+       O telefone é a chave da pessoa em todo o sistema (é por ele que se
+       entra), portanto repetido quer dizer mesma pessoa, e mesma pessoa
+       quer dizer ficha que já existe. */
+    if (existingUser) {
+      const [jaNaEquipa] = await tx
+        .select({ id: staffProfiles.id, nome: staffProfiles.displayName })
+        .from(staffProfiles)
+        .where(eq(staffProfiles.userId, existingUser.id))
+        .limit(1)
+      if (jaNaEquipa) {
+        throw new Error(
+          `este telefone já é de ${jaNaEquipa.nome}, que está na equipa — abra a ficha dessa pessoa em vez de criar outra`,
+        )
+      }
+    }
+
     const userId =
       existingUser?.id ??
       (
@@ -325,6 +345,21 @@ export async function updateStaff(
       .where(eq(staffProfiles.id, id))
       .limit(1)
     if (!profile) throw new Error('profissional não encontrado')
+
+    /* O mesmo pela outra ponta: `users.phone` também é único. Corrigir o
+       número para um que já é de outra pessoa é engano de digitação com uma
+       consequência séria — as duas contas passariam a disputar a mesma porta
+       de entrada —, e sem esta pergunta a recusa chegava como SQL. */
+    const [donoDoNumero] = await tx
+      .select({ id: users.id, nome: users.name })
+      .from(users)
+      .where(eq(users.phone, phone))
+      .limit(1)
+    if (donoDoNumero && donoDoNumero.id !== profile.userId) {
+      throw new Error(
+        `este telefone já está registado em ${donoDoNumero.nome} — dois registos não podem partilhar o mesmo número`,
+      )
+    }
 
     await tx
       .update(users)

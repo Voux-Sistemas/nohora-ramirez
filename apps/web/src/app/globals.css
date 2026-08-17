@@ -474,6 +474,37 @@
 }
 
 /*
+  Nenhum campo desce abaixo de 16px onde se toca com o dedo.
+
+  Foi a queixa do iPhone: "passo de uma tela para outra e ela fica com um leve
+  zoom, tenho de afastar com dois dedos". Não é a transição — é o Safari. Ao
+  tocar num `input`, `select` ou `textarea` com letra menor que 16px, o iOS
+  aproxima a página sozinho para o campo ficar legível, e **não volta atrás**:
+  navegar não repõe a escala, portanto todas as telas seguintes abrem
+  aproximadas até a pessoa afastar à mão. O `.field` já nascia a 16px de
+  propósito; o que furava a regra eram os três controlos que não usam `.field`
+  e traziam `text-sm` — sendo o pior a caixa de seleção da loja, que vive na
+  barra de cima de TODAS as telas de operação e por isso contaminava a sessão
+  inteira logo ao primeiro toque.
+
+  Esta regra fica de fora das camadas do Tailwind de propósito: estilo sem
+  camada ganha a qualquer utilidade, e é isso que faz um `text-sm` novo, amanhã,
+  não trazer o problema de volta. `max()` só levanta o piso — quem já é maior
+  fica maior. Em rato (`pointer: fine`) nada muda: a densidade da recepção ao
+  computador fica exatamente como está.
+
+  Caixa e botão de rádio ficam fora: são quadrados, não têm texto dentro, e o
+  iOS não dá zoom por causa deles.
+*/
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio']),
+  select,
+  textarea {
+    font-size: max(1rem, 1em);
+  }
+}
+
+/*
   Movimento é opcional para quem pediu para desligar. Toda animação daqui tem
   alternativa: some a distância, fica a troca de opacidade.
 */

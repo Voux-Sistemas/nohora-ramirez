@@ -120,6 +120,7 @@ de virar um lançamento no caixa da loja vizinha.
 | `AMBIENTE` | `producao` ou `teste`. Sem ela, `NODE_ENV=production` já vale como produção |
 | `CODIGO_INSTALACAO` | liberta `/comecar` enquanto não houver conta de equipa |
 | `PAIS` | `PT` ou `BR`. Decide moeda, idioma, fuso padrão e o formato de telefone que o formulário aceita |
+| `SITE_URL` | o endereço público, com esquema e sem barra no fim. Alimenta o `sitemap.xml`, o `robots.txt` e a fotografia do cartão de partilha. Vazia, vale o domínio que a Railway publica |
 | `DATABASE_URL` | pooler de **transação** do Supabase (6543), como o papel `app_web`. É por aqui que o site lê e escreve |
 | `DIRECT_URL` | pooler de **sessão** do Supabase (5432), como o papel dono. Só migration, constraints e seed passam por aqui |
 | `IMAGE_STORE` | `s3` em produção, `local` no padrão. Ver abaixo |
@@ -209,6 +210,13 @@ nenhum — diz que a área está em preparação e manda falar com o salão. Par
 3. `railway variable set "EMAIL_REMETENTE=Nohora Ramirez <nao-responda@dominio.pt>" --service web`
 
 Não há passo de código. A área abre sozinha no deploy seguinte.
+
+O domínio que se registar no passo 1 serve duas coisas ao mesmo tempo, e a
+segunda esquece-se: aproveitar para o apontar também ao site e declarar
+`railway variable set SITE_URL=https://dominio.pt --service web`. É essa
+variável que põe o endereço certo no `sitemap.xml`, no `robots.txt` e na
+fotografia que aparece quando a cliente partilha o link da loja no WhatsApp —
+sem ela fica o endereço `.up.railway.app`, que funciona mas não é o do salão.
 
 Quem não tem e-mail na ficha não consegue entrar — o ecrã diz isso e manda
 falar com o salão. O agendamento já pede o e-mail, então quem marcou pelo site

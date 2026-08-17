@@ -37,17 +37,23 @@ descartar o fim da lista.
 
 ## A prova do restore
 
-Todos os domingos, logo depois do dump, o `verificar.sh` descarrega o ficheiro
-**do bucket**, confere que o gzip está inteiro, levanta um Postgres efémero
-dentro do próprio contentor, restaura lá e conta o que voltou. Se vierem menos
-de 30 tabelas ou menos de 2 travas de exclusão, ele falha — as duas travas são
-as anti-overbooking, e um restore sem elas passaria por bom a aceitar dois
-clientes no mesmo horário.
+Logo depois do dump, o `verificar.sh` descarrega o ficheiro **do bucket**,
+confere que o gzip está inteiro, levanta um Postgres efémero dentro do próprio
+contentor, restaura lá e conta o que voltou. Se vierem menos de 30 tabelas ou
+menos de 2 travas de exclusão, ele falha — as duas travas são as
+anti-overbooking, e um restore sem elas passaria por bom a aceitar dois clientes
+no mesmo horário.
 
 Descarrega do bucket em vez de reaproveitar o ficheiro local de propósito: a
 prova precisa de cobrir o upload e a leitura de volta, não só o `pg_dump`.
 
-Para conferir na hora, sem esperar domingo: `VERIFICAR=sempre`.
+**Em produção isto corre todas as noites, não aos domingos:** o serviço está com
+`VERIFICAR=sempre` desde o arranque no Supabase. O padrão do script continua a
+ser `semanal` — quem clonar isto sem definir a variável tem prova ao domingo — e
+a diferença é decisão de operação, não de código: nas primeiras semanas de um
+banco novo, saber na manhã seguinte que o backup presta vale mais do que os
+segundos de CPU que a prova diária custa. Para voltar ao semanal troca-se a
+variável no serviço e mais nada.
 
 ### Porque é que o restore acontece dentro do contentor
 

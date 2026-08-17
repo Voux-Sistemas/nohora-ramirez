@@ -172,5 +172,5 @@ duas — fica para depois do arranque da cliente, e é decisão dela, não dívi
 | Marcação dupla por concorrência | Duas clientes na mesma cadeira, descoberto ao balcão | Constraint `EXCLUDE` no banco, conferida pelo nome a cada deploy |
 | Comissão divergente | Atrito directo com a equipa | Percentagem e base congeladas na entrada; nunca se recomputa o histórico |
 | Seed apontado ao banco do salão | Apaga agenda e registos, sem confirmação e sem volta | `deployment_env` dentro do banco, que viaja com ele |
-| Backup que nunca se provou | No plano Free do Supabase, é a única rede | Prova de restauro semanal em `ops/backup` |
+| Backup que não presta no dia do resgate | No plano Free do Supabase, é a única rede | Restauro provado todas as noites em `ops/backup`, num Postgres virgem, com as 41 tabelas e as 2 travas conferidas. Primeira prova contra o Supabase a 14/08/2026 |
 | Volume perdido | Banco íntegro a apontar para fotografias que já não existem | As imagens vivem no bucket, não em disco |

@@ -135,6 +135,9 @@ export function OperateTopbar({
           </span>
           <SeletorTema />
           <form action={sair}>
+            {/* Sair aqui é quase sempre trocar de pessoa no mesmo balcão: cai
+                na porta, não na montra. */}
+            <input type="hidden" name="para" value="/entrar" />
             <button
               type="submit"
               className="rounded-plate text-(--on-ink-muted) hover:text-(--on-ink) min-h-11 px-1 transition-colors"

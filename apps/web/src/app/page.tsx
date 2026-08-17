@@ -9,7 +9,7 @@ import { db } from '@/lib/db'
 import { formatMoney, formatMoneyShort } from '@/lib/format'
 import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
-import { requireGestao, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
+import { requireGestaoOuMontra, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,7 +145,7 @@ export default async function HomePage() {
   /* A página mostra faturamento das lojas. Antes era pública: qualquer um com o
      endereço lia o caixa da rede. Hoje ela é da dona e do gerente — quem atende
      é levado para a própria agenda, que é o "hoje" dela. */
-  const acesso = await requireGestao()
+  const acesso = await requireGestaoOuMontra()
   const today = await loadToday(acesso)
   const mes = await loadMesResumo(today)
 

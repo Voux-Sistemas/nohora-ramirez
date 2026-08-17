@@ -229,6 +229,27 @@ export async function requireGestao(): Promise<Acesso> {
   return acesso
 }
 
+/**
+ * O porteiro de `/`, que é o único endereço da casa com duas caras.
+ *
+ * `/` é a raiz do domínio — é o que está no cartão, no Instagram e no que a
+ * cliente escreve de cabeça. Para quem entrou, é o dia da rede. Para quem
+ * chegou pelo link, tem de ser a montra: um formulário de senha de equipa como
+ * primeira tela do salão é a porta de serviço aberta para a rua.
+ *
+ * Vale igual para a cliente com sessão dela: sessão sem papel de equipa não é
+ * gente de dentro, e mandá-la para `/entrar` seria pedir-lhe uma senha que ela
+ * nunca teve. Qual montra é decisão de `/loja`, que já a toma — uma casa leva à
+ * casa, mais do que uma leva à escolha.
+ */
+export async function requireGestaoOuMontra(): Promise<Acesso> {
+  const session = await getSession()
+  const acesso = session ? await acessoDe(session) : null
+  if (!acesso) redirect('/loja')
+  if (!podeGerir(acesso)) redirect(inicio(acesso))
+  return acesso
+}
+
 export async function requireRede(): Promise<Acesso> {
   const acesso = await requireAcesso()
   if (!podeRede(acesso)) redirect(inicio(acesso))

@@ -83,7 +83,10 @@ export function BookingShell({
     <div className="flex min-h-dvh flex-col">
       <header className="bg-(--surface-ink) text-(--on-ink)">
         <div className={cn('mx-auto flex w-full items-center gap-4 px-5 py-4 sm:px-8', outer)}>
-          <Link href="/" className="shrink-0 rounded-plate">
+          {/* A montra, não `/` — `/` é o dia da equipa, e o logótipo do salão
+              não pode levar a cliente a um formulário de senha no meio da
+              marcação. */}
+          <Link href="/loja" className="shrink-0 rounded-plate">
             <Wordmark size="sm" align="left" />
           </Link>
           <span className="label-caps tnum ml-auto text-right text-(--on-ink-muted)">

@@ -11,9 +11,15 @@ export interface LoginState {
   error?: string
 }
 
-/** Só aceita caminho interno — evita redirecionar para fora depois do login. */
+/**
+ * Só aceita caminho interno — evita redirecionar para fora depois do login.
+ *
+ * Sem destino, a raiz: é ela que sabe o início de cada degrau. Mandar para
+ * `/admin` levava a profissional a uma tela que ela não pode abrir, para ser
+ * devolvida no mesmo instante.
+ */
 function safeNext(next: string): string {
-  return next.startsWith('/') && !next.startsWith('//') ? next : '/admin'
+  return next.startsWith('/') && !next.startsWith('//') ? next : '/'
 }
 
 /**

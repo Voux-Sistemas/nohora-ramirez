@@ -97,8 +97,12 @@ nada oferece a vaga quando alguém cancela. Hoje, cancelamento é buraco na agen
 O sinal antecipado está modelado — `requires_deposit`, `deposit_type`, `deposit_value`,
 `deposit_paid_at` — e não fala com banco nenhum: marcar "exige sinal" só quer dizer que a
 receção sabe que tem de o pedir. O Asaas e o Pix saíram do plano por serem brasileiros, e
-nenhum substituto europeu foi escolhido porque nada no salão está à espera disso. Fica ainda
-por limpar o `pix` do enum de métodos de pagamento, que aparece morto na lista do balcão.
+nenhum substituto europeu foi escolhido porque nada no salão está à espera disso.
+
+O `pix` **já não aparece no balcão**: `metodosDoPais()` tira-o quando `PAIS` não é `BR`. No
+enum do banco ele fica, de propósito — uma comanda fechada com Pix no Brasil tem de continuar
+a ler-se "Pix" para sempre, e apagar um valor de enum que o histórico referencia é perder
+registo. A lista de métodos é decisão de país; o enum é memória.
 
 Sem retenção de sinal, o que resta contra a falta é `no_show_count` e a marca na ficha —
 informação para a receção decidir, não cobrança automática.

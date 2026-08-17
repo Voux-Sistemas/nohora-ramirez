@@ -1,3 +1,4 @@
+import net from 'node:net'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema/index'
@@ -104,6 +105,135 @@ const LIGACAO_S = 10
 */
 const VIDA_S = 600 + Math.floor(Math.random() * 300)
 
+/*
+  O quarto número é do nosso lado do fio, e é o que faltava.
+
+  Os três de cima tratam de ligações paradas, lentas a nascer e velhas demais.
+  Nenhum trata do caso que nos derrubou a seguir, no mesmo dia: a ligação está
+  aberta, a pergunta saiu, e a resposta não chega nunca. Do lado do banco isso
+  aparece como `wait_event: ClientRead` — o servidor à espera do cliente —, e é
+  por isso que o `statement_timeout` de dez segundos do papel `app_web` não
+  dispara: o Postgres não está a executar nada, está à escuta. O `postgres.js`
+  3.4 também não tem prazo nenhum para uma resposta: a promessa da consulta fica
+  pendente para sempre, a ligação nunca volta ao pool, e ao fim de dez pedidos o
+  site está pendurado outra vez. Foi assim que uma ligação sozinha ficou 448
+  segundos a segurar um `select` da tabela `units`.
+
+  O prazo tem de ser nosso e tem de estar no socket, porque o socket é a única
+  peça que ninguém está a vigiar. Damos a tomada ao driver já ligada e deixamos
+  lá um relógio: de dois em dois segundos compara os contadores do próprio
+  socket. Se escrevemos alguma coisa e não voltou um único byte durante vinte e
+  cinco segundos, a linha está morta e deitamos o socket fora. Aí o `postgres.js`
+  faz o que sabe fazer sozinho — rejeita a consulta pendente, fecha e volta a
+  ligar. A tela dá erro e recarrega-se; o pool não se esvazia.
+
+  Vinte e cinco segundos é escolhido para ficar acima de qualquer resposta
+  legítima: o `app_web` corta qualquer consulta aos dez, portanto um banco
+  saudável responde sempre muito antes — nem que seja para dizer que expirou.
+
+  O limite honesto disto: os contadores dizem quantos bytes passaram, não por
+  que ordem. Se uma pergunta sair no mesmo intervalo de dois segundos em que
+  chegou a resposta da anterior, o relógio lê «veio resposta» e não arma — é o
+  caso de duas consultas coladas na mesma ligação. A avaria que tivemos era a
+  outra, a ligação tirada do pool depois de parada, e essa fica coberta. Contar
+  ao contrário, armando na dúvida, mataria as ligações paradas de propósito, que
+  neste site são a esmagadora maioria.
+*/
+const PASSO_MS = 2_000
+const SILENCIO_MS = 25_000
+
+/*
+  `socket` é opção oficial do `postgres.js` desde a 3.x, mas não está nos tipos
+  publicados — o `types/index.d.ts` só fala do socket unix. O molde abaixo é a
+  declaração que falta, não um contorno ao verificador.
+
+  Duas consequências de entregar a tomada já ligada, ambas aceites: o driver
+  deixa de rodar entre vários `host` da URL (a nossa tem um só), e o
+  `connect_timeout` dele só arranca depois desta promessa resolver — por isso a
+  ligação leva prazo próprio aqui dentro.
+*/
+type DestinoDaTomada = { host: string[]; port: number[] }
+type TomadaDoDriver = net.Socket & { host?: string; port?: number }
+type OpcoesComTomada = postgres.Options<Record<string, postgres.PostgresType>> & {
+  socket: (opcoes: DestinoDaTomada) => Promise<net.Socket>
+}
+
+function tomadaComPrazo(opcoes: DestinoDaTomada): Promise<net.Socket> {
+  return new Promise((resolve, reject) => {
+    const [host] = opcoes.host
+    const [port] = opcoes.port
+    if (host === undefined || port === undefined) {
+      reject(new Error('DATABASE_URL sem servidor de banco'))
+      return
+    }
+
+    const tomada: TomadaDoDriver = net.connect({ host, port })
+    /* O driver lê isto para o `servername` do TLS. É ele que costuma pôr, mas
+       quem liga a tomada aqui somos nós. */
+    tomada.host = host
+    tomada.port = port
+    tomada.setNoDelay(true)
+
+    const prazoDeLigar = setTimeout(() => {
+      tomada.destroy(new Error(`sem ligação ao banco em ${LIGACAO_S}s`))
+    }, LIGACAO_S * 1000)
+
+    const falhou = (erro: Error) => {
+      clearTimeout(prazoDeLigar)
+      reject(erro)
+    }
+    tomada.once('error', falhou)
+    tomada.once('connect', () => {
+      clearTimeout(prazoDeLigar)
+      tomada.removeListener('error', falhou)
+      vigiarSilencio(tomada)
+      resolve(tomada)
+    })
+  })
+}
+
+/**
+ * O relógio que fica com o socket até ao fim dele.
+ *
+ * Vive de contadores, e não de eventos, de propósito: quando o driver sobe a
+ * ligação para TLS chama `removeAllListeners()` na tomada crua e passa a falar
+ * pelo embrulho, de modo que qualquer `on('data')` nosso desaparecia ali. Os
+ * `bytesRead`/`bytesWritten` da tomada continuam a contar por baixo do TLS.
+ *
+ * `unref()` porque um relógio destes, sozinho, segurava o processo de pé.
+ */
+function vigiarSilencio(tomada: net.Socket): void {
+  let lidos = tomada.bytesRead
+  /* Marca de água: quanto tínhamos escrito da última vez que nos responderam.
+     Enquanto o escrito passar disto, há pergunta à espera de resposta. */
+  let escritos = tomada.bytesWritten
+  let calado = 0
+
+  const ronda = setInterval(() => {
+    if (tomada.destroyed) {
+      clearInterval(ronda)
+      return
+    }
+
+    if (tomada.bytesRead !== lidos) {
+      lidos = tomada.bytesRead
+      escritos = tomada.bytesWritten
+      calado = 0
+      return
+    }
+
+    if (tomada.bytesWritten === escritos) return // linha parada, nada por responder
+
+    calado += PASSO_MS
+    if (calado < SILENCIO_MS) return
+
+    clearInterval(ronda)
+    tomada.destroy(new Error(`o banco não respondeu em ${SILENCIO_MS / 1000}s`))
+  }, PASSO_MS)
+
+  ronda.unref()
+}
+
 /**
  * Conexão única e preguiçosa. `max: 1` no worker e em scripts evita estourar
  * o limite de conexões do Postgres gerenciado.
@@ -111,7 +241,7 @@ const VIDA_S = 600 + Math.floor(Math.random() * 300)
 export function getDb(options?: { max?: number }) {
   const holder = globalThis as PoolHolder
   const url = connectionString()
-  holder[POOL] ??= postgres(url, {
+  const opcoes: OpcoesComTomada = {
     max: options?.max ?? 10,
     prepare: !ehPoolerDeTransacao(url),
     idle_timeout: OCIOSO_S,
@@ -119,7 +249,9 @@ export function getDb(options?: { max?: number }) {
     max_lifetime: VIDA_S,
     // o Postgres devolve timestamptz; deixamos o driver entregar Date em UTC
     transform: { undefined: null },
-  })
+    socket: tomadaComPrazo,
+  }
+  holder[POOL] ??= postgres(url, opcoes)
   return drizzle(holder[POOL], { schema })
 }
 

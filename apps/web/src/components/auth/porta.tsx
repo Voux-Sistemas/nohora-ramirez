@@ -1,5 +1,4 @@
-import Link from 'next/link'
-import { Wordmark } from '@/components/brand/mark'
+import { FaixaDaMarca } from '@/components/brand/faixa'
 
 /**
  * Casca das telas de porta: entrar, recuperar a palavra-passe, código de acesso
@@ -36,13 +35,7 @@ export function Porta({
 }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="bg-(--surface-ink) text-(--on-ink)">
-        <div className="mx-auto flex w-full max-w-md items-center px-5 py-4 sm:px-8">
-          <Link href={home as never} className="rounded-plate">
-            <Wordmark size="sm" align="left" />
-          </Link>
-        </div>
-      </header>
+      <FaixaDaMarca largura="max-w-md" home={home} />
 
       {/*
         `pt-12` e não centrado: a tela de porta é curta por natureza, e uma tela

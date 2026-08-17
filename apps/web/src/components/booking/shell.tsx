@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Wordmark } from '@/components/brand/mark'
+import { FaixaDaMarca } from '@/components/brand/faixa'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['Unidade', 'Serviços', 'Horário', 'Confirmar'] as const
@@ -81,34 +81,33 @@ export function BookingShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="bg-(--surface-ink) text-(--on-ink)">
-        <div className={cn('mx-auto flex w-full items-center gap-4 px-5 py-4 sm:px-8', outer)}>
-          {/* A montra, não `/` — `/` é o dia da equipa, e o logótipo do salão
-              não pode levar a cliente a um formulário de senha no meio da
-              marcação. */}
-          <Link href="/loja" className="shrink-0 rounded-plate">
-            <Wordmark size="sm" align="left" />
-          </Link>
-          <span className="label-caps tnum ml-auto text-right text-(--on-ink-muted)">
+      {/* A marca leva à montra e não a `/` — `/` é o dia da equipa, e o
+          logótipo do salão não pode levar a cliente a um formulário de senha no
+          meio da marcação. É o valor por omissão da faixa. */}
+      <FaixaDaMarca
+        largura={outer}
+        fim={
+          <span className="label-caps tnum block text-right text-(--on-ink-muted)">
             <span className="text-(--on-ink)">{step}</span> de {STEPS.length}
             <span className="hidden sm:inline"> · {STEPS[step - 1]}</span>
           </span>
-        </div>
-
-        <div
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={STEPS.length}
-          aria-valuenow={step}
-          aria-valuetext={`Passo ${step} de ${STEPS.length}: ${STEPS[step - 1]}`}
-          className="h-px w-full bg-(--border-on-ink)"
-        >
+        }
+        abaixo={
           <div
-            className="h-full bg-(--accent) transition-[width] duration-700 ease-(--ease-out-quint)"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </header>
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={STEPS.length}
+            aria-valuenow={step}
+            aria-valuetext={`Passo ${step} de ${STEPS.length}: ${STEPS[step - 1]}`}
+            className="h-px w-full bg-(--border-on-ink)"
+          >
+            <div
+              className="h-full bg-(--accent) transition-[width] duration-700 ease-(--ease-out-quint)"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        }
+      />
 
       <main
         className={cn(

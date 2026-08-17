@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { atualizarCliente, type ClienteState } from '@/app/clientes/[id]/actions'
+import { FornecerEstadoDoForm } from '@/components/ui/erro-do-form'
 
 /**
  * A ficha da cliente, do lado do cliente, só para ter onde pousar o erro —
@@ -17,14 +18,14 @@ export function FichaForm({
   children,
 }: {
   clientId: string
-  children: (state: ClienteState) => React.ReactNode
+  children: React.ReactNode
 }) {
   const [state, action] = useActionState<ClienteState, FormData>(atualizarCliente, {})
 
   return (
     <form action={action} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <input type="hidden" name="clientId" value={clientId} />
-      {children(state)}
+      <FornecerEstadoDoForm estado={state}>{children}</FornecerEstadoDoForm>
     </form>
   )
 }

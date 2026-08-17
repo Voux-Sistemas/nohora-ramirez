@@ -26,6 +26,30 @@ export const dynamic = 'force-dynamic'
 const HOUR_MS = 3_600_000
 const CANCELLED = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
 
+/*
+  Cronómetro de diagnóstico — 2026-08-17.
+
+  Esta tela pendurou em produção: `GET /agenda/maia 200 300131ms`, que é o
+  temporizador do próprio Node a matar o pedido aos cinco minutos. Ao lado, no
+  mesmo minuto, `/agendar/maia` respondeu em 72 ms e `/caixa/maia` em 66 ms —
+  logo o processo estava vivo, o laço de eventos livre e o banco a responder.
+  Sobra uma promessa que nunca assenta, e o log não diz qual: pedido pendurado
+  não escreve linha nenhuma.
+
+  Daí o par começou/acabou. A última etapa que começa e não acaba é a avaria,
+  em texto, na primeira vez que alguém abrir a agenda. Sai quando a causa
+  estiver nomeada — instrumento de obra, não peça do sistema.
+*/
+async function etapa<T>(nome: string, trabalho: Promise<T>): Promise<T> {
+  const inicio = performance.now()
+  console.warn(`[agenda] ${nome}: começou`)
+  try {
+    return await trabalho
+  } finally {
+    console.warn(`[agenda] ${nome}: acabou em ${Math.round(performance.now() - inicio)}ms`)
+  }
+}
+
 export default async function AgendaDoDiaPage({
   params,
   searchParams,
@@ -36,8 +60,8 @@ export default async function AgendaDoDiaPage({
   const { unidade } = await params
   const { d, sel } = await searchParams
 
-  const acesso = await requireAcesso()
-  const unit = await getUnitBySlug(unidade)
+  const acesso = await etapa('acesso', requireAcesso())
+  const unit = await etapa('unidade', getUnitBySlug(unidade))
   if (!unit) notFound()
   requireUnidade(acesso, unit.id)
 
@@ -46,8 +70,8 @@ export default async function AgendaDoDiaPage({
   const today = todayInUnit(unit)
   const date = isValidDate(d) ? d : today
   const [ctx, todos] = await Promise.all([
-    loadBookingContext({ unit, fromDate: date, toDate: date }),
-    listDayAppointments(unit, date),
+    etapa('contexto', loadBookingContext({ unit, fromDate: date, toDate: date })),
+    etapa('marcações', listDayAppointments(unit, date)),
   ])
 
   /*
@@ -70,6 +94,12 @@ export default async function AgendaDoDiaPage({
 
   const baseHref = `/agenda/${unit.slug}?d=${date}`
   const selected = sel ? (appointments.find((item) => item.id === sel) ?? null) : null
+
+  /* Se esta linha sair e a tela mesmo assim não chegar, a avaria está no
+     desenho — não em nada que a página tenha esperado. */
+  console.warn(
+    `[agenda] contas prontas: ${appointments.length} marcações, ${columns.length} colunas, janela ${from.toISOString()}→${to.toISOString()}`,
+  )
 
   /*
     A grade de colunas começa a existir na segunda coluna.

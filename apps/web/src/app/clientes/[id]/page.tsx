@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { FichaForm } from '@/components/clientes/ficha-form'
 import { Button } from '@/components/ui/button'
+import { ErroDoForm } from '@/components/ui/erro-do-form'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
 import { pais } from '@/lib/pais'
@@ -75,8 +76,6 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
       <section className="surface rounded-card mb-6 p-5">
         <h2 className="mb-4 font-medium">Dados</h2>
         <FichaForm clientId={profile.clientId}>
-          {(state) => (
-            <>
           <label className="flex flex-col gap-1 text-sm">
             Nome
             <input className="field" name="name" defaultValue={profile.name} required />
@@ -133,14 +132,8 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
           </label>
           <div className="flex items-center gap-3 sm:col-span-2">
             <Button type="submit">Guardar</Button>
-            {state.error ? (
-              <p className="text-sm text-(--estado-mau)" role="alert">
-                {state.error}
-              </p>
-            ) : null}
+            <ErroDoForm className="text-sm text-(--estado-mau)" />
           </div>
-            </>
-          )}
         </FichaForm>
       </section>
 

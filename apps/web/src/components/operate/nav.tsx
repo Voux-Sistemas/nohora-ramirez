@@ -59,7 +59,13 @@ export function NavOperacao({
   const secaoTemLoja = destinos.some((destino) => destino.id === active && destino.comLoja)
 
   return (
-    <>
+    /*
+      Os destinos e a loja são um bloco só — no telemóvel descem juntos para a
+      segunda fila da barra, e "em que secção estou" e "em que loja estou" são
+      metades da mesma resposta. Enquanto eram dois irmãos soltos, a barra tinha
+      de os arrumar um a um e o seletor de loja ia parar ao meio do logótipo.
+    */
+    <div className="order-3 flex w-full min-w-0 items-center gap-2 sm:order-2 sm:w-auto sm:flex-1">
       {/*
         Rolagem horizontal em vez de menu escondido: são cinco destinos fixos e
         curtos. Esconder atrás de um botão custaria um toque a cada troca, que é
@@ -116,6 +122,6 @@ export function NavOperacao({
           />
         </div>
       ) : null}
-    </>
+    </div>
   )
 }

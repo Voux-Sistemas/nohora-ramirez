@@ -86,8 +86,16 @@ export async function OperateTopbar({
     <header className="bg-(--surface-ink) text-(--on-ink) [--focus:var(--on-ink-accent)]">
       {/* A mesma moldura de 90rem da gestão: a barra é a chapa de cima da
           aplicação, e uma chapa mais estreita do que o conteúdo que segura
-          denuncia que a tela foi desenhada para outro ecrã. */}
-      <div className="mx-auto flex w-full max-w-[90rem] items-center gap-4 px-4 sm:px-6 lg:px-8">
+          denuncia que a tela foi desenhada para outro ecrã.
+
+          Duas filas no telemóvel, uma a partir de `sm`. Numa fila só, o
+          logótipo e o bloco da pessoa somam 455px de coisas que não encolhem —
+          num iPhone de 390px isso não é uma barra apertada, é uma barra que
+          transborda, com metade do "sair" fora do ecrã e o nome da secção ativa
+          por baixo do relógio. As `order` fazem a segunda fila ser a navegação
+          (que é `w-full` até `sm`), e não o bloco da pessoa: quem chega à barra
+          quer ver primeiro a casa e quem é, e depois para onde vai. */}
+      <div className="mx-auto flex w-full max-w-[90rem] flex-wrap items-center gap-x-3 gap-y-0 px-4 sm:flex-nowrap sm:gap-x-4 sm:px-6 lg:px-8">
         {/*
           O mesmo logotipo da vitrine, no mesmo tamanho, sobre a mesma faixa de
           tinta: é o que faz a oficina e a tela da cliente serem a mesma casa.
@@ -97,7 +105,7 @@ export async function OperateTopbar({
         */}
         <Link
           href={href(destinos[0]!.path)}
-          className="rounded-plate shrink-0 py-3"
+          className="rounded-plate order-1 shrink-0 py-2 sm:py-3"
           aria-label="Nohora Ramirez — início"
         >
           <Wordmark size="sm" align="left" />
@@ -105,7 +113,10 @@ export async function OperateTopbar({
 
         <NavOperacao destinos={destinos} lojas={lojas} active={active} />
 
-        <div className="flex shrink-0 items-center gap-3 text-sm">
+        {/* `ml-auto` para a fila do telemóvel, onde este bloco não tem a
+            navegação a empurrá-lo: sem isso encostava ao logótipo e a barra
+            ficava com um vazio à direita. */}
+        <div className="order-2 ml-auto flex shrink-0 items-center gap-2 text-sm sm:order-3 sm:gap-3">
           {/* Gestão vive deste lado, e o fio separa-a do que é a pessoa: à
               esquerda do fio está para onde se vai, à direita quem está a ir. */}
           {acesso.papel !== 'profissional' ? (

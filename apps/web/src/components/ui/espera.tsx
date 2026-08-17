@@ -33,8 +33,8 @@ import { createPortal } from 'react-dom'
  *            navegação sente-se instantânea e o fio era um pisca-pisca; e o
  *            Next pré-carrega o destino, portanto na maioria dos toques a
  *            régua nunca chega a existir. Foi por isso que o limiar ficou.
- *   chegou   O conteúdo sobe seis pixels ao entrar (`.entra`, em globals.css).
- *            Curto de propósito: não é uma entrada, é a continuação do toque.
+ *   chegou   O conteúdo acende ao entrar (`.entra`, em globals.css). Curto de
+ *            propósito: não é uma entrada, é a continuação do toque.
  *
  * A régua sai depressa e trava nos 92% — ela não sabe quanto falta, e uma
  * barra que enche até ao fim e depois espera mente duas vezes. Quem chega ao
@@ -92,17 +92,23 @@ export function ReguaDeEspera({ ativa }: { ativa: boolean }) {
 }
 
 /**
- * O terceiro tempo: o conteúdo que chegou sobe seis pixels.
+ * O terceiro tempo: o conteúdo que chegou acende.
  *
  * A chave é o caminho, e é o ponto todo desta camada. Uma animação de CSS só
  * corre quando o elemento nasce, e o router reaproveita a árvore que já está no
- * ecrã sempre que pode — sem a chave, a subida acontecia no primeiro
+ * ecrã sempre que pode — sem a chave, o acender acontecia no primeiro
  * carregamento e nunca mais, que é exatamente o defeito que se quer arranjar.
  *
  * Caminho, não `searchParams`: escolher a profissional na tela de horários
  * troca `?p=`, e nesse caso a lista filtra no sítio. Reanimar a tela inteira
  * por causa de um filtro seria o oposto de continuidade — o que mudou foi uma
  * parte, não o ecrã.
+ *
+ * Só opacidade, nunca `transform` — a razão inteira está no `.entra` do
+ * globals.css, e é uma regra: isto embrulha o corpo de todos os ecrãs, e um
+ * embrulho que anima `transform` rouba o `position: fixed` de tudo o que está
+ * lá dentro. Quem puser aqui uma subida de seis pixels tira outra vez a barra
+ * de ação da vista da cliente.
  */
 export function Entrada({ className, children }: { className?: string; children: React.ReactNode }) {
   const caminho = usePathname()

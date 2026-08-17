@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { FaixaDaMarca } from '@/components/brand/faixa'
+import { BarraDeAcao } from '@/components/ui/barra-de-acao'
 import { EmTransito, Entrada } from '@/components/ui/espera'
 import { cn } from '@/lib/utils'
 
@@ -144,26 +145,11 @@ export function BookingShell({
       </main>
 
       {footer ? (
-        <div
-          className={cn(
-            'fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-(--border-subtle) bg-(--surface-raised)/95 shadow-(--shadow-lift) backdrop-blur-md',
-            // Com rail, o rodapé é o resumo de quem não vê a coluna lateral —
-            // a partir de `lg` o rail já mostra o mesmo, e duplicar era ruído.
-            hasRail && 'lg:hidden',
-          )}
-        >
-          {/* `env(safe-area-inset-bottom)`: no iPhone o rodapé encostado em
-              `bottom-0` nasce debaixo da barra de gestos, e o preço da marcação
-              fica cortado ao meio pela risca branca do sistema. */}
-          <div
-            className={cn(
-              'mx-auto w-full px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-8',
-              outer,
-            )}
-          >
-            {footer}
-          </div>
-        </div>
+        // Com rail, o rodapé é o resumo de quem não vê a coluna lateral — a
+        // partir de `lg` o rail já mostra o mesmo, e duplicar era ruído.
+        <BarraDeAcao largura={outer} className={cn(hasRail && 'lg:hidden')}>
+          {footer}
+        </BarraDeAcao>
       ) : null}
     </div>
   )

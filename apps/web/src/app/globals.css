@@ -461,9 +461,27 @@
     }
   }
 
-  /* Chegou — o conteúdo sobe seis pixels ao entrar. Curto de propósito: não é
-     uma entrada, é a continuação do toque. Mais do que isto e a recepção, que
-     troca de ecrã cem vezes por dia, passa a esperar pela animação. */
+  /*
+    Chegou — o conteúdo acende ao entrar. Curto de propósito: não é uma
+    entrada, é a continuação do toque. Mais do que isto e a recepção, que troca
+    de ecrã cem vezes por dia, passa a esperar pela animação.
+
+    Só opacidade, e isto é uma regra e não uma preferência.
+
+    Esta classe embrulha o corpo de todos os ecrãs. Qualquer `transform` aqui
+    — nem que fosse `translateY(6px)` a acabar em `none` — faz do embrulho o
+    bloco de contenção de tudo o que está lá dentro, e um `position: fixed`
+    filho passa a medir-se por ele em vez de se medir pelo ecrã. Com
+    `fill-mode: both` o motor mantém isso para sempre, porque a animação nunca
+    deixa de estar em vigor. Foi assim que a barra de «Ver horários» da tela de
+    serviços foi parar ao fim do documento, fora da vista, e a cliente ficou
+    sem forma de avançar a marcação.
+
+    Opacidade cria contexto de empilhamento e mais nada — o `fixed` continua a
+    ser do ecrã. A subida de seis pixels não vale o preço de um embrulho que
+    muda em silêncio as regras de posicionamento de todo o sistema; o toque
+    continua a ter resposta nos outros dois tempos, que são os que informam.
+  */
   .entra {
     animation: entra 160ms var(--ease-out-quint) both;
   }
@@ -471,17 +489,15 @@
   @keyframes entra {
     from {
       opacity: 0;
-      transform: translateY(6px);
     }
     to {
       opacity: 1;
-      transform: none;
     }
   }
 
   /* Quem pediu para desligar movimento continua a saber que o sistema o ouviu:
      o elemento tocado recolhe na mesma e a régua aparece na mesma — o que sai é
-     o percurso dela e a subida do conteúdo. Informação fica, movimento sai. */
+     o percurso dela e o acender do conteúdo. Informação fica, movimento sai. */
   @media (prefers-reduced-motion: reduce) {
     .regua-de-espera {
       animation: none;

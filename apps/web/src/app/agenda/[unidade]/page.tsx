@@ -26,30 +26,6 @@ export const dynamic = 'force-dynamic'
 const HOUR_MS = 3_600_000
 const CANCELLED = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
 
-/*
-  Cronómetro de diagnóstico — 2026-08-17.
-
-  Esta tela pendurou em produção: `GET /agenda/maia 200 300131ms`, que é o
-  temporizador do próprio Node a matar o pedido aos cinco minutos. Ao lado, no
-  mesmo minuto, `/agendar/maia` respondeu em 72 ms e `/caixa/maia` em 66 ms —
-  logo o processo estava vivo, o laço de eventos livre e o banco a responder.
-  Sobra uma promessa que nunca assenta, e o log não diz qual: pedido pendurado
-  não escreve linha nenhuma.
-
-  Daí o par começou/acabou. A última etapa que começa e não acaba é a avaria,
-  em texto, na primeira vez que alguém abrir a agenda. Sai quando a causa
-  estiver nomeada — instrumento de obra, não peça do sistema.
-*/
-async function etapa<T>(nome: string, trabalho: Promise<T>): Promise<T> {
-  const inicio = performance.now()
-  console.warn(`[agenda] ${nome}: começou`)
-  try {
-    return await trabalho
-  } finally {
-    console.warn(`[agenda] ${nome}: acabou em ${Math.round(performance.now() - inicio)}ms`)
-  }
-}
-
 export default async function AgendaDoDiaPage({
   params,
   searchParams,
@@ -60,8 +36,8 @@ export default async function AgendaDoDiaPage({
   const { unidade } = await params
   const { d, sel } = await searchParams
 
-  const acesso = await etapa('acesso', requireAcesso())
-  const unit = await etapa('unidade', getUnitBySlug(unidade))
+  const acesso = await requireAcesso()
+  const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
   requireUnidade(acesso, unit.id)
 
@@ -70,8 +46,8 @@ export default async function AgendaDoDiaPage({
   const today = todayInUnit(unit)
   const date = isValidDate(d) ? d : today
   const [ctx, todos] = await Promise.all([
-    etapa('contexto', loadBookingContext({ unit, fromDate: date, toDate: date })),
-    etapa('marcações', listDayAppointments(unit, date)),
+    loadBookingContext({ unit, fromDate: date, toDate: date }),
+    listDayAppointments(unit, date),
   ])
 
   /*
@@ -94,12 +70,6 @@ export default async function AgendaDoDiaPage({
 
   const baseHref = `/agenda/${unit.slug}?d=${date}`
   const selected = sel ? (appointments.find((item) => item.id === sel) ?? null) : null
-
-  /* Se esta linha sair e a tela mesmo assim não chegar, a avaria está no
-     desenho — não em nada que a página tenha esperado. */
-  console.warn(
-    `[agenda] contas prontas: ${appointments.length} marcações, ${columns.length} colunas, janela ${from.toISOString()}→${to.toISOString()}`,
-  )
 
   /*
     A grade de colunas começa a existir na segunda coluna.
@@ -255,9 +225,17 @@ export default async function AgendaDoDiaPage({
           é onde o polegar chega, e é como todo o calendário se comporta. A
           partir de `sm` o grupo volta a ter o tamanho do que carrega, e o resto
           da linha alinha-se à direita como antes.
+
+          E são duas filas até `sm`, não uma que se desdobra. Numa fila só, os
+          quatro comandos somam mais do que os 358px úteis de um iPhone, e o que
+          acontecia não era transbordo limpo: a data por extenso ("segunda-feira,
+          17 de agosto") partia em duas linhas por cima do seletor nativo de
+          data, e a agenda abria com o cabeçalho encavalitado. Em cima anda-se no
+          calendário um dia de cada vez; em baixo salta-se para longe e encaixa-se
+          alguém. Duas perguntas, duas filas.
         */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex min-w-0 items-center gap-2 sm:flex-none">
             <Link
               href={`/agenda/${unit.slug}?d=${addDaysInZone(date, -1)}`}
               aria-label="Dia anterior"
@@ -275,38 +253,46 @@ export default async function AgendaDoDiaPage({
             >
               →
             </Link>
+
+            {date === today ? null : (
+              <Link
+                href={`/agenda/${unit.slug}`}
+                className="text-muted hover:text-(--text-strong) flex min-h-11 shrink-0 items-center px-1 text-sm transition-colors"
+              >
+                hoje
+              </Link>
+            )}
           </div>
 
-          {date === today ? null : (
-            <Link
-              href={`/agenda/${unit.slug}`}
-              className="text-muted hover:text-(--text-strong) flex min-h-11 items-center px-1 text-sm transition-colors"
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <form
+              action={`/agenda/${unit.slug}`}
+              className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none"
             >
-              hoje
-            </Link>
-          )}
+              <label htmlFor="ir-para-dia" className="sr-only">
+                Ir para uma data
+              </label>
+              <input
+                id="ir-para-dia"
+                type="date"
+                name="d"
+                defaultValue={date}
+                className="rounded-plate h-11 min-w-0 flex-1 border border-(--border-subtle) bg-(--surface-raised) px-2 text-sm sm:flex-none"
+              />
+              <button className={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>Ir</button>
+            </form>
 
-          <form action={`/agenda/${unit.slug}`} className="ml-auto flex items-center gap-2">
-            <label htmlFor="ir-para-dia" className="sr-only">
-              Ir para uma data
-            </label>
-            <input
-              id="ir-para-dia"
-              type="date"
-              name="d"
-              defaultValue={date}
-              className="rounded-plate h-11 border border-(--border-subtle) bg-(--surface-raised) px-2 text-sm"
-            />
-            <button className={cn(buttonVariants({ variant: 'outline' }))}>Ir</button>
-          </form>
-
-          {/* Encaixar é escolher em qual cadeira a cliente senta — e para isso
-              é preciso enxergar todas. Fica com quem enxerga. */}
-          {gerir ? (
-            <Link href={`/agenda/${unit.slug}/encaixe?d=${date}`} className={cn(buttonVariants())}>
-              Encaixar
-            </Link>
-          ) : null}
+            {/* Encaixar é escolher em qual cadeira a cliente senta — e para isso
+                é preciso enxergar todas. Fica com quem enxerga. */}
+            {gerir ? (
+              <Link
+                href={`/agenda/${unit.slug}/encaixe?d=${date}`}
+                className={cn(buttonVariants(), 'shrink-0')}
+              >
+                Encaixar
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
 

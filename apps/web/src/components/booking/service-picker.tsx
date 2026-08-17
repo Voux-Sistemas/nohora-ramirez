@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { BarraDeAcao, EspacoDaBarra } from '@/components/ui/barra-de-acao'
 import { Button } from '@/components/ui/button'
 import { ReguaDeEspera } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
@@ -177,8 +178,11 @@ export function ServicePicker({
         ))}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-(--border-subtle) bg-(--surface-raised)/95 shadow-(--shadow-lift) backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-2xl items-center gap-4 px-5 py-3 sm:px-8">
+      {/* A barra tapa o fim da lista, portanto a lista paga a altura dela. */}
+      <EspacoDaBarra />
+
+      <BarraDeAcao largura="max-w-2xl">
+        <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1 text-sm">
             {chosen.length === 0 ? (
               <span className="text-muted">Escolha um ou mais serviços</span>
@@ -202,7 +206,7 @@ export function ServicePicker({
             {pending ? 'A procurar…' : ctaLabel}
           </Button>
         </div>
-      </div>
+      </BarraDeAcao>
     </>
   )
 }

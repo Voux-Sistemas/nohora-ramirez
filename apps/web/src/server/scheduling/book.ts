@@ -306,6 +306,9 @@ const ESTADOS_TERMINAIS = new Set<string>([
   'no_show',
 ])
 
+/** A frase da recusa, exportada porque quem chama precisa de a reconhecer. */
+export const JA_CANCELADA = 'esta marcação foi cancelada — para a retomar, marque de novo'
+
 export async function advanceStatus(
   appointmentId: string,
   to: LiveStatus,
@@ -319,9 +322,7 @@ export async function advanceStatus(
       .limit(1)
     if (!current) throw new Error(`Agendamento ${appointmentId} não existe`)
     if (current.status === to) return
-    if (ESTADOS_TERMINAIS.has(current.status)) {
-      throw new Error('esta marcação foi cancelada — para a retomar, marque de novo')
-    }
+    if (ESTADOS_TERMINAIS.has(current.status)) throw new Error(JA_CANCELADA)
 
     const stamp = TIMESTAMP_FIELD[to]
     await tx

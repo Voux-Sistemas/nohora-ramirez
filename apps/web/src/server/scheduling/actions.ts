@@ -18,6 +18,7 @@ import { podeGerir, requireAcesso, veUnidade } from '@/server/auth/permissoes'
 import {
   advanceStatus,
   cancelAppointment,
+  JA_CANCELADA,
   type CancelStatus,
   type LiveStatus,
 } from './book'
@@ -78,7 +79,7 @@ export async function mudarStatus(formData: FormData): Promise<void> {
   try {
     await advanceStatus(id, to as LiveStatus)
   } catch (e) {
-    if (!(e instanceof Error) || !e.message.startsWith('esta marcação foi cancelada')) throw e
+    if (!(e instanceof Error) || e.message !== JA_CANCELADA) throw e
   }
 
   revalidateAgenda()

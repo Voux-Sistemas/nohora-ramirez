@@ -207,6 +207,29 @@ function pickResources(
   return picked
 }
 
+/** Por que o horário está fora da janela que a loja aceita. */
+export type LeadCheck = 'ok' | 'too_soon' | 'too_far'
+
+/**
+ * Antecedência: a loja pede um aviso mínimo e só abre a agenda até certo dia.
+ *
+ * Mora aqui, e não dentro da varredura, porque `planVisitAt` é chamada
+ * diretamente na hora de gravar. Sem esta guarda no caminho de escrita, um
+ * separador aberto de manhã com a lista de horários daquele momento gravava à
+ * tarde um início que já tinha passado: a loja abria, a profissional estava
+ * escalada, e nada mais olhava para o relógio.
+ *
+ * A recepção não fica de fora — quem encaixa manda `minLeadMin` a zero, o que
+ * ainda proíbe marcar para trás. É o mesmo que a lista dela já mostrava.
+ */
+export function checkLead(query: AvailabilityQuery, start: Date): LeadCheck {
+  const { now, minLeadMin = 0, maxLeadDays } = query
+  if (start.getTime() < addMinutes(now, minLeadMin).getTime()) return 'too_soon'
+  if (maxLeadDays !== undefined && start.getTime() > addMinutes(now, maxLeadDays * 24 * 60).getTime())
+    return 'too_far'
+  return 'ok'
+}
+
 /**
  * Tenta montar a visita inteira começando exatamente em `start`.
  * Devolve o slot planejado ou `null` se não couber.
@@ -228,6 +251,7 @@ export function planVisitAt(query: AvailabilityQuery, start: Date): Slot | null 
   } = query
 
   if (cart.length === 0) throw new AvailabilityError('Carrinho vazio')
+  if (checkLead(query, start) !== 'ok') return null
 
   const visitDuration = cartDurationMin(cart, services, interServiceGapMin)
   const visitRange: TimeRange = { start, end: addMinutes(start, visitDuration) }
@@ -308,9 +332,6 @@ export function findAvailableSlots(query: AvailabilityQuery): Slot[] {
     services,
     unitOpenRanges,
     granularityMin,
-    now,
-    minLeadMin = 0,
-    maxLeadDays,
     interServiceGapMin = 0,
     limit = DEFAULT_LIMIT,
   } = query
@@ -321,9 +342,6 @@ export function findAvailableSlots(query: AvailabilityQuery): Slot[] {
   const visitDuration = cartDurationMin(cart, services, interServiceGapMin)
   if (visitDuration <= 0) throw new AvailabilityError('Duração total da visita é zero')
 
-  const earliest = addMinutes(now, minLeadMin)
-  const latest = maxLeadDays === undefined ? null : addMinutes(now, maxLeadDays * 24 * 60)
-
   const slots: Slot[] = []
 
   for (const window of mergeRanges(unitOpenRanges)) {
@@ -332,14 +350,9 @@ export function findAvailableSlots(query: AvailabilityQuery): Slot[] {
     while (addMinutes(candidate, visitDuration).getTime() <= window.end.getTime()) {
       if (slots.length >= limit) return slots
 
-      const withinLead =
-        candidate.getTime() >= earliest.getTime() &&
-        (latest === null || candidate.getTime() <= latest.getTime())
-
-      if (withinLead) {
-        const slot = planVisitAt(query, candidate)
-        if (slot) slots.push(slot)
-      }
+      // a antecedência é conferida dentro de `planVisitAt`, uma vez só
+      const slot = planVisitAt(query, candidate)
+      if (slot) slots.push(slot)
 
       candidate = addMinutes(candidate, granularityMin)
     }

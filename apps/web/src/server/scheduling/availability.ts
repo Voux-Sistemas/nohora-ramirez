@@ -10,11 +10,13 @@ import 'server-only'
 
 import {
   addDaysInZone,
+  checkLead,
   findAvailableSlots,
   isoDateInZone,
   planVisitAt,
   resolvePrice,
   type AvailabilityQuery,
+  type LeadCheck,
   type Slot,
   type StaffPickStrategy,
 } from '@studio/core'
@@ -44,6 +46,15 @@ export interface DayQuery {
   excludeAppointmentId?: string
   /** Regras de antecedência desligadas: a recepção encaixa fora delas. */
   ignoreLeadRules?: boolean
+  /**
+   * Minutos de atraso que a gravação ainda aceita, só com `ignoreLeadRules`.
+   *
+   * A lista do encaixe fica em zero de propósito — mostrar as horas de hoje
+   * que já passaram só enchia o ecrã. Mas entre ver o horário e escrever o
+   * nome da cliente passam minutos, e às vezes a hora vira: sem esta folga, a
+   * recepção levava com «já não está a tempo» ao carregar em gravar.
+   */
+  atrasoTolerado?: number
   limit?: number
   now?: Date
 }
@@ -129,6 +140,20 @@ export function planAt(ctx: BookingContext, query: Omit<DayQuery, 'unitSlug' | '
   return planVisitAt(buildQuery(ctx, query), start)
 }
 
+/**
+ * A antecedência do horário pedido, com o motivo.
+ *
+ * `planAt` devolve só `null`, e quem confirma precisa de saber se o horário
+ * está ocupado ou se já passou — são frases diferentes no ecrã da cliente.
+ */
+export function checkLeadAt(
+  ctx: BookingContext,
+  query: Omit<DayQuery, 'unitSlug' | 'date'>,
+  start: Date,
+): LeadCheck {
+  return checkLead(buildQuery(ctx, query), start)
+}
+
 function buildQuery(
   ctx: BookingContext,
   query: Omit<DayQuery, 'unitSlug' | 'date'> & { now?: Date },
@@ -148,7 +173,7 @@ function buildQuery(
     resources: ctx.resources,
     granularityMin: settings.granularityMin,
     now: query.now ?? new Date(),
-    minLeadMin: query.ignoreLeadRules ? 0 : settings.minLeadMin,
+    minLeadMin: query.ignoreLeadRules ? -(query.atrasoTolerado ?? 0) : settings.minLeadMin,
     maxLeadDays: query.ignoreLeadRules ? 3650 : settings.maxLeadDays,
     interServiceGapMin: settings.interServiceGapMin,
     staffPickStrategy: query.strategy ?? 'balanced',

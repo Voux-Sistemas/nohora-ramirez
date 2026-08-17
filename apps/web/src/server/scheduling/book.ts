@@ -26,7 +26,7 @@ import {
 } from '@studio/db'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { describeSlot, planAt, type CartInput, type SlotOption } from './availability'
+import { checkLeadAt, describeSlot, planAt, type CartInput, type SlotOption } from './availability'
 import { getUnitBySlug, loadBookingContext, type BookingContext } from './context'
 
 /** A transação do Drizzle tem a mesma superfície do banco para o que usamos. */
@@ -65,6 +65,8 @@ export type BookingError =
   | 'not_online_bookable'
   | 'requires_assessment'
   | 'slot_taken'
+  | 'too_soon'
+  | 'too_far'
 
 export type CreateAppointmentResult =
   | { ok: true; appointmentId: string; slot: SlotOption; depositRequired: number }
@@ -78,11 +80,22 @@ const MESSAGES: Record<BookingError, string> = {
   not_online_bookable: 'Este serviço só pode ser marcado pela receção.',
   requires_assessment: 'Este procedimento exige avaliação presencial antes de marcar.',
   slot_taken: 'Este horário acabou de ser ocupado. Escolha outro, por favor.',
+  too_soon: 'Este horário já não está a tempo. Escolha um mais à frente, por favor.',
+  too_far: 'A agenda ainda não está aberta para essa data.',
 }
 
 function fail(error: BookingError): CreateAppointmentResult {
   return { ok: false, error, message: MESSAGES[error] }
 }
+
+/**
+ * Quanto tempo para trás a recepção ainda pode lançar um encaixe.
+ *
+ * A cliente entra às 15:00 e a ficha dela é escrita às 15:20 — isso tem de
+ * passar. Meia manhã já não: um horário lançado horas depois deixa de ser o
+ * registo do que aconteceu e passa a ser um buraco na agenda de alguém.
+ */
+const ATRASO_TOLERADO_MIN = 240
 
 // ─── planejamento ───────────────────────────────────────────────────────────
 
@@ -127,16 +140,23 @@ async function planBooking(
     if (online && service.requiresAssessment) return 'requires_assessment'
   }
 
-  const slot = planAt(
-    ctx,
-    {
-      cart: input.cart,
-      // a recepção encaixa fora das regras de antecedência; o cliente, não
-      ...(online ? { onlineOnly: true } : { ignoreLeadRules: true }),
-    },
-    start,
-  )
-  if (!slot) return 'slot_taken'
+  const opcoes = {
+    cart: input.cart,
+    // a recepção encaixa fora das regras de antecedência; o cliente, não
+    ...(online
+      ? { onlineOnly: true }
+      : { ignoreLeadRules: true, atrasoTolerado: ATRASO_TOLERADO_MIN }),
+  }
+
+  const slot = planAt(ctx, opcoes, start)
+  if (!slot) {
+    /* `planAt` recusa por um punhado de motivos e devolve sempre `null`. A
+       antecedência é o único que o ecrã consegue explicar, e é o que separa
+       «acabou de ser ocupado» de «esse horário já passou» — a cliente que
+       deixou o separador aberto merece a segunda frase, não a primeira. */
+    const antecedencia = checkLeadAt(ctx, opcoes, start)
+    return antecedencia === 'ok' ? 'slot_taken' : antecedencia
+  }
 
   const itemPrices: number[] = []
   const itemDurations: number[] = []
@@ -269,9 +289,20 @@ async function writeAppointment(
 /**
  * 23P01 = `exclusion_violation`. É a constraint de anti-overbooking falando;
  * qualquer outro erro é bug e deve subir.
+ *
+ * A busca desce por `cause`: o drizzle embrulha tudo o que vem do driver num
+ * `DrizzleQueryError`, que só tem `query`, `params` e `cause` — o `code` real
+ * fica uma camada abaixo. Ler só o erro de topo dava sempre `false`, e a
+ * cliente que perdia a corrida pelo mesmo horário recebia o ecrã de erro do
+ * Next em vez da frase que a manda escolher outro.
  */
 function isExclusionViolation(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && (error as { code?: string }).code === '23P01'
+  let atual: unknown = error
+  for (let salto = 0; salto < 5 && typeof atual === 'object' && atual !== null; salto++) {
+    if ((atual as { code?: string }).code === '23P01') return true
+    atual = (atual as { cause?: unknown }).cause
+  }
+  return false
 }
 
 // ─── mudanças de status ─────────────────────────────────────────────────────

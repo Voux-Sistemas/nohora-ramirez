@@ -502,6 +502,26 @@ describe('planVisitAt — revalidação no momento de confirmar', () => {
     expect(slot.items[0]).toMatchObject({ serviceId: 'corte', staffId: 'ana' })
     expect(slot.totalDurationMin).toBe(30)
   })
+
+  // o separador aberto de manhã que só confirma à tarde
+  it('recusa horário que já passou, mesmo com a loja aberta e a profissional livre', () => {
+    expect(planVisitAt(query({ now: at('14:10') }), at('12:00'))).toBeNull()
+  })
+
+  it('recusa horário dentro da antecedência mínima da loja', () => {
+    expect(planVisitAt(query({ now: at('09:00'), minLeadMin: 120 }), at('10:00'))).toBeNull()
+    expect(planVisitAt(query({ now: at('09:00'), minLeadMin: 120 }), at('11:00'))).not.toBeNull()
+  })
+
+  it('recusa horário além da janela que a loja abriu', () => {
+    const amanha = {
+      now: at('09:00'),
+      unitOpenRanges: [range('09:00', '18:00', NEXT_DAY)],
+      staff: [staff('ana', { skills: ['corte'], working: [range('09:00', '18:00', NEXT_DAY)] })],
+    }
+    expect(planVisitAt(query({ ...amanha, maxLeadDays: 0 }), at('10:00', NEXT_DAY))).toBeNull()
+    expect(planVisitAt(query({ ...amanha, maxLeadDays: 2 }), at('10:00', NEXT_DAY))).not.toBeNull()
+  })
 })
 
 // ─── limites e erros ────────────────────────────────────────────────────────

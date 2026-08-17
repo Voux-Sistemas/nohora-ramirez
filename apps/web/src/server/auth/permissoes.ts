@@ -123,6 +123,26 @@ function escopoDe(
  * dona, e ainda assim aparece como coluna na agenda pelo `staffId`.
  */
 export async function acessoDe(session: SessionUser): Promise<Acesso | null> {
+  /*
+    Desmarcar "Ativo" na ficha da equipa é como se despede alguém aqui dentro —
+    e não fazia nada. A caixa só era lida por quem monta a lista de quem atende
+    (`scheduling/context.ts`, `admin/services.ts`), portanto a pessoa saía da
+    página de marcação e continuava a entrar com a senha de sempre: agenda,
+    clientes, caixa, tudo. A dona tinha a certeza de ter fechado a porta e a
+    porta estava aberta.
+
+    O papel continua a viver em `user_roles` e a lotação em `staff_units`; esta
+    caixa é a pergunta mais simples das três — "esta pessoa ainda trabalha
+    aqui?" — e agora é a primeira a ser feita. Vale para todos os degraus, não
+    só para a profissional: uma gerente desligada é tão ex-funcionária quanto
+    ela. Quem não tem perfil de equipa nenhum (`null`) não é afetado.
+
+    A ficha da própria pessoa está protegida de si mesma em
+    `admin/equipe/[id]/actions.ts` — desativar-se a si própria seria sair pela
+    porta que se está a fechar, sem volta, tal como rebaixar-se de dona.
+  */
+  if (session.staffAtivo === false) return null
+
   for (const degrau of DEGRAUS) {
     const escopo = escopoDe(session.roles, degrau.role)
     if (!escopo.tem) continue

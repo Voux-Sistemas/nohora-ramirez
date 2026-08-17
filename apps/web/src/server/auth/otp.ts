@@ -18,12 +18,13 @@ import 'server-only'
  * para descobrir qual e-mail pertence a qual número.
  */
 
-import { users } from '@studio/db'
+import { clientProfiles, userRoles, users } from '@studio/db'
 import { eq } from 'drizzle-orm'
 import { ehTeste } from '@/lib/ambiente'
 import { db } from '@/lib/db'
 import { canalEmailAtivo, enviarEmail, mascararEmail } from '@/server/notifications/email'
 import { VALIDADE_MIN, consumirCodigo, criarCodigo, emEspera, queimarCodigos } from './codigo'
+import { temPapelDeEquipe } from './permissoes'
 import { createSession } from './session'
 
 /**
@@ -93,6 +94,45 @@ async function entregarCodigo(destino: string | null, code: string): Promise<boo
   return resultado.ok
 }
 
+/**
+ * A conta a que esta porta abre — ou `null`, que aqui vale por todos os becos.
+ *
+ * Esta porta pede um código de seis dígitos e mais nada: não há palavra-passe
+ * do outro lado. É de propósito, porque a cliente não tem senha nenhuma. O que
+ * não pode acontecer é a porta mais fraca da casa abrir a divisão mais forte —
+ * e abria: a consulta era só `users` por telefone, sem perguntar de quem era a
+ * conta. Com o telemóvel da dona e a caixa de e-mail dela, entrava-se na conta
+ * da dona por aqui, sem palavra-passe, e a sessão criada é a mesma sessão de
+ * sempre: `acessoDe` lê os papéis dela e entrega o cadastro da rede inteira.
+ * Quem é da equipa entra por `/entrar`, com senha, que é a porta desenhada
+ * para o que está lá dentro.
+ *
+ * As três perguntas são as mesmas de `recuperacao.ts`, que já as fazia todas:
+ * conta ativa, tem ficha de cliente, não é da equipa. Uma conta sem ficha de
+ * cliente também não tinha o que ver do outro lado — `/conta` monta-se a
+ * partir dela.
+ */
+async function contaDeCliente(phone: string): Promise<{ id: string; email: string | null } | null> {
+  const [user] = await db
+    .select({ id: users.id, email: users.email, status: users.status })
+    .from(users)
+    .where(eq(users.phone, phone))
+    .limit(1)
+  if (!user || user.status !== 'active') return null
+
+  const [ficha] = await db
+    .select({ id: clientProfiles.id })
+    .from(clientProfiles)
+    .where(eq(clientProfiles.userId, user.id))
+    .limit(1)
+  if (!ficha) return null
+
+  const papeis = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, user.id))
+  if (temPapelDeEquipe(papeis)) return null
+
+  return { id: user.id, email: user.email }
+}
+
 export interface RequestOtpResult {
   ok: boolean
   message?: string
@@ -103,11 +143,7 @@ export interface RequestOtpResult {
 }
 
 export async function requestOtp(phone: string): Promise<RequestOtpResult> {
-  const [user] = await db
-    .select({ id: users.id, email: users.email })
-    .from(users)
-    .where(eq(users.phone, phone))
-    .limit(1)
+  const user = await contaDeCliente(phone)
   /* Antes de gravar código nenhum: sem conta e sem envelope não há envio, e
      uma linha em `auth_otps` que ninguém vai poder usar é lixo com data de
      validade. Os três becos respondem igual — ver `RESPOSTA_UNICA`. */
@@ -138,7 +174,10 @@ export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpR
   const conferido = await consumirCodigo(phone, 'login', code)
   if (!conferido.ok) return conferido
 
-  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1)
+  /* A mesma pergunta do pedido, e não uma leitura crua de `users`: entre pedir
+     o código e gastá-lo a conta pode ter mudado de mão — e um código emitido
+     antes de a pessoa entrar para a equipa não pode abrir a porta depois. */
+  const user = await contaDeCliente(phone)
   if (!user) return { ok: false, message: 'Conta não encontrada.' }
 
   await createSession(user.id)
@@ -147,7 +186,7 @@ export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpR
 
 /** Atalho de teste: pula o OTP e entra direto, para quando o alias "cliente" é usado. */
 export async function loginTestClient(phone: string): Promise<VerifyOtpResult> {
-  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1)
+  const user = await contaDeCliente(phone)
   if (!user) return { ok: false, message: 'Conta não encontrada.' }
 
   await createSession(user.id)

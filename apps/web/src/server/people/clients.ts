@@ -295,6 +295,49 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
       .limit(1)
     if (!profile) throw new Error('cliente não encontrado')
 
+    /*
+      ── Por que esta ficha às vezes não é só uma ficha de cliente ────────────
+      Quem trabalha no salão também se marca no salão, e aí a mesma conta tem
+      ficha de cliente e ficha de equipa — `users` é uma tabela só. Esta tela
+      escreve `users.name`, `users.phone` e `users.email` atrás de um
+      `assertGestao()`, que qualquer gerente passa. São exactamente as três
+      colunas de que se precisa para tomar uma conta: trocar o telemóvel e o
+      e-mail da dona pelos seus, pedir a recuperação de palavra-passe em
+      `/entrar/recuperar`, receber o código na própria caixa e escolher uma
+      senha nova. Do outro lado está o cadastro da rede inteira.
+
+      Do lado da equipa esse buraco já estava fechado — `autorizarStaff` não
+      deixa um gerente abrir a ficha de quem manda em alguma coisa. Ficou
+      aberto o mesmo caminho pela porta de trás, que é esta.
+
+      A recusa é só sobre a identidade. Etiquetas, aniversário, unidade
+      preferida, sinal — isso é trabalho legítimo de recepção e continua a
+      gravar-se, mesmo quando a cliente é a cabeleireira da casa. Quem precisa
+      de corrigir o nome ou o número de alguém da equipa faz isso em Equipa,
+      que é onde a hierarquia é conferida.
+    */
+    const [equipa] = await tx
+      .select({ nome: staffProfiles.displayName })
+      .from(staffProfiles)
+      .where(eq(staffProfiles.userId, profile.userId))
+      .limit(1)
+    if (equipa) {
+      const [conta] = await tx
+        .select({ name: users.name, phone: users.phone, email: users.email })
+        .from(users)
+        .where(eq(users.id, profile.userId))
+        .limit(1)
+      const mudou =
+        conta?.name !== input.name ||
+        conta?.phone !== input.phone ||
+        (conta?.email ?? null) !== (input.email || null)
+      if (mudou) {
+        throw new Error(
+          `${equipa.nome} é da equipa — o nome, o telefone e o e-mail dela alteram-se em Equipa, não por aqui`,
+        )
+      }
+    }
+
     /* `users.phone` é único, e é por ele que a cliente entra na conta. Corrigir
        o número para um que já é de outra pessoa — a irmã cadastrada em duplicado,
        ou uma profissional da casa — não é engano do sistema, é uma decisão que

@@ -22,6 +22,14 @@ export interface SessionUser {
   roles: { role: string; unitId: string | null }[]
   clientId: string | null
   staffId: string | null
+  /**
+   * Se o perfil de equipa está marcado como Ativo. `null` quer dizer que não há
+   * perfil de equipa nenhum — diferente de `false`, que é alguém que saiu da
+   * casa. Quem lê isto é `acessoDe`; vem daqui porque a consulta ao perfil já
+   * era feita nesta função, e perguntar de novo em cada tela custaria uma ida
+   * ao banco por requisição sem trazer resposta nova.
+   */
+  staffAtivo: boolean | null
 }
 
 export async function createSession(
@@ -95,6 +103,17 @@ export async function getSession(): Promise<SessionUser | null> {
         eq(sessions.tokenHash, sha256Hex(token)),
         isNull(sessions.revokedAt),
         gt(sessions.expiresAt, new Date()),
+        /*
+          A sessão vale trinta dias; suspender uma conta não valia nada durante
+          esses trinta dias, porque só o login perguntava pelo `status` e quem
+          já estava dentro nunca mais passava por ele. Suspender é a única
+          ferramenta que existe para tirar alguém de dentro à pressa — se ela
+          só faz efeito no próximo login, não serve para o momento em que se
+          precisa dela. `deletedAt` pela mesma razão: apagar uma conta e ela
+          continuar a navegar é a mesma falha com outro nome.
+        */
+        eq(users.status, 'active'),
+        isNull(users.deletedAt),
       ),
     )
     .limit(1)
@@ -104,7 +123,11 @@ export async function getSession(): Promise<SessionUser | null> {
   const [roles, clientProfile, staffProfile] = await Promise.all([
     db.select({ role: userRoles.role, unitId: userRoles.unitId }).from(userRoles).where(eq(userRoles.userId, row.userId)),
     db.select({ id: clientProfiles.id }).from(clientProfiles).where(eq(clientProfiles.userId, row.userId)).limit(1),
-    db.select({ id: staffProfiles.id }).from(staffProfiles).where(eq(staffProfiles.userId, row.userId)).limit(1),
+    db
+      .select({ id: staffProfiles.id, active: staffProfiles.active })
+      .from(staffProfiles)
+      .where(eq(staffProfiles.userId, row.userId))
+      .limit(1),
   ])
 
   return {
@@ -112,6 +135,7 @@ export async function getSession(): Promise<SessionUser | null> {
     roles,
     clientId: clientProfile[0]?.id ?? null,
     staffId: staffProfile[0]?.id ?? null,
+    staffAtivo: staffProfile[0]?.active ?? null,
   }
 }
 

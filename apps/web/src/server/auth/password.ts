@@ -2,7 +2,7 @@ import 'server-only'
 
 /** Login da equipe por telefone + senha. Cliente nunca tem senha — entra por OTP. */
 
-import { userRoles, users } from '@studio/db'
+import { staffProfiles, userRoles, users } from '@studio/db'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { hashSecret, precisaRehash, verifySecret } from './crypto'
@@ -36,6 +36,21 @@ export async function verifyStaffLogin(phone: string, plain: string): Promise<St
   if (!valid) return { ok: false, message: 'Telefone ou palavra-passe incorretos.' }
 
   if (user.status !== 'active') return { ok: false, message: 'Conta desativada. Fale com a administração.' }
+
+  /*
+    A mesma pergunta que `acessoDe` faz, feita aqui também. Sem ela a senha
+    ainda era aceite, a sessão nascia, e a tela seguinte devolvia a pessoa para
+    o login sem dizer porquê — um laço em que se digita a senha certa e não se
+    entra. Uma frase honesta custa uma consulta.
+  */
+  const [perfil] = await db
+    .select({ active: staffProfiles.active })
+    .from(staffProfiles)
+    .where(eq(staffProfiles.userId, user.id))
+    .limit(1)
+  if (perfil && !perfil.active) {
+    return { ok: false, message: 'Este acesso está desativado. Fale com a administração.' }
+  }
 
   /*
     Único instante em que a senha em claro existe e a pessoa já provou ser dona

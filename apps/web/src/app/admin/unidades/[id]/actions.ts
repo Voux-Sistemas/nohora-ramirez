@@ -49,25 +49,99 @@ const DIA = [
   'sábado',
 ]
 
-function parseUnit(formData: FormData): UnitInput {
+/**
+ * As cinco regras de marcação, com o mínimo que cada uma aceita.
+ *
+ * Aqui estava `Number(formData.get('granularityMin') ?? 15)`, e o `?? 15` nunca
+ * disparava: o campo existe sempre no formulário, e um campo esvaziado chega
+ * como `''` — não ausente. `Number('')` é **0**, e o 0 atravessava tudo o que
+ * havia pela frente: o `??` de `toSettings` não apanha 0, o
+ * `typeof === 'number'` de `parseSettings` (em `server/scheduling/context.ts`)
+ * dá certo, e o valor ia parar ao motor, que levanta `Granularidade precisa ser
+ * positiva`. Ninguém apanha essa exceção em `apps/web`, portanto a cliente que
+ * abrisse `/agendar/<loja>/horarios` recebia o ecrã de erro do Next em vez da
+ * grelha, e a recepção perdia o encaixe e a remarcação daquela loja — tudo
+ * porque a dona seleccionou o «15» para o reescrever e guardou distraída.
+ * `maxLeadDays` a 0 tem o mesmo destino por outro caminho: não oferece dia
+ * nenhum.
+ *
+ * O `min` do input não chega: o browser não aplica `min` a campo vazio, e um
+ * formulário é um endereço HTTP de qualquer maneira. A recusa é aqui, com o
+ * nome do campo — como o horário de funcionamento já faz logo abaixo.
+ */
+/* Nomeadas uma a uma, e não por `keyof`: `UnitSettingsForm` tem índice de
+   string para caber no `jsonb`, portanto `keyof` traz `string | number` e o
+   nome do campo deixaria de ser conferido contra o formulário. */
+type CampoDeRegra =
+  | 'minLeadMin'
+  | 'maxLeadDays'
+  | 'granularityMin'
+  | 'cancellationWindowHours'
+  | 'interServiceGapMin'
+
+const REGRAS: readonly {
+  campo: CampoDeRegra
+  rotulo: string
+  unidade: string
+  minimo: number
+}[] = [
+  { campo: 'minLeadMin', rotulo: 'Antecedência mínima', unidade: 'minutos', minimo: 0 },
+  { campo: 'maxLeadDays', rotulo: 'Antecedência máxima', unidade: 'dias', minimo: 1 },
+  { campo: 'granularityMin', rotulo: 'Granularidade', unidade: 'minutos', minimo: 5 },
+  {
+    campo: 'cancellationWindowHours',
+    rotulo: 'Janela de cancelamento',
+    unidade: 'horas',
+    minimo: 0,
+  },
+  { campo: 'interServiceGapMin', rotulo: 'Intervalo entre serviços', unidade: 'minutos', minimo: 0 },
+]
+
+function parseSettings(formData: FormData): { settings: UnitInput['settings'] } | { error: string } {
+  const settings = { ...VAZIO }
+  for (const regra of REGRAS) {
+    const escrito = String(formData.get(regra.campo) ?? '').trim()
+    if (!escrito) return { error: `${regra.rotulo}: o campo ficou em branco.` }
+
+    const valor = Number(escrito)
+    if (!Number.isInteger(valor)) {
+      return { error: `${regra.rotulo}: escreva um número inteiro de ${regra.unidade}.` }
+    }
+    if (valor < regra.minimo) {
+      return { error: `${regra.rotulo}: o mínimo é ${regra.minimo} ${regra.unidade}.` }
+    }
+    settings[regra.campo] = valor
+  }
+  return { settings }
+}
+
+/* Só existe para dar forma ao objeto — `parseSettings` reescreve as cinco. */
+const VAZIO: UnitInput['settings'] = {
+  minLeadMin: 120,
+  maxLeadDays: 60,
+  granularityMin: 15,
+  cancellationWindowHours: 24,
+  interServiceGapMin: 0,
+}
+
+function parseUnit(formData: FormData): { input: UnitInput } | { error: string } {
+  const regras = parseSettings(formData)
+  if ('error' in regras) return regras
+
   return {
-    name: String(formData.get('name') ?? '').trim(),
-    slug: String(formData.get('slug') ?? '').trim(),
-    phone: String(formData.get('phone') ?? '').trim() || undefined,
-    email: String(formData.get('email') ?? '').trim() || undefined,
-    addressLine: String(formData.get('addressLine') ?? '').trim() || undefined,
-    district: String(formData.get('district') ?? '').trim() || undefined,
-    city: String(formData.get('city') ?? '').trim() || undefined,
-    state: String(formData.get('state') ?? '').trim() || undefined,
-    postalCode: String(formData.get('postalCode') ?? '').trim() || undefined,
-    timezone: String(formData.get('timezone') ?? '').trim() || pais().fusoPadrao,
-    active: formData.get('active') === 'on',
-    settings: {
-      minLeadMin: Number(formData.get('minLeadMin') ?? 120),
-      maxLeadDays: Number(formData.get('maxLeadDays') ?? 60),
-      granularityMin: Number(formData.get('granularityMin') ?? 15),
-      cancellationWindowHours: Number(formData.get('cancellationWindowHours') ?? 24),
-      interServiceGapMin: Number(formData.get('interServiceGapMin') ?? 0),
+    input: {
+      name: String(formData.get('name') ?? '').trim(),
+      slug: String(formData.get('slug') ?? '').trim(),
+      phone: String(formData.get('phone') ?? '').trim() || undefined,
+      email: String(formData.get('email') ?? '').trim() || undefined,
+      addressLine: String(formData.get('addressLine') ?? '').trim() || undefined,
+      district: String(formData.get('district') ?? '').trim() || undefined,
+      city: String(formData.get('city') ?? '').trim() || undefined,
+      state: String(formData.get('state') ?? '').trim() || undefined,
+      postalCode: String(formData.get('postalCode') ?? '').trim() || undefined,
+      timezone: String(formData.get('timezone') ?? '').trim() || pais().fusoPadrao,
+      active: formData.get('active') === 'on',
+      settings: regras.settings,
     },
   }
 }
@@ -121,7 +195,9 @@ export async function salvarUnidade(
   formData: FormData,
 ): Promise<EstadoDeFormulario> {
   const id = String(formData.get('id') ?? '')
-  const input = parseUnit(formData)
+  const lido = parseUnit(formData)
+  if ('error' in lido) return { error: lido.error }
+  const input = lido.input
   /* As duas recusas de baixo eram um `return` mudo: a dona carregava em
      Guardar, o ecrã ficava exactamente igual, e nada dizia que faltava o nome.
      Um botão que não responde é o defeito mais difícil de reportar. */
@@ -201,21 +277,55 @@ function ehSlugRepetido(e: unknown): boolean {
   return e.cause !== undefined && ehSlugRepetido(e.cause)
 }
 
-export async function adicionarExcecao(formData: FormData): Promise<void> {
+/**
+ * A exceção de calendário: o feriado, a formação, o dia de obras.
+ *
+ * Não conferia nada, e não tinha sequer onde recusar — devolvia `void`. Do
+ * lado de quem lê, o desfecho de um par de horas mal escrito é sempre o mesmo,
+ * e é o pior: **fechado**. Em `server/scheduling/context.ts` a linha com uma
+ * hora em branco é deitada fora pelo filtro, `windows` fica vazio e a data
+ * inteira sai das janelas abertas; com as horas trocadas nasce uma janela que
+ * começa depois de acabar, e o varrimento não devolve horário nenhum.
+ *
+ * Ou seja: a dona abria a loja das 9 às 14 na véspera de Natal, guardava, via a
+ * exceção na lista a confirmar que tinha feito o que era preciso — e a cliente
+ * via a loja fechada nesse dia. A validação é a mesma que `parseHours` tem
+ * vinte linhas acima, e está aqui pelo mesmo motivo.
+ */
+export async function adicionarExcecao(
+  _estado: EstadoDeFormulario,
+  formData: FormData,
+): Promise<EstadoDeFormulario> {
   const unitId = String(formData.get('unitId') ?? '')
   const date = String(formData.get('date') ?? '')
   const closed = formData.get('closed') === 'on'
-  if (!unitId || !date) return
+  if (!unitId) return {}
+  if (!date) return { error: 'Escolha a data da exceção.' }
   await assertRede()
+
+  const opensAt = closed ? undefined : String(formData.get('opensAt') ?? '').trim() || undefined
+  const closesAt = closed ? undefined : String(formData.get('closesAt') ?? '').trim() || undefined
+
+  if (!closed && (!opensAt || !closesAt)) {
+    return {
+      error: `Falta a hora de ${opensAt ? 'fechar' : 'abrir'}. Para fechar o dia inteiro, marque «Fechado o dia todo».`,
+    }
+  }
+  if (opensAt && closesAt && closesAt <= opensAt) {
+    return {
+      error: `A exceção fecha às ${closesAt} e abre às ${opensAt} — o fim tem de vir depois do início.`,
+    }
+  }
 
   await addUnitException(unitId, {
     date,
     closed,
-    opensAt: closed ? undefined : String(formData.get('opensAt') ?? '').trim() || undefined,
-    closesAt: closed ? undefined : String(formData.get('closesAt') ?? '').trim() || undefined,
+    opensAt,
+    closesAt,
     reason: String(formData.get('reason') ?? '').trim() || undefined,
   })
   revalidatePath(`/admin/unidades/${unitId}`)
+  return { success: true }
 }
 
 export async function removerExcecao(formData: FormData): Promise<void> {

@@ -1,5 +1,5 @@
 import { addDaysInZone, agruparPorFuso, isoDateInZone, janelaDoMes, zonedDateTime } from '@studio/core'
-import { LIVE_APPOINTMENT_STATUSES, appointments, units } from '@studio/db'
+import { LIVE_APPOINTMENT_STATUSES, appointmentDiscounts, appointments, units } from '@studio/db'
 import { and, asc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { OperateTopbar } from '@/components/operate/topbar'
@@ -59,6 +59,32 @@ interface Comparativo {
 const STATUSES_AINDA_VALEM = sql.raw(
   LIVE_APPOINTMENT_STATUSES.map((status) => `'${status}'`).join(', '),
 )
+
+/**
+ * O que entrou na gaveta, e não o que estava na etiqueta.
+ *
+ * Todas as somas de dinheiro deste painel liam `appointments.total_price`
+ * sozinho. Só que o desconto dado ao balcão **não** mexe no preço congelado do
+ * item — é uma decisão explícita do schema — e vive numa tabela à parte,
+ * `appointment_discounts`, escrita no fecho da comanda. Somar só o
+ * `total_price` era portanto contar cada euro de desconto como faturado: a
+ * comanda de 60,00 € fechada com 10,00 € de desconto entrava na gaveta a
+ * 50,00 € e no painel a 60,00 €.
+ *
+ * Não era número de canto. É o «no caixa» do cartão de cada loja e a
+ * «Faturação · mês» em corpo grande — o número pelo qual, diz o comentário lá
+ * abaixo, ela abre esta tela — e contaminava ainda o ticket médio e a variação
+ * face ao mês anterior. Ao fim de um mês de descontos de fidelização a
+ * faturação ficava sistematicamente acima do que entrou e não batia com o
+ * somatório dos fechos de caixa, sem nada no ecrã que explicasse a diferença.
+ *
+ * O `left join` que isto exige é seguro para as contagens: em
+ * `appointment_discounts` o `appointment_id` é único, portanto não multiplica
+ * linha nenhuma. E vale para as janelas futuras também, onde ainda não há
+ * desconto nenhum: ali a subtração é de zero, e ter uma expressão só evita que
+ * a próxima soma nasça outra vez pelo bruto.
+ */
+const LIQUIDO = sql<number>`(${appointments.totalPrice} - coalesce(${appointmentDiscounts.amount}, 0))`
 
 /**
  * Tudo o que o painel mostra, em duas consultas por fuso horário.
@@ -154,19 +180,20 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
              que de facto ainda ocupam o horário. */
           hojeAgendados: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim})::int`,
           hojeConcluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim})::int`,
-          hojeCaixa: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim}), 0)::int`,
+          hojeCaixa: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim}), 0)::int`,
           /* O que o dia vale se ninguém faltar. É a pergunta que ela faz de
              manhã. */
-          hojePrevisto: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim}), 0)::int`,
+          hojePrevisto: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${diaInicio} and ${appointments.startsAt} < ${diaFim}), 0)::int`,
 
           concluidos: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs})::int`,
-          faturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs}), 0)::int`,
+          faturamento: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs}), 0)::int`,
           concluidosAnterior: sql<number>`count(*) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs})::int`,
-          faturamentoAnterior: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs}), 0)::int`,
+          faturamentoAnterior: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs}), 0)::int`,
           marcadosCount: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs})::int`,
-          marcadosFaturamento: sql<number>`coalesce(sum(${appointments.totalPrice}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs}), 0)::int`,
+          marcadosFaturamento: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs}), 0)::int`,
         })
         .from(appointments)
+        .leftJoin(appointmentDiscounts, eq(appointmentDiscounts.appointmentId, appointments.id))
         .where(
           and(
             inArray(appointments.unitId, ids),
@@ -179,9 +206,10 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
       db
         .select({
           dia: diaExpr,
-          valor: sql<number>`coalesce(sum(${appointments.totalPrice}), 0)::int`,
+          valor: sql<number>`coalesce(sum(${LIQUIDO}), 0)::int`,
         })
         .from(appointments)
+        .leftJoin(appointmentDiscounts, eq(appointmentDiscounts.appointmentId, appointments.id))
         .where(
           and(
             inArray(appointments.unitId, ids),

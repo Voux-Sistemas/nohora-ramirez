@@ -4,6 +4,7 @@ import { FormActions } from '@/components/admin/form-actions'
 import { GaleriaDaLoja } from '@/components/admin/gallery'
 import { ImageField } from '@/components/admin/image-field'
 import { Button } from '@/components/ui/button'
+import { ErroDoForm } from '@/components/ui/erro-do-form'
 import { FormComEstado } from '@/components/ui/form-com-estado'
 import { pais } from '@/lib/pais'
 import { getUnitAdmin, listUnitPhotos, type HoursRow, type UnitRow } from '@/server/admin/units'
@@ -362,7 +363,7 @@ export default async function UnidadeFormPage({
               ) : null}
             </ul>
 
-            <form
+            <FormComEstado
               action={adicionarExcecao}
               className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
             >
@@ -388,11 +389,14 @@ export default async function UnidadeFormPage({
                 <input className="field" name="reason" placeholder="Feriado, reforma…" />
               </label>
               <div className="col-span-2 sm:col-span-5">
+                {/* Antes do botão: a recusa fala das horas que estão logo
+                    acima, e lida depois de carregar chegava tarde. */}
+                <ErroDoForm className="mb-3 text-sm text-(--estado-mau)" />
                 <Button type="submit" variant="outline" size="sm">
                   + adicionar exceção
                 </Button>
               </div>
-            </form>
+            </FormComEstado>
           </Section>
         )}
       </Ficha>

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { paraCentimos } from '@/lib/format'
 import { assertUnidade } from '@/server/auth/permissoes'
+import { ehFalhaTecnica } from '@/server/erros'
 import {
   closeComanda,
   getComanda,
@@ -70,8 +71,10 @@ export async function fecharComanda(
   } catch (erro) {
     /* As recusas de `closeComanda` são escritas para serem lidas ao balcão e
        voltam inteiras. O que não for uma delas fica no log com o rastro todo, e
-       para o ecrã vai só o que é verdade: não deu, e não foi por causa dela. */
-    if (erro instanceof Error && erro.message.length <= 120) {
+       para o ecrã vai só o que é verdade: não deu, e não foi por causa dela.
+       O comprimento sozinho não chega para separar as duas: há erro de Postgres
+       que cabe em 120 caracteres — ver `ehFalhaTecnica`. */
+    if (!ehFalhaTecnica(erro) && erro instanceof Error && erro.message.length <= 120) {
       return { error: `${erro.message.charAt(0).toUpperCase()}${erro.message.slice(1)}.` }
     }
     console.error('[comanda] falha ao fechar', appointmentId, erro)

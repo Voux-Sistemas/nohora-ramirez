@@ -33,12 +33,12 @@ import 'server-only'
  * mensagem que começa por `Failed query:` e guarda a original em `cause`.
  * Qualquer uma das duas assinaturas chega para saber que a frase não é nossa.
  */
-function ehTecnico(e: unknown): boolean {
+export function ehFalhaTecnica(e: unknown): boolean {
   if (!(e instanceof Error)) return true
   if (e.message.startsWith('Failed query')) return true
   const codigo = (e as { code?: unknown }).code
   if (typeof codigo === 'string' && /^[0-9A-Z]{5}$/.test(codigo)) return true
-  return e.cause !== undefined && ehTecnico(e.cause)
+  return e.cause !== undefined && ehFalhaTecnica(e.cause)
 }
 
 /**
@@ -49,7 +49,7 @@ function ehTecnico(e: unknown): boolean {
  * única pista que sobra para quem está a olhar.
  */
 export function mensagemDoErro(e: unknown, alternativa: string): string {
-  if (ehTecnico(e)) {
+  if (ehFalhaTecnica(e)) {
     console.error('[recusa técnica]', e)
     return alternativa
   }

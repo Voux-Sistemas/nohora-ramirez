@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { paraCentimos } from '@/lib/format'
 import { assertUnidade } from '@/server/auth/permissoes'
+import { ehFalhaTecnica } from '@/server/erros'
 import { addMovement, closeSession, openSession, unitOfSession } from '@/server/finance/caixa'
 
 /**
@@ -106,6 +107,10 @@ async function autorizarSessao(sessionId: string): Promise<void> {
  * inteiras, só com a maiúscula e o ponto que uma frase leva. O que não for uma
  * delas fica no log com o rastro todo, e para o ecrã vai só o que é verdade:
  * não deu, e não foi por causa de quem preencheu.
+ *
+ * O comprimento sozinho não distinguia as duas coisas: `duplicate key value
+ * violates unique constraint "…"` cabe nos 120 caracteres e ia parar ao balcão.
+ * Quem decide é a assinatura do erro — ver `ehFalhaTecnica`.
  */
 async function tentar(
   accao: () => Promise<unknown>,
@@ -116,7 +121,7 @@ async function tentar(
     await accao()
     return null
   } catch (erro) {
-    if (erro instanceof Error && erro.message.length <= 120) {
+    if (!ehFalhaTecnica(erro) && erro instanceof Error && erro.message.length <= 120) {
       return { error: `${erro.message.charAt(0).toUpperCase()}${erro.message.slice(1)}.` }
     }
     console.error(`[caixa] falha ao ${verbo}`, alvo, erro)

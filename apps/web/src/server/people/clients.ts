@@ -295,6 +295,23 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
       .limit(1)
     if (!profile) throw new Error('cliente não encontrado')
 
+    /* `users.phone` é único, e é por ele que a cliente entra na conta. Corrigir
+       o número para um que já é de outra pessoa — a irmã cadastrada em duplicado,
+       ou uma profissional da casa — não é engano do sistema, é uma decisão que
+       só quem está a olhar para as duas fichas consegue tomar. Sem esta pergunta
+       antes, o Postgres recusava e a recepção levava com o insert cru no ecrã,
+       perdendo tudo o que já tinha escrito. */
+    const [donoDoNumero] = await tx
+      .select({ id: users.id, nome: users.name })
+      .from(users)
+      .where(eq(users.phone, input.phone))
+      .limit(1)
+    if (donoDoNumero && donoDoNumero.id !== profile.userId) {
+      throw new Error(
+        `este telefone já está registado em ${donoDoNumero.nome} — se for a mesma pessoa, junte as duas fichas em vez de repetir o número`,
+      )
+    }
+
     await tx
       .update(users)
       .set({ name: input.name, phone: input.phone, email: input.email || null })

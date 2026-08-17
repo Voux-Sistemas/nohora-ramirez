@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { assertGestao } from '@/server/auth/permissoes'
+import { mensagemDoErro } from '@/server/erros'
 import {
   addClientNote,
   removeClientNote,
@@ -61,7 +62,16 @@ export async function atualizarCliente(
     requiresDeposit: formData.get('requiresDeposit') === 'on',
   }
 
-  await updateClientProfile(clientId, input)
+  /* Guardar pode falhar por motivo legítimo — o telefone já é de outra ficha —
+     e a recepção tem de poder corrigir sem perder o que escreveu. Sem este
+     catch, a exceção subia até ao ecrã genérico de erro e levava o formulário
+     inteiro com ela. */
+  try {
+    await updateClientProfile(clientId, input)
+  } catch (erro) {
+    return { error: mensagemDoErro(erro, 'não foi possível guardar esta ficha') }
+  }
+
   revalidatePath(`/clientes/${clientId}`)
   return {}
 }

@@ -142,11 +142,32 @@ export function apenasDigitos(valor: string): string {
  * a máscara ao vivo do campo de telefone, tecla a tecla. Diferente de
  * `formatPhone`: aqui o número pode estar pela metade, então só formata o que
  * já foi digitado em vez de exigir o comprimento inteiro.
+ *
+ * O indicativo sai antes do corte, e é isto que impede a máscara de corromper
+ * um número que já estava certo. Esta função não recebe só o que a pessoa
+ * digita: `PhoneInput` passa-lhe também o `defaultValue`, que vem da base em
+ * E.164. Com `+351934730344` à entrada e o corte a nove dígitos feito primeiro,
+ * ficava `351 934 730` — e `toE164` aceitava isso como nove dígitos nacionais
+ * legítimos e gravava `+351351934730`. A ficha da cliente mostrava o número
+ * certo no cabeçalho e outro no campo, e bastava carregar em Guardar por
+ * qualquer motivo — juntar uma etiqueta, a data de nascimento — para trocar o
+ * telemóvel dela em silêncio. A cada gravação seguinte degradava mais.
+ *
+ * O teste de comprimento é o mesmo do `toE164`, e pela mesma razão: no Brasil,
+ * `55998887777` é o DDD 55 com nove dígitos, não o indicativo 55 mais um
+ * número. Só se descarta o indicativo quando o que sobra tem comprimento
+ * nacional válido — senão a máscara partia-se a meio da digitação.
  */
 export function formatPhoneLive(raw: string): string {
-  const { agrupamentoNacional, digitosNacionais } = pais()
+  const { agrupamentoNacional, digitosNacionais, ddi } = pais()
   const max = Math.max(...digitosNacionais)
-  const digitos = apenasDigitos(raw).slice(0, max)
+  const brutos = apenasDigitos(raw)
+  /* `00` só é prefixo de saída quando o indicativo vem logo a seguir. Cortá-lo
+     sempre faria o campo esvaziar-se sozinho na segunda tecla de quem começa a
+     escrever por zero. */
+  const todos = brutos.startsWith(`00${ddi}`) ? brutos.slice(2) : brutos
+  const semDdi = todos.startsWith(ddi) ? todos.slice(ddi.length) : ''
+  const digitos = (digitosNacionais.includes(semDdi.length) ? semDdi : todos).slice(0, max)
   const partes: string[] = []
   let i = 0
   for (const tamanho of agrupamentoNacional) {

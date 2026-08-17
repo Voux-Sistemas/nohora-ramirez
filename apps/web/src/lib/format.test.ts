@@ -64,6 +64,29 @@ describe('telefone português', () => {
     })
   })
 
+  it('tira o indicativo antes de cortar, senão corrompe o número gravado', () => {
+    emPais('PT', () => {
+      /* O campo recebe o valor da base em E.164 — este é o caminho por onde a
+         máscara estragava a ficha de quem já estava cadastrada. */
+      expect(formatPhoneLive('+351934730344')).toBe('934 730 344')
+      expect(formatPhoneLive('00351934730344')).toBe('934 730 344')
+      /* E o resultado tem de voltar a ser o mesmo número, não outro. */
+      expect(toE164(formatPhoneLive('+351934730344'))).toBe('+351934730344')
+    })
+  })
+
+  it('não parte a máscara a meio de quem digita o indicativo à mão', () => {
+    emPais('PT', () => {
+      /* `351` ainda não é indicativo mais número nacional — é só três dígitos
+         escritos. Descartá-los aqui apagaria o que a pessoa acabou de teclar. */
+      expect(formatPhoneLive('3')).toBe('3')
+      expect(formatPhoneLive('351')).toBe('351')
+      expect(formatPhoneLive('3519')).toBe('351 9')
+      /* E zero à frente não é prefixo de saída se não vier indicativo atrás. */
+      expect(formatPhoneLive('00')).toBe('00')
+    })
+  })
+
   it('erro de telefone fala telemóvel e nove dígitos, nunca DDD', () => {
     emPais('PT', () => {
       expect(telefoneInvalidoErro()).toBe('Telefone inválido. Indique o telemóvel com 9 dígitos.')
@@ -86,6 +109,13 @@ describe('telefone brasileiro', () => {
       /* Santa Maria/RS. Tirar o "55" da frente deixaria nove dígitos, que não é
          comprimento nacional válido — então o número inteiro é o nacional. */
       expect(toE164('55998887777')).toBe('+5555998887777')
+      /* A máscara tem de fazer a mesma leitura: tirar o "55" deixaria nove
+         dígitos, que não é comprimento brasileiro — logo o número é inteiro.
+         Ao vivo os grupos separam-se por espaço; parêntese e traço são de
+         `formatPhone`, que só escreve número já completo. */
+      expect(formatPhoneLive('55998887777')).toBe('55 99888 7777')
+      /* Já com indicativo a sério, o que sobra tem onze e o indicativo sai. */
+      expect(formatPhoneLive('+5511998887777')).toBe('11 99888 7777')
     })
   })
 

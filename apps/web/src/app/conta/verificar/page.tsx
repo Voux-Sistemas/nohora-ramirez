@@ -27,11 +27,11 @@ export default async function VerificarPage({
 
   return (
     <Porta
-      title="Digite o código"
+      title="Escreva o código"
       subtitle={
         destino ? (
           <>
-            Enviamos um código para <span className="text-(--text-strong)">{destino}</span>, o
+            Enviámos um código para <span className="text-(--text-strong)">{destino}</span>, o
             e-mail da conta {formatPhone(telefone)}. Ele vale por 5 minutos.
           </>
         ) : (

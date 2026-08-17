@@ -84,10 +84,20 @@ export function formatDateShort(isoDate: string): string {
   })
 }
 
+/**
+ * "seg", "ter", "sáb" — o rótulo de uma coluna de calendário.
+ *
+ * O `weekday: 'short'` do ICU não abrevia em português: devolve "segunda",
+ * "domingo", "sábado". Na grelha de dias da marcação são sete colunas no ecrã
+ * do telemóvel, e "SEGUNDA" em maiúsculas espaçadas transbordava a coluna e
+ * empurrava o número do dia para baixo. Três letras é o que o calendário
+ * português usa, e nos idiomas em que o ICU já abrevia isto não mexe em nada.
+ */
 export function formatWeekdayShort(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`)
+  const dia = new Date(`${isoDate}T12:00:00Z`)
     .toLocaleDateString(pais().locale, { weekday: 'short', timeZone: 'UTC' })
     .replace('.', '')
+  return dia.length > 3 ? dia.slice(0, 3) : dia
 }
 
 /** "1h30" / "45min" — o jeito que a recepção fala. */

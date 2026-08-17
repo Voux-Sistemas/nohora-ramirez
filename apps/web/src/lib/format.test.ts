@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { formatMoney, formatPhone, formatPhoneLive, telefoneInvalidoErro, toE164 } from './format'
+import {
+  formatMoney,
+  formatPhone,
+  formatPhoneLive,
+  formatWeekdayShort,
+  telefoneInvalidoErro,
+  toE164,
+} from './format'
 
 /*
   Importado por caminho relativo, não por `@/`: assim o vitest roda sem precisar
@@ -144,5 +151,21 @@ describe('dinheiro', () => {
   it('sem país declarado assume Portugal, que é onde o sistema está', () => {
     delete process.env.PAIS
     expect(formatMoney(1500).replace(/ /g, ' ')).toBe('15,00 €')
+  })
+})
+
+describe('dia da semana na grelha', () => {
+  it('abrevia a três letras, que é o que o calendário português usa', () => {
+    emPais('PT', () => {
+      /* O ICU devolve "segunda", "domingo", "sábado" em `weekday: short` — a
+         palavra inteira transbordava a coluna do telemóvel. */
+      expect(formatWeekdayShort('2026-08-16')).toBe('dom')
+      expect(formatWeekdayShort('2026-08-17')).toBe('seg')
+      expect(formatWeekdayShort('2026-08-18')).toBe('ter')
+      expect(formatWeekdayShort('2026-08-19')).toBe('qua')
+      expect(formatWeekdayShort('2026-08-20')).toBe('qui')
+      expect(formatWeekdayShort('2026-08-21')).toBe('sex')
+      expect(formatWeekdayShort('2026-08-22')).toBe('sáb')
+    })
   })
 })

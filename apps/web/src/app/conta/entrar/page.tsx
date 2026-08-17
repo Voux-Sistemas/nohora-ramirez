@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { PhoneForm } from '@/components/auth/phone-form'
+import { Porta } from '@/components/auth/porta'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 
 export const metadata = { title: 'Entrar' }
@@ -19,11 +20,7 @@ export default function ContaEntrarPage() {
   */
   if (!loginClienteDisponivel()) {
     return (
-      <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-        <h1 className="text-2xl font-semibold">A minha conta</h1>
-        <p className="text-muted mt-1 mb-6 text-sm">
-          A área da cliente ainda está em preparação.
-        </p>
+      <Porta title="A minha conta" subtitle="A área da cliente ainda está em preparação.">
         <div className="surface rounded-card p-5">
           <p className="text-sm leading-relaxed">
             Para ver, remarcar ou cancelar um horário, fale diretamente com o salão — a receção
@@ -37,19 +34,27 @@ export default function ContaEntrarPage() {
             .
           </p>
         </div>
-      </div>
+      </Porta>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-      <h1 className="text-2xl font-semibold">A minha conta</h1>
-      <p className="text-muted mt-1 mb-6 text-sm">
-        Escreva o seu telefone e enviamos um código para o seu e-mail.
-      </p>
+    <Porta
+      title="A minha conta"
+      subtitle="Escreva o seu telefone e enviamos um código para o seu e-mail."
+      footer={
+        <>
+          Ainda não é nossa cliente?{' '}
+          <Link className="underline underline-offset-4 hover:text-(--text-strong)" href="/agendar">
+            Marque o primeiro horário
+          </Link>
+          .
+        </>
+      }
+    >
       <div className="surface rounded-card p-5">
         <PhoneForm />
       </div>
-    </div>
+    </Porta>
   )
 }

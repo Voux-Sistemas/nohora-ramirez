@@ -110,7 +110,24 @@ export function BookingShell({
         </div>
       </header>
 
-      <main className={cn('mx-auto w-full flex-1 px-5 pt-7 pb-36 sm:px-8 sm:pt-12', outer)}>
+      <main
+        className={cn(
+          'mx-auto w-full flex-1 px-5 pt-7 sm:px-8 sm:pt-12',
+          /*
+            A folga do fim existe por causa do rodapé fixo, então ela só existe
+            quando há rodapé. Fixa em todas as telas, era meio ecrã de rolagem
+            para nada no telemóvel — e num passo sem rodapé o polegar chegava ao
+            fim da lista e continuava a rolar sobre o vazio, que se lê como
+            "acabou de carregar" e não como "acabou".
+
+            Com rail, a partir de `lg` o rodapé sai da tela (ver abaixo) e a
+            folga sai com ele.
+          */
+          footer ? 'pb-[calc(5rem+env(safe-area-inset-bottom))]' : 'pb-12 sm:pb-16',
+          footer && hasRail && 'lg:pb-16',
+          outer,
+        )}
+      >
         {hasRail ? (
           <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-16">
             <div className={cn('mx-auto w-full', shell, 'lg:mx-0', railFirst && 'order-2 lg:order-1')}>
@@ -132,7 +149,17 @@ export function BookingShell({
             hasRail && 'lg:hidden',
           )}
         >
-          <div className={cn('mx-auto w-full px-5 py-3 sm:px-8', outer)}>{footer}</div>
+          {/* `env(safe-area-inset-bottom)`: no iPhone o rodapé encostado em
+              `bottom-0` nasce debaixo da barra de gestos, e o preço da marcação
+              fica cortado ao meio pela risca branca do sistema. */}
+          <div
+            className={cn(
+              'mx-auto w-full px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-8',
+              outer,
+            )}
+          >
+            {footer}
+          </div>
         </div>
       ) : null}
     </div>

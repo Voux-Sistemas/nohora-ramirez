@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { InstallForm } from '@/components/auth/install-form'
+import { Porta } from '@/components/auth/porta'
 import { instalacaoAberta } from '@/server/auth/instalacao'
 
 export const metadata = { title: 'Começar' }
@@ -21,15 +22,17 @@ export default async function ComecarPage() {
   if (!(await instalacaoAberta())) redirect('/entrar')
 
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col justify-center px-5 py-12">
-      <h1 className="text-2xl font-semibold">Começar</h1>
-      <p className="text-muted mt-1 mb-6 text-sm">
-        Esta é a primeira conta do sistema — a conta da dona, com acesso a tudo.
-        Depois de criada, este ecrã deixa de existir.
-      </p>
+    /* `home="/entrar"`: aqui ainda não há loja nenhuma cadastrada, e a montra
+       levaria a uma vitrine vazia. A porta da equipa é o único destino que
+       existe de verdade neste momento da instalação. */
+    <Porta
+      title="Começar"
+      subtitle="Esta é a primeira conta do sistema — a conta da dona, com acesso a tudo. Depois de criada, este ecrã deixa de existir."
+      home="/entrar"
+    >
       <div className="surface rounded-card p-5">
         <InstallForm />
       </div>
-    </div>
+    </Porta>
   )
 }

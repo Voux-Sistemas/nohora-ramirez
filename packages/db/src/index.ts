@@ -61,6 +61,29 @@ function ehPoolerDeTransacao(url: string): boolean {
   }
 }
 
+/*
+  Socket parado é socket que morre sem avisar.
+
+  O `postgres.js` vem com `idle_timeout: null` — uma ligação ociosa fica aberta
+  para sempre. Contra um Postgres na mesma sala isso é uma poupança; contra o
+  Supavisor do Supabase é a receita de uma avaria calada, e ela aconteceu em
+  2026-08-17: o site respondia em 10 ms, o pooler reciclou as ligações do lado
+  dele, e a partir daí cada consulta ficou pendurada num socket que já não
+  existia. O processo estava vivo, o `/entrar` respondia — só as telas que lêem
+  do banco é que penduravam. `select 1` não dava erro: esperava.
+  E esperava muito, porque o `connect_timeout` de origem é 30 segundos.
+
+  Nada disto se ganha com pipe aberto: num pooler de *transação* quem multiplexa
+  é ele, e a ligação do lado do cliente não guarda estado nenhum entre consultas.
+  Segurá-la não poupa trabalho — só acumula sockets à espera de apodrecer.
+
+  `max_lifetime` já vinha do driver (30 a 60 minutos, com folga aleatória para
+  as ligações não expirarem todas ao mesmo tempo); o buraco era só o ocioso.
+*/
+const OCIOSO_S = 20
+/** Falhar em 10 s e dizer que falhou vale mais do que pendurar meio minuto. */
+const LIGACAO_S = 10
+
 /**
  * Conexão única e preguiçosa. `max: 1` no worker e em scripts evita estourar
  * o limite de conexões do Postgres gerenciado.
@@ -71,6 +94,8 @@ export function getDb(options?: { max?: number }) {
   holder[POOL] ??= postgres(url, {
     max: options?.max ?? 10,
     prepare: !ehPoolerDeTransacao(url),
+    idle_timeout: OCIOSO_S,
+    connect_timeout: LIGACAO_S,
     // o Postgres devolve timestamptz; deixamos o driver entregar Date em UTC
     transform: { undefined: null },
   })

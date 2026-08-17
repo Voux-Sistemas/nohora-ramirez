@@ -22,22 +22,58 @@ export const dynamic = 'force-dynamic'
 
 const LIMITE_MS = 4000
 
+/**
+ * Um `Promise.race` responde depressa e deita fora a resposta lenta.
+ *
+ * Isso aqui custou caro. Quando o banco pendurou a sério, o log só dizia
+ * "banco não respondeu a tempo" — a frase do nosso próprio cronómetro, que não
+ * sabe nada. O erro do Postgres chegava um minuto e meio depois, ao lado
+ * nenhum: a promessa perdedora já não tinha quem a ouvisse, e o Node ainda a
+ * anunciava como `unhandledRejection` no meio do log.
+ *
+ * O erro verdadeiro (`57014: canceling statement due to statement timeout`)
+ * era a diferença entre procurar no sítio certo e procurar a noite toda.
+ * Então a corrida continua a decidir a resposta, mas a promessa lenta fica com
+ * alguém a ouvi-la: chegue quando chegar, o motivo vai para o log.
+ */
 export async function GET() {
   const inicio = Date.now()
+
+  /* `select 1` passa pelo pool, pela rede e pelo Postgres — que é tudo o que
+     queremos provar. Consulta em tabela nossa acoplaria o health check ao
+     schema, e aí uma migração em andamento derrubaria o deploy que a estava
+     aplicando. */
+  const consulta = db.execute(sql`select 1`)
+
+  let respondeu = false
+  consulta.then(
+    () => {
+      respondeu = true
+    },
+    (erro: unknown) => {
+      respondeu = true
+      console.error(`[saude] o banco recusou aos ${Date.now() - inicio} ms:`, detalhe(erro))
+    },
+  )
+
   try {
-    /* `select 1` passa pelo pool, pela rede e pelo Postgres — que é tudo o que
-       queremos provar. Consulta em tabela nossa acoplaria o health check ao
-       schema, e aí uma migração em andamento derrubaria o deploy que a estava
-       aplicando. */
     await Promise.race([
-      db.execute(sql`select 1`),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('banco não respondeu a tempo')), LIMITE_MS),
-      ),
+      consulta,
+      new Promise((_, rejeitar) => setTimeout(() => rejeitar(new Error('sem resposta')), LIMITE_MS)),
     ])
     return NextResponse.json({ ok: true, ms: Date.now() - inicio })
-  } catch (error) {
-    console.error('[saude] banco fora:', String(error))
+  } catch {
+    if (!respondeu) {
+      console.error(`[saude] o banco não respondeu em ${LIMITE_MS} ms — o motivo real fica para quando chegar`)
+    }
     return NextResponse.json({ ok: false }, { status: 503 })
   }
+}
+
+/** O código do Postgres é o que se procura no manual; a mensagem sozinha não. */
+function detalhe(erro: unknown): string {
+  if (!(erro instanceof Error)) return String(erro)
+  const codigo = (erro as { code?: string }).code
+  const causa = erro.cause instanceof Error ? ` ← ${erro.cause.message}` : ''
+  return `${codigo ? `[${codigo}] ` : ''}${erro.message}${causa}`
 }

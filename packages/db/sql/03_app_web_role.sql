@@ -36,6 +36,30 @@ GRANT USAGE ON SCHEMA public TO app_web;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_web;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_web;
 
+-- ── Limites de tempo do site ────────────────────────────────────────────────
+--
+-- O padrão do Supabase para este papel é `statement_timeout = 2min`. Dois
+-- minutos é o tempo de uma consulta de relatório, não o de uma tela: em
+-- 2026-08-17 uma consulta ficou presa e o site inteiro pendurou, porque a
+-- ligação só volta ao pool quando a consulta acaba — e com dez ligações no
+-- pool bastam dez consultas presas para nunca mais nenhuma tela abrir. Quem
+-- estava a marcar viu a roda a girar até desistir, e nada nos logs, porque um
+-- pedido pendurado não escreve linha nenhuma.
+--
+-- Estes limites não deixam o site ficar mais rápido; deixam-no **falhar** em
+-- vez de pendurar. Uma tela que dá erro em dez segundos recarrega-se; uma que
+-- gira para sempre obriga a reiniciar o servidor.
+--
+-- Vive aqui e não no `postgres.js` de propósito: o papel leva o limite consigo
+-- para qualquer ligação, venha ela do site, do pooler ou de um script — e não
+-- há como esquecer de o ligar numa opção do cliente.
+--
+-- Só o `app_web`. Migrations, `db:constraints` e o seed entram como dono
+-- (`postgres`) por DIRECT_URL, e esses precisam mesmo de demorar.
+ALTER ROLE app_web SET statement_timeout = '10s';
+ALTER ROLE app_web SET lock_timeout = '3s';
+ALTER ROLE app_web SET idle_in_transaction_session_timeout = '15s';
+
 -- Tabelas e sequences que ainda não existem: nascem com a migration seguinte,
 -- criadas pelo papel dono (`postgres`, o mesmo em dev local, na Railway e no
 -- Supabase). Sem isto, cada `db:migrate` exigiria voltar aqui e regravar os

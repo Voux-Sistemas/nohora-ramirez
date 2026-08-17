@@ -62,27 +62,47 @@ function ehPoolerDeTransacao(url: string): boolean {
 }
 
 /*
-  Socket parado é socket que morre sem avisar.
+  O que aconteceu em 2026-08-17, e porque é que estes três números existem.
 
-  O `postgres.js` vem com `idle_timeout: null` — uma ligação ociosa fica aberta
-  para sempre. Contra um Postgres na mesma sala isso é uma poupança; contra o
-  Supavisor do Supabase é a receita de uma avaria calada, e ela aconteceu em
-  2026-08-17: o site respondia em 10 ms, o pooler reciclou as ligações do lado
-  dele, e a partir daí cada consulta ficou pendurada num socket que já não
-  existia. O processo estava vivo, o `/entrar` respondia — só as telas que lêem
-  do banco é que penduravam. `select 1` não dava erro: esperava.
-  E esperava muito, porque o `connect_timeout` de origem é 30 segundos.
+  O site respondia em 10 ms e, sem nada mudar, todas as telas que lêem do banco
+  passaram a girar para sempre. O processo estava vivo e o `/entrar` respondia,
+  porque essa tela não pergunta nada ao Postgres. O log não dizia nada: um
+  pedido pendurado não escreve linha nenhuma. E o banco, visto de fora, estava
+  de perfeita saúde — `select 1` em 1,2 s pelo mesmo pooler, à mesma hora.
 
-  Nada disto se ganha com pipe aberto: num pooler de *transação* quem multiplexa
-  é ele, e a ligação do lado do cliente não guarda estado nenhum entre consultas.
-  Segurá-la não poupa trabalho — só acumula sockets à espera de apodrecer.
+  A avaria era o pool a esvaziar-se. Uma consulta que fica presa só devolve a
+  ligação quando acaba, e o limite de origem do Supabase para acabar à força é
+  `statement_timeout = 2min`. Dez ligações presas, dois minutos cada, e o site
+  não tem mais nenhuma para dar a quem chega: quem estava a marcar viu a roda a
+  girar até desistir. Reiniciar curava por vinte minutos, que é o tempo de
+  voltar a encher o pool de consultas presas.
 
-  `max_lifetime` já vinha do driver (30 a 60 minutos, com folga aleatória para
-  as ligações não expirarem todas ao mesmo tempo); o buraco era só o ocioso.
+  O remate está no papel `app_web` (`sql/03_app_web_role.sql`): dez segundos de
+  `statement_timeout` em vez de dois minutos. O que fica aqui é o lado do
+  cliente da mesma ideia — nenhum destes números torna o site mais rápido, todos
+  o fazem falhar depressa em vez de pendurar, que é a diferença entre uma tela
+  que se recarrega e um servidor que se reinicia.
 */
-const OCIOSO_S = 20
+
+/*
+  Ocioso: o `postgres.js` vem com `idle_timeout: null` e segura a ligação para
+  sempre. Contra um pooler de *transação* isso não poupa nada — quem multiplexa
+  é ele, e a ligação do cliente não guarda estado entre consultas —, só acumula
+  sockets à espera de apodrecer do lado de lá. Dois minutos larga o que está
+  parado sem transformar cada visita num aperto de mão TLS novo.
+*/
+const OCIOSO_S = 120
+
 /** Falhar em 10 s e dizer que falhou vale mais do que pendurar meio minuto. */
 const LIGACAO_S = 10
+
+/*
+  Vida máxima: o driver traz 30 a 60 minutos. Meia hora é muito tempo para uma
+  ligação que o pooler do outro lado já pode ter reciclado sem nos avisar.
+  Dez minutos, com a mesma folga aleatória do driver para as ligações não
+  expirarem todas no mesmo segundo e deixarem o site sem nenhuma.
+*/
+const VIDA_S = 600 + Math.floor(Math.random() * 300)
 
 /**
  * Conexão única e preguiçosa. `max: 1` no worker e em scripts evita estourar
@@ -96,6 +116,7 @@ export function getDb(options?: { max?: number }) {
     prepare: !ehPoolerDeTransacao(url),
     idle_timeout: OCIOSO_S,
     connect_timeout: LIGACAO_S,
+    max_lifetime: VIDA_S,
     // o Postgres devolve timestamptz; deixamos o driver entregar Date em UTC
     transform: { undefined: null },
   })

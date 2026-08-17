@@ -17,6 +17,7 @@
     "db:constraints": "npm run constraints --workspace=@studio/db",
     "db:seed": "npm run seed --workspace=@studio/db",
     "db:inspect": "npm run inspect --workspace=@studio/db",
+    "db:pulso": "npm run pulso --workspace=@studio/db",
     "db:studio": "npm run studio --workspace=@studio/db",
     "lint": "npm run lint --workspaces --if-present"
   },

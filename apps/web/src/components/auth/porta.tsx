@@ -67,12 +67,20 @@ export function Porta({
  * código que abre a conta de outra pessoa. Um sítio só é um sítio só para
  * auditar. Quem decide se ele aparece continua a ser o servidor — a tela só
  * recebe o código já resolvido, ou não recebe nada.
+ *
+ * A cor é o token de aviso da casa, e não uma paleta emprestada com `dark:`.
+ * O tema aqui é `<html data-theme>` decidido no servidor, não a preferência do
+ * sistema operativo — o `dark:` do Tailwind escuta a segunda e nunca a
+ * primeira, portanto aquelas classes ou não faziam nada, ou (pior) escureciam
+ * este aviso no meio de uma página clara. `--estado-aviso` existe nos dois
+ * temas e é o mesmo âmbar que marca a falta na agenda.
  */
 export function CodigoDeTeste({ codigo }: { codigo: string | undefined }) {
   if (!codigo) return null
   return (
-    <p className="mb-4 rounded-plate border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-      Modo desenvolvimento — código: <span className="font-mono font-semibold">{codigo}</span>
+    <p className="rounded-plate mb-4 border border-(--estado-aviso)/40 bg-(--estado-aviso)/10 p-3 text-sm">
+      <span className="font-medium text-(--estado-aviso)">Modo desenvolvimento</span> — código:{' '}
+      <span className="font-mono font-semibold">{codigo}</span>
     </p>
   )
 }

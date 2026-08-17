@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { pais } from '@/lib/pais'
 import { setStaffPassword } from '@/server/auth/password'
+import { createSession, revokeAllSessions } from '@/server/auth/session'
 import {
   alcanceDoStaff,
   createStaff,
@@ -57,6 +58,17 @@ export async function salvarProfissional(
   if (!input.name || !input.phone) return { error: 'preencha nome e telefone' }
 
   const acesso = id === 'novo' ? await assertGestao() : (await autorizarStaff(id)).acesso
+
+  /* Desmarcar "Ativo" passou a cortar mesmo o acesso (ver `acessoDe`). Feito na
+     própria ficha, é sair pela porta que se está a fechar: a tela seguinte já
+     recusaria a entrada e não haveria por onde voltar. Mesma trava, e pelo
+     mesmo motivo, que a de rebaixar-se a si mesma logo abaixo. */
+  if (id !== 'novo' && !input.active) {
+    const alvo = await alcanceDoStaff(id)
+    if (alvo?.userId === acesso.session.userId) {
+      return { error: 'não pode desativar a própria ficha — peça a outra pessoa da gestão' }
+    }
+  }
 
   /* Só a dona escolhe o degrau. Do gerente o campo nem chega — e se chegasse,
      seria ignorado: `papel` ausente quer dizer "não mexa no papel". */
@@ -119,26 +131,59 @@ export async function salvarProfissional(
   redirect(`/admin/equipe/${staffId}` as never)
 }
 
-/** Uma linha por unidade+dia com um único turno — cobre a escala comum. */
-function parseSchedule(formData: FormData): ScheduleInput[] {
+const DIA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']
+
+/**
+ * Uma linha por unidade+dia com um único turno — cobre a escala comum.
+ *
+ * As duas recusas nomeiam o dia porque o formulário tem sete linhas iguais e
+ * "corrija o horário" não diz qual delas. Antes não havia recusa nenhuma:
+ *
+ * - **fim antes do início** passava direto e ia bater no CHECK
+ *   `staff_schedules_end_after_start` lá no banco. A escala inteira era
+ *   recusada pelo Postgres e a dona levava com o ecrã de "alguma coisa falhou
+ *   aqui" — sete linhas preenchidas perdidas, e nenhuma pista de que o erro
+ *   estava na terça.
+ * - **hora apagada** era pior, porque não dava erro: a linha só entrava se
+ *   tivesse loja *e* as duas horas, portanto apagar o fim da sexta transformava
+ *   a sexta em folga em silêncio. A dona via a loja ainda escolhida no ecrã e a
+ *   agenda deixava de vender aquele dia.
+ *
+ * Loja em branco continua a ser folga de propósito — é assim que se tira um dia.
+ */
+function parseSchedule(formData: FormData): { rows: ScheduleInput[] } | { error: string } {
   const rows: ScheduleInput[] = []
   for (const weekday of WEEKDAYS) {
     const unitId = String(formData.get(`sc${weekday}_unit`) ?? '').trim()
     const startsAt = String(formData.get(`sc${weekday}_start`) ?? '').trim()
     const endsAt = String(formData.get(`sc${weekday}_end`) ?? '').trim()
-    if (unitId && startsAt && endsAt) rows.push({ unitId, weekday, startsAt, endsAt })
+    if (!unitId) continue
+    if (!startsAt || !endsAt) {
+      return { error: `Falta a hora de ${!startsAt ? 'início' : 'fim'} na ${DIA[weekday]}. Para dar folga, escolha "Folga" na coluna da loja.` }
+    }
+    if (endsAt <= startsAt) {
+      return { error: `Na ${DIA[weekday]} o fim (${endsAt}) não pode ser antes do início (${startsAt}).` }
+    }
+    rows.push({ unitId, weekday, startsAt, endsAt })
   }
-  return rows
+  return { rows }
 }
 
-export async function salvarEscala(formData: FormData): Promise<void> {
+export interface EscalaState {
+  error?: string
+  success?: boolean
+}
+
+export async function salvarEscala(_state: EscalaState, formData: FormData): Promise<EscalaState> {
   const staffId = String(formData.get('staffId') ?? '')
-  if (!staffId) return
+  if (!staffId) return { error: 'Profissional inválido.' }
   const { acesso } = await autorizarStaff(staffId)
 
-  const rows = parseSchedule(formData)
-  for (const row of rows) {
-    if (!veUnidade(acesso, row.unitId)) throw new Error(NEGADO)
+  const lido = parseSchedule(formData)
+  if ('error' in lido) return { error: lido.error }
+
+  for (const row of lido.rows) {
+    if (!veUnidade(acesso, row.unitId)) return { error: NEGADO }
   }
 
   /* "Hoje" é o dia do salão, não o do relógio do servidor. O contentor corre em
@@ -146,8 +191,13 @@ export async function salvarEscala(formData: FormData): Promise<void> {
      de amanhã, e a de amanhã era a que ficava a valer — a de hoje continuava a
      antiga, sem erro nenhum a dizer porquê. */
   const hoje = isoDateInZone(new Date(), pais().fusoPadrao)
-  await replaceSchedule(staffId, hoje, rows, acesso.unidadeIds)
+  try {
+    await replaceSchedule(staffId, hoje, lido.rows, acesso.unidadeIds)
+  } catch (e) {
+    return { error: mensagemDoErro(e, 'não foi possível guardar esta escala') }
+  }
   revalidatePath(`/admin/equipe/${staffId}`)
+  return { success: true }
 }
 
 export interface PasswordState {
@@ -165,9 +215,30 @@ export async function salvarSenha(_state: PasswordState, formData: FormData): Pr
 
   /* A conta é a do perfil aberto, lida do banco. O formulário não escolhe de
      quem é a senha. */
-  const { alvo } = await autorizarStaff(staffId)
+  const { acesso, alvo } = await autorizarStaff(staffId)
 
   await setStaffPassword(alvo.userId, senha)
+
+  /*
+    Trocar a palavra-passe e deixar de pé as sessões abertas com a antiga é
+    trocar a fechadura e não recolher as chaves. O motivo mais provável de a
+    dona estar nesta tela é alguém ter entrado com a senha antiga — e o cookie
+    dessa pessoa vale trinta dias, portanto ela continuava lá dentro depois de
+    a senha mudar. `recuperacao.ts` já derrubava as sessões pela mesma razão;
+    esta porta, que é a mais usada das duas, não derrubava.
+
+    Fica no chamador e não dentro de `setStaffPassword` de propósito: o login
+    também chama essa função, para regravar um hash antigo com o custo de hoje,
+    e regravar um hash não é trocar de senha — expulsaria a pessoa dos outros
+    aparelhos dela por ter feito login.
+  */
+  await revokeAllSessions(alvo.userId)
+
+  /* Quem trocou a própria senha continua onde estava — derrubar-lhe a sessão
+     seria devolvê-la ao login no instante em que acabou de provar quem é. É o
+     mesmo par que a recuperação faz: derruba tudo, e abre uma de novo. */
+  if (alvo.userId === acesso.session.userId) await createSession(alvo.userId)
+
   revalidatePath(`/admin/equipe/${staffId}`)
   return { success: true }
 }

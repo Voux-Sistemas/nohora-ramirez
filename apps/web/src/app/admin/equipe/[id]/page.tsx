@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation'
 import { AdminShell, Ficha, Section } from '@/components/admin/shell'
 import { FormActions } from '@/components/admin/form-actions'
 import { PasswordForm } from '@/components/admin/password-form'
+import { ScheduleForm } from '@/components/admin/schedule-form'
 import { StaffForm } from '@/components/admin/staff-form'
-import { Button } from '@/components/ui/button'
 import { ErroDoForm } from '@/components/ui/erro-do-form'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { listServicesAdmin } from '@/server/admin/services'
@@ -16,7 +16,6 @@ import {
   unidadesVisiveis,
   veUnidade,
 } from '@/server/auth/permissoes'
-import { salvarEscala } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -253,8 +252,7 @@ export default async function ProfissionalFormPage({
             title="Escala semanal"
             hint="Um turno por dia. Trocar aqui fecha a escala anterior a partir de hoje e abre esta — a agenda já marcada no passado não muda."
           >
-            <form action={salvarEscala} className="flex flex-col gap-3">
-              <input type="hidden" name="staffId" value={staff.id} />
+            <ScheduleForm staffId={staff.id}>
               {WEEKDAY_LABEL.map((label, weekday) => {
                 const row = scheduleByWeekday.get(weekday)
 
@@ -312,12 +310,7 @@ export default async function ProfissionalFormPage({
                   </div>
                 )
               })}
-              <div>
-                <Button type="submit" variant="outline">
-                  Guardar escala
-                </Button>
-              </div>
-            </form>
+            </ScheduleForm>
           </Section>
         )}
 

@@ -5,11 +5,12 @@ import 'server-only'
  *
  * `staff_schedules` nunca é editada linha a linha — trocar a escala fecha a
  * vigência antiga (`validTo`) e abre uma nova, para o passado da agenda não
- * mudar retroativamente. Aqui, para o primeiro corte do produto, cada troca
- * decide fechar a vigência anterior a partir de HOJE e abrir a nova a partir
- * de amanhã; qualquer visita já marcada continua igual.
+ * mudar retroativamente. A antiga acaba ontem e a nova começa hoje: as duas
+ * pontas encostam sem se sobrepor, e a mudança vale já no dia em que foi
+ * feita. Qualquer visita já marcada continua igual.
  */
 
+import { addDaysInZone } from '@studio/core'
 import { staffProfiles, staffSchedules, staffSkills, staffUnits, units, userRoles, users } from '@studio/db'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
@@ -498,10 +499,30 @@ export async function replaceSchedule(
 ): Promise<void> {
   if (escopo !== null && escopo.length === 0) return
 
+  /*
+    A escala antiga acaba **ontem**, não hoje.
+
+    `validTo` é inclusivo do lado de quem lê: `context.ts` só descarta a linha
+    quando `validTo < date`. Fechando a antiga com `validTo = hoje` e abrindo a
+    nova com `validFrom = hoje`, as duas valiam hoje ao mesmo tempo, e o leitor
+    soma os dois turnos em vez de escolher um. Na prática: a dona encurtava o
+    sábado das 18h para as 13h, guardava, via a escala nova na ficha — e
+    `/agendar` continuava a vender as 15h30 até ao dia seguinte. Apagar o dia
+    inteiro dava no mesmo: hoje continuava aberto. Ninguém liga uma coisa à
+    outra quando a cliente aparece.
+
+    A linha antiga continua no banco, com o histórico intacto — só deixa de
+    valer no dia em que foi substituída, que é o que "substituir" quer dizer.
+    Editar duas vezes no mesmo dia deixa a primeira com `validTo` anterior ao
+    `validFrom`: linha morta, nunca escolhida pelo leitor por nenhum dos dois
+    lados, e é esse o resultado certo.
+  */
+  const ontem = addDaysInZone(today, -1)
+
   await db.transaction(async (tx) => {
     await tx
       .update(staffSchedules)
-      .set({ validTo: today })
+      .set({ validTo: ontem })
       .where(
         and(
           eq(staffSchedules.staffId, staffId),

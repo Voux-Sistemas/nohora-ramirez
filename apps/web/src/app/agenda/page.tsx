@@ -1,33 +1,25 @@
 import { redirect } from 'next/navigation'
-import { UnitPicker } from '@/components/operate/unit-picker'
+import { SemLoja } from '@/components/operate/sem-loja'
 import { requireAcesso, unidadesVisiveis } from '@/server/auth/permissoes'
 import { listUnits } from '@/server/scheduling/context'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * `/agenda` sem loja já não pergunta: leva.
+ *
+ * Aqui vivia "de que loja quer ver o dia?" — um ecrã inteiro, com a fotografia
+ * de cada sala, para uma pergunta que a barra de cima passou a responder
+ * sozinha. Quem vem de `/caixa/valongo` e carrega em Agenda nem chega a este
+ * endereço: vai direto para `/agenda/valongo`, porque a loja segue a pessoa.
+ * Quem cai aqui é quem entrou pela raiz, e para esse a resposta certa é a
+ * primeira loja que lhe cabe — trocar é um gesto no seletor da barra, no mesmo
+ * sítio, sem sair da tela.
+ */
 export default async function AgendaIndexPage() {
   const acesso = await requireAcesso()
-  const units = unidadesVisiveis(acesso, await listUnits())
+  const unidades = unidadesVisiveis(acesso, await listUnits())
+  if (unidades.length > 0) redirect(`/agenda/${unidades[0]!.slug}`)
 
-  /*
-    Uma loja só não é escolha, é um passo a mais. A profissional que atende num
-    lugar só cairia todo dia numa tela com um botão — e o botão é o começo do
-    trabalho dela, não uma decisão. Vale para o gerente de uma unidade também.
-  */
-  if (units.length === 1) redirect(`/agenda/${units[0]!.slug}`)
-
-  return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">Agenda do dia</h1>
-      <p className="text-muted mt-1 text-sm">De que loja quer ver o dia?</p>
-
-      {units.length === 0 ? (
-        <p className="text-muted mt-8 border-t border-(--border-strong) pt-8 text-sm">
-          Nenhuma loja atribuída a si ainda. Fale com a administração.
-        </p>
-      ) : (
-        <UnitPicker units={units} base="/agenda" />
-      )}
-    </main>
-  )
+  return <SemLoja titulo="Agenda do dia" />
 }

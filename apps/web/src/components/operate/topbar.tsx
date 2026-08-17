@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/mark'
+import { NavOperacao, type DestinoOperacao } from '@/components/operate/nav'
 import { SeletorTema } from '@/components/tema/seletor-tema'
 import { sair } from '@/server/auth/actions'
-import type { Acesso } from '@/server/auth/permissoes'
+import { unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
+import { listUnits } from '@/server/scheduling/context'
 import { cn, href } from '@/lib/utils'
 
 /**
@@ -13,7 +15,8 @@ import { cn, href } from '@/lib/utils'
  * a cliente vê no celular, com o mesmo monograma. O que muda é a densidade: aqui
  * a faixa também carrega a navegação, porque quem está de pé no tablet troca de
  * agenda para caixa dezenas de vezes por turno e não pode voltar ao início para
- * isso.
+ * isso — e carrega a loja em que se está, que é a outra metade da pergunta
+ * "onde estou".
  *
  * A marca do trecho ativo é a régua de bronze — a mesma assinatura gráfica que
  * fecha um bloco no resto do sistema. Não é sublinhado de link nem pílula: é o
@@ -22,17 +25,13 @@ import { cn, href } from '@/lib/utils'
  * A barra é o rosto da permissão. Um destino que a pessoa não pode abrir não
  * aparece aqui — esconder é cortesia, não segurança: o porteiro de verdade está
  * em cada tela. Mas uma barra que oferece o que vai dar em redirecionamento é
- * uma barra que mente, e quem trabalha nela aprende a desconfiar dos seis
- * botões por causa de um.
+ * uma barra que mente, e quem trabalha nela aprende a desconfiar dos cinco
+ * botões por causa de um. Vale igual para a lista de lojas do seletor: sai de
+ * `unidadesVisiveis`, e não de `listUnits`, senão a barra anuncia ao gerente do
+ * Centro que existe um Valongo.
  */
 
 export type SecaoOperacao = 'hoje' | 'agenda' | 'avisos' | 'caixa' | 'clientes' | 'cadastros'
-
-interface Secao {
-  id: SecaoOperacao
-  path: string
-  label: string
-}
 
 /**
  * O que cada degrau vê na barra — e a barra é só o dia.
@@ -46,29 +45,37 @@ interface Secao {
  * do mesmo peso, e era metade da queixa de "opção a mais". Gestão mudou-se para
  * o lado direito, junto do nome e do sair, que é onde todo o produto guarda o
  * que se ajusta em vez do que se usa.
+ *
+ * `comLoja` marca as secções que existem uma vez por loja. É o que faz a loja
+ * seguir a pessoa: de `/agenda/valongo` para `/caixa/valongo`, sem passar por
+ * uma tela a perguntar qual.
  */
-function secoesDe(acesso: Acesso): Secao[] {
+function destinosDe(acesso: Acesso): DestinoOperacao[] {
   if (acesso.papel === 'profissional') {
-    return [{ id: 'agenda', path: '/agenda', label: 'A minha agenda' }]
+    return [{ id: 'agenda', path: '/agenda', label: 'A minha agenda', comLoja: true }]
   }
 
   return [
     { id: 'hoje', path: '/', label: 'Hoje' },
-    { id: 'agenda', path: '/agenda', label: 'Agenda' },
-    { id: 'avisos', path: '/avisos', label: 'Avisos' },
-    { id: 'caixa', path: '/caixa', label: 'Caixa' },
+    { id: 'agenda', path: '/agenda', label: 'Agenda', comLoja: true },
+    { id: 'avisos', path: '/avisos', label: 'Avisos', comLoja: true },
+    { id: 'caixa', path: '/caixa', label: 'Caixa', comLoja: true },
     { id: 'clientes', path: '/clientes', label: 'Clientes' },
   ]
 }
 
-export function OperateTopbar({
+export async function OperateTopbar({
   acesso,
   active,
 }: {
   acesso: Acesso
   active?: SecaoOperacao
 }) {
-  const secoes = secoesDe(acesso)
+  const destinos = destinosDe(acesso)
+  const lojas = unidadesVisiveis(acesso, await listUnits()).map((unidade) => ({
+    slug: unidade.slug,
+    name: unidade.name,
+  }))
 
   return (
     /*
@@ -89,49 +96,14 @@ export function OperateTopbar({
           logotipo é o que aguenta ser pequeno.
         */}
         <Link
-          href={href(secoes[0]!.path)}
+          href={href(destinos[0]!.path)}
           className="rounded-plate shrink-0 py-3"
           aria-label="Nohora Ramirez — início"
         >
           <Wordmark size="sm" align="left" />
         </Link>
 
-        {/*
-          Rolagem horizontal em vez de menu escondido: são no máximo seis
-          destinos fixos e curtos. Esconder atrás de um botão custaria um toque a
-          cada troca, que é a ação mais repetida do turno.
-        */}
-        <nav
-          aria-label="Secções"
-          className="-mb-px flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto"
-        >
-          {secoes.map((secao) => {
-            const atual = active === secao.id
-            return (
-              <Link
-                key={secao.id}
-                href={href(secao.path)}
-                aria-current={atual ? 'page' : undefined}
-                className={cn(
-                  'rounded-plate relative flex shrink-0 items-center px-3 text-sm whitespace-nowrap transition-colors',
-                  // alvo de 44px de pé, com luz de salão e a mão ocupada
-                  'min-h-11',
-                  atual
-                    ? 'font-medium text-(--on-ink)'
-                    : 'text-(--on-ink-muted) hover:text-(--on-ink)',
-                )}
-              >
-                {secao.label}
-                {atual ? (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-2 bottom-0 h-px bg-(--on-ink-accent)"
-                  />
-                ) : null}
-              </Link>
-            )
-          })}
-        </nav>
+        <NavOperacao destinos={destinos} lojas={lojas} active={active} />
 
         <div className="flex shrink-0 items-center gap-3 text-sm">
           {/* Gestão vive deste lado, e o fio separa-a do que é a pessoa: à

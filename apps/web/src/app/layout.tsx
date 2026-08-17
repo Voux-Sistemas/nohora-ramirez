@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Bodoni_Moda } from 'next/font/google'
 import { CoroaDefinicao } from '@/components/brand/mark'
+import { siteUrl } from '@/lib/site'
 import { lerTema } from '@/lib/tema'
 import './globals.css'
 
@@ -33,11 +34,28 @@ const archivo = Archivo({
 const STUDIO = 'Nohora Ramirez'
 
 export const metadata: Metadata = {
+  /*
+    Sem isto, o cartão que o WhatsApp e o Instagram desenham ao partilhar o link
+    da loja saía com a fotografia em `http://localhost:8080` — o Next resolve
+    imagens relativas contra um `metadataBase` que ele inventa a partir da porta
+    quando ninguém lho diz, e ninguém lho dizia. A montra da loja é a única
+    imagem desse cartão; partida, o cartão fica com um retângulo cinzento ao
+    lado do nome do salão, que é exatamente a partilha que a cliente faz para as
+    amigas. Confirmado no HTML de produção antes de arranjar.
+  */
+  metadataBase: siteUrl(),
   title: {
     default: `${STUDIO} · Beauty Studio`,
     template: `%s · ${STUDIO}`,
   },
   description: 'Marcações e gestão do Nohora Ramirez Beauty Studio.',
+  /* As páginas de loja escrevem por cima o título, a descrição e a fotografia
+     delas; o que fica aqui é o que não muda de página para página. */
+  openGraph: {
+    siteName: `${STUDIO} · Beauty Studio`,
+    locale: 'pt_PT',
+    type: 'website',
+  },
 }
 
 /*

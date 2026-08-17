@@ -21,13 +21,15 @@ import { podeRede, type Acesso } from '@/server/auth/permissoes'
  * as lojas todas de uma vez e é assunto da dona; "A loja" é o que gerir uma
  * unidade quer dizer na prática, e por isso o gerente também vê. Para ele o
  * primeiro grupo não aparece — o rail é o rosto da permissão, como sempre foi.
+ *
+ * O rail já não tem "Painel". Painel é o número do mês, e número do mês não é
+ * cadastro: estava aqui só porque `/admin` precisava de aterrar em alguma coisa,
+ * e o resultado era a dona com dois painéis — um em `/` e outro aqui — e doze
+ * destinos no ecrã ao mesmo tempo. O mês mudou-se para `/`, que é onde ela já
+ * abria o dia; aqui ficou o que "Gestão" sempre quis dizer: o cadastro.
  */
 
 const GRUPOS = [
-  {
-    titulo: null,
-    tabs: [{ path: '/admin', label: 'Painel', rede: false }],
-  },
   {
     titulo: 'A rede',
     tabs: [
@@ -60,9 +62,9 @@ function visiveis(acesso: Acesso) {
 function Rail({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?: AbaAdmin }) {
   return (
     <div className="flex flex-col gap-7">
-      {grupos.map((grupo, i) => (
-        <div key={grupo.titulo ?? `grupo-${i}`}>
-          {grupo.titulo ? <p className="label-caps text-muted mb-2 pl-3">{grupo.titulo}</p> : null}
+      {grupos.map((grupo) => (
+        <div key={grupo.titulo}>
+          <p className="label-caps text-muted mb-2 pl-3">{grupo.titulo}</p>
           <ul className="flex flex-col gap-0.5">
             {grupo.tabs.map((tab) => {
               const atual = active === tab.path
@@ -214,39 +216,7 @@ export function Ficha({
   )
 }
 
-/**
- * Cabeçalho de um bloco: título, régua de bronze e — quando faz sentido — o
- * atalho para o assunto inteiro, na mesma linha.
- *
- * A `hint` continua a existir, mas passou a ser exceção. Uma frase explicativa
- * debaixo de cada bloco, em todas as telas, era metade da sensação de
- * "informação a mais": texto a competir com o número que a dona veio ler. Onde
- * o título já diz, o título basta.
- */
-export function Section({
-  title,
-  hint,
-  actions,
-  className,
-  children,
-}: {
-  title: string
-  hint?: string
-  actions?: React.ReactNode
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    /* O respiro entre blocos vive aqui e não em cada tela — quem monta um
-       bloco dentro de uma grelha, que já tem `gap`, passa `mb-0`. */
-    <section className={cn('mb-9', className)}>
-      <div className="flex items-baseline gap-4">
-        <h2 className="shrink-0 text-base font-medium">{title}</h2>
-        <span className="rule-bronze min-w-0 flex-1" aria-hidden />
-        {actions ? <div className="shrink-0 text-sm">{actions}</div> : null}
-      </div>
-      {hint ? <p className="text-muted mt-2 text-sm">{hint}</p> : null}
-      <div className="mt-4">{children}</div>
-    </section>
-  )
-}
+/* O `Section` mudou-se para `@/components/ui/section` — o painel também o usa, e
+   o painel não é filho da gestão. Continua a sair daqui para as vinte telas de
+   gestão que já o importam por este caminho. */
+export { Section } from '@/components/ui/section'

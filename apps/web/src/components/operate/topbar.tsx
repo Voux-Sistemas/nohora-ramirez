@@ -35,12 +35,17 @@ interface Secao {
 }
 
 /**
- * O que cada degrau vê na barra.
+ * O que cada degrau vê na barra — e a barra é só o dia.
  *
  * A profissional tem um destino só, e ele leva o nome do que é: a agenda dela.
- * "Gestão" sempre abre no Painel — o mês em números, com variação contra o mês
- * anterior — porque é a primeira coisa que quem gere quer ver, antes de mexer
- * em unidade, equipe ou catálogo. A navegação lateral de dentro leva ao resto.
+ *
+ * "Gestão" saiu daqui. Não porque estorve, mas porque não é da mesma família:
+ * Hoje, Agenda, Avisos, Caixa e Clientes são o turno — a dona toca-lhes dezenas
+ * de vezes por dia —, e cadastrar um serviço ou mudar uma comissão é coisa que
+ * se faz uma vez por mês, sentada. Lado a lado, os seis pareciam seis escolhas
+ * do mesmo peso, e era metade da queixa de "opção a mais". Gestão mudou-se para
+ * o lado direito, junto do nome e do sair, que é onde todo o produto guarda o
+ * que se ajusta em vez do que se usa.
  */
 function secoesDe(acesso: Acesso): Secao[] {
   if (acesso.papel === 'profissional') {
@@ -53,7 +58,6 @@ function secoesDe(acesso: Acesso): Secao[] {
     { id: 'avisos', path: '/avisos', label: 'Avisos' },
     { id: 'caixa', path: '/caixa', label: 'Caixa' },
     { id: 'clientes', path: '/clientes', label: 'Clientes' },
-    { id: 'cadastros', path: '/admin', label: 'Gestão' },
   ]
 }
 
@@ -130,6 +134,29 @@ export function OperateTopbar({
         </nav>
 
         <div className="flex shrink-0 items-center gap-3 text-sm">
+          {/* Gestão vive deste lado, e o fio separa-a do que é a pessoa: à
+              esquerda do fio está para onde se vai, à direita quem está a ir. */}
+          {acesso.papel !== 'profissional' ? (
+            <>
+              <Link
+                href={href('/admin')}
+                aria-current={active === 'cadastros' ? 'page' : undefined}
+                className={cn(
+                  'rounded-plate relative flex min-h-11 items-center px-1 whitespace-nowrap transition-colors',
+                  active === 'cadastros'
+                    ? 'font-medium text-(--on-ink)'
+                    : 'text-(--on-ink-muted) hover:text-(--on-ink)',
+                )}
+              >
+                Gestão
+                {active === 'cadastros' ? (
+                  <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-(--on-ink-accent)" />
+                ) : null}
+              </Link>
+              <span aria-hidden className="h-5 w-px shrink-0 bg-(--border-on-ink)" />
+            </>
+          ) : null}
+
           <span className="text-(--on-ink-muted) hidden max-w-40 truncate md:inline">
             {acesso.session.name}
           </span>

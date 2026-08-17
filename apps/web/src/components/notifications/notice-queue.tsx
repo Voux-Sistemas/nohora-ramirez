@@ -21,7 +21,21 @@ import type { RoutineKey } from '@/server/notifications/templates'
  * janela por código, porque o navegador só deixa abrir aba dentro do gesto
  * direto do usuário — um `window.open` depois de um `await` é bloqueado como
  * pop-up.
+ *
+ * A marca é otimista de propósito — a linha vira "avisada" antes de o servidor
+ * confirmar, porque a recepção desce a fila depressa e esperar por cada resposta
+ * partia o ritmo. O que faltava era o outro lado: a resposta era descartada, e
+ * uma recusa do servidor (sessão expirada, rede em baixo) deixava a linha
+ * cinzenta na mesma. Ao fim da fila lia-se "Lista concluída" e no dia seguinte
+ * ninguém tinha sido avisado, sem nada no ecrã que o dissesse. Agora a linha
+ * volta atrás e diz-se ali mesmo, onde o dedo está.
  */
+function semEste(conjunto: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  const proximo = new Set(conjunto)
+  proximo.delete(id)
+  return proximo
+}
+
 export function NoticeQueue({
   routine,
   notices,
@@ -33,23 +47,35 @@ export function NoticeQueue({
   timezone: string
 }) {
   const [avisados, setAvisados] = useState<ReadonlySet<string>>(new Set())
+  /** Quem o servidor recusou registar. A linha volta a "por avisar" e diz porquê. */
+  const [recusados, setRecusados] = useState<ReadonlySet<string>>(new Set())
   const [, startTransition] = useTransition()
 
   function marcar(notice: Notice) {
     setAvisados((atual) => new Set(atual).add(notice.appointmentId))
-    startTransition(() => {
-      void marcarComoAvisado(notice.appointmentId, routine, notice.clientPhone)
+    setRecusados((atual) => semEste(atual, notice.appointmentId))
+    startTransition(async () => {
+      try {
+        await marcarComoAvisado(notice.appointmentId, routine, notice.clientPhone)
+      } catch {
+        setAvisados((atual) => semEste(atual, notice.appointmentId))
+        setRecusados((atual) => new Set(atual).add(notice.appointmentId))
+      }
     })
   }
 
   function desfazer(notice: Notice) {
-    setAvisados((atual) => {
-      const proximo = new Set(atual)
-      proximo.delete(notice.appointmentId)
-      return proximo
-    })
-    startTransition(() => {
-      void desfazerAviso(notice.appointmentId, routine)
+    setAvisados((atual) => semEste(atual, notice.appointmentId))
+    setRecusados((atual) => semEste(atual, notice.appointmentId))
+    startTransition(async () => {
+      try {
+        await desfazerAviso(notice.appointmentId, routine)
+      } catch {
+        /* Falhar a desfazer é o inverso: no servidor a pessoa continua avisada,
+           e é isso que a linha tem de voltar a mostrar. */
+        setAvisados((atual) => new Set(atual).add(notice.appointmentId))
+        setRecusados((atual) => new Set(atual).add(notice.appointmentId))
+      }
     })
   }
 
@@ -68,6 +94,7 @@ export function NoticeQueue({
       <ul className="surface rounded-card divide-y divide-(--border-subtle)">
         {notices.map((notice) => {
           const feito = avisados.has(notice.appointmentId)
+          const recusado = recusados.has(notice.appointmentId)
           const semTelefone = notice.clientPhone.replace(/\D/g, '').length < 10
 
           return (
@@ -109,6 +136,14 @@ export function NoticeQueue({
                   </a>
                 )}
               </div>
+
+              {recusado ? (
+                <p className="mt-2 text-sm text-(--estado-mau)" role="alert">
+                  {feito
+                    ? 'Não deu para tirar a marca — no sistema esta pessoa continua avisada.'
+                    : 'O aviso não ficou registado. Volte a carregar em Avisar.'}
+                </p>
+              ) : null}
 
               {/*
                 O texto fica fechado. Na primeira semana a recepção abre para

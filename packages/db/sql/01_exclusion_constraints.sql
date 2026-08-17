@@ -137,3 +137,21 @@ CREATE UNIQUE INDEX service_pricing_uq
 DROP INDEX IF EXISTS user_roles_user_unit_role_uq;
 CREATE UNIQUE INDEX user_roles_user_unit_role_uq
   ON user_roles (user_id, unit_id, role) NULLS NOT DISTINCT;
+
+-- ─── um caixa aberto por loja ───────────────────────────────────────────────
+-- `openSession` consulta se já há caixa aberto e só depois insere. Entre as
+-- duas coisas existe uma janela, e ao balcão ela é atingida de verdade: dois
+-- toques em "Abrir caixa" enquanto a página ainda está a carregar, ou a
+-- rececionista e a gerente a abrirem o dia ao mesmo tempo em dois ecrãs.
+--
+-- O estrago não aparece logo. Nascem duas sessões abertas na mesma loja, os
+-- pagamentos em dinheiro do dia caem numa ou noutra conforme a que o Postgres
+-- devolver primeiro, e à noite o fecho confere metade da gaveta contra o total
+-- inteiro — uma falta enorme que ninguém consegue explicar. A outra sessão
+-- fica aberta para sempre, porque a tela só mostra uma.
+--
+-- Índice parcial: a unicidade só vale enquanto o caixa está aberto, senão a
+-- loja não podia ter dois dias de histórico.
+DROP INDEX IF EXISTS cash_sessions_um_aberto_por_unidade;
+CREATE UNIQUE INDEX cash_sessions_um_aberto_por_unidade
+  ON cash_sessions (unit_id) WHERE status = 'open';

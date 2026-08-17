@@ -27,6 +27,11 @@ export async function getOpenSession(unitId: string): Promise<CashSessionView | 
     .select()
     .from(cashSessions)
     .where(and(eq(cashSessions.unitId, unitId), eq(cashSessions.status, 'open')))
+    /* Só pode haver uma — `cash_sessions_um_aberto_por_unidade` garante-o. A
+       ordem é para o caso de uma base antiga ter ficado com duas de antes do
+       índice: aí a tela mostra sempre a mesma, a mais recente, em vez de
+       alternar entre as duas de pedido para pedido. */
+    .orderBy(desc(cashSessions.openedAt))
     .limit(1)
   return row ?? null
 }
@@ -45,15 +50,40 @@ export async function unitOfSession(sessionId: string): Promise<string | null> {
   return row?.unitId ?? null
 }
 
+/**
+ * A consulta daqui é para dar a frase certa no caso normal; quem garante a
+ * regra é o índice parcial `cash_sessions_um_aberto_por_unidade`, porque entre
+ * consultar e inserir há uma janela — e dois toques em "Abrir caixa" enquanto a
+ * página carrega chegam lá. Sem o índice nasciam duas gavetas na mesma loja e
+ * os pagamentos do dia repartiam-se entre elas.
+ *
+ * A recusa do banco é traduzida aqui de volta para a mesma frase: subir como
+ * violação de unicidade daria ao balcão o ecrã de "alguma coisa falhou", que
+ * não diz o que fazer a seguir. A frase diz.
+ */
 export async function openSession(unitId: string, openingAmount: number): Promise<string> {
   const existing = await getOpenSession(unitId)
   if (existing) throw new Error('já existe um caixa aberto nesta unidade')
 
-  const [row] = await db
-    .insert(cashSessions)
-    .values({ unitId, openingAmount, status: 'open' })
-    .returning({ id: cashSessions.id })
-  return row!.id
+  try {
+    const [row] = await db
+      .insert(cashSessions)
+      .values({ unitId, openingAmount, status: 'open' })
+      .returning({ id: cashSessions.id })
+    return row!.id
+  } catch (e) {
+    if (ehCaixaJaAberto(e)) throw new Error('já existe um caixa aberto nesta unidade')
+    throw e
+  }
+}
+
+function ehCaixaJaAberto(e: unknown): boolean {
+  if (!(e instanceof Error)) return false
+  const erro = e as { code?: unknown; constraint_name?: unknown }
+  if (erro.code === '23505' && erro.constraint_name === 'cash_sessions_um_aberto_por_unidade') {
+    return true
+  }
+  return e.cause !== undefined && ehCaixaJaAberto(e.cause)
 }
 
 export interface CashMovementView {

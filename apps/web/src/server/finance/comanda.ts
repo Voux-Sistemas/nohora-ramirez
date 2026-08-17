@@ -23,7 +23,7 @@ import {
   staffProfiles,
   users,
 } from '@studio/db'
-import { resolveCommission } from '@studio/core'
+import { ratearDesconto, resolveCommission } from '@studio/core'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { pais } from '@/lib/pais'
@@ -192,6 +192,13 @@ export async function closeComanda(appointmentId: string, input: CloseComandaInp
       .limit(1)
     if (alreadyClosed) throw new Error('comanda já fechada')
 
+    /* Antes de comparar somas: desconto maior do que a comanda dava
+       "soma dos pagamentos não bate com o total", e ao balcão isso mandava
+       conferir os pagamentos — que estavam certos. O erro estava no desconto. */
+    if (input.discountAmount > appointment.totalPrice) {
+      throw new Error('o desconto é maior do que o total da comanda')
+    }
+
     const expectedTotal = appointment.totalPrice - input.discountAmount
     const paidTotal = input.payments.reduce((sum, p) => sum + p.amount, 0)
     if (paidTotal !== expectedTotal) {
@@ -260,11 +267,15 @@ export async function closeComanda(appointmentId: string, input: CloseComandaInp
           .where(eq(commissionRules.organizationId, org.id))
       : []
 
-    const subtotal = items.reduce((sum, i) => sum + i.price, 0)
-    for (const item of items) {
-      // desconto rateado proporcionalmente ao preço do item
-      const share = subtotal > 0 ? item.price / subtotal : 0
-      const baseAmount = Math.round(item.price - input.discountAmount * share)
+    /* O desconto é lançado sobre a visita inteira, mas a comissão é por item —
+       cada linha tem a sua profissional. `ratearDesconto` reparte-o na proporção
+       do preço sem perder cêntimos pelo caminho; a conta e o porquê estão lá. */
+    const partes = ratearDesconto(
+      items.map((i) => i.price),
+      input.discountAmount,
+    )
+    for (const [indice, item] of items.entries()) {
+      const baseAmount = Math.max(0, item.price - partes[indice]!)
       const resolved = resolveCommission(rules, item.staffId, item.serviceId, baseAmount)
       await tx.insert(commissionEntries).values({
         appointmentItemId: item.id,

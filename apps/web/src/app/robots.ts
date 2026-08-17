@@ -24,8 +24,32 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: '/',
-      disallow: ['/admin', '/agenda', '/caixa', '/clientes', '/avisos', '/conta', '/comecar', '/entrar', '/api'],
+      /*
+        `/agenda/` leva barra no fim e isso não é estilo — é a diferença entre
+        ter o salão no Google e não ter. As regras deste ficheiro casam por
+        prefixo de texto puro, sem noção de segmento: `Disallow: /agenda`
+        apanharia `/agendar`, `/agendar/valongo` e o funil inteiro de marcação,
+        que é precisamente a página que tem de aparecer quando alguém procura o
+        nome do salão. E o desempate entre uma regra que proíbe e uma que
+        permite é pelo padrão mais comprido, portanto o `Allow: /` de cima não
+        salvava nada. Com a barra, `/agendar` deixa de casar — depois de
+        `/agenda` vem um `r`, não uma barra.
+
+        O `/agendar` explícito abaixo é redundante e fica: quem mexer nesta
+        lista amanhã vê declarado que aquela porta é para estar aberta.
+      */
+      allow: ['/', '/agendar'],
+      disallow: [
+        '/admin',
+        '/agenda/',
+        '/caixa',
+        '/clientes',
+        '/avisos',
+        '/conta',
+        '/comecar',
+        '/entrar',
+        '/api',
+      ],
     },
     sitemap: new URL('/sitemap.xml', base).toString(),
   }

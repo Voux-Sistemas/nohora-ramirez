@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { EmTransito } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
 import { cn } from '@/lib/utils'
 import { frasePorta, type HojeNaLoja } from '@/server/scheduling/hoje'
@@ -49,6 +50,8 @@ export function UnitPanel({
         className,
       )}
     >
+      <EmTransito />
+
       <Photo
         src={unit.imageUrl}
         alt={`Salão ${unit.name}`}

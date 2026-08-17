@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { ReguaDeEspera } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
 import { formatMoney, formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -194,6 +195,9 @@ export function ServicePicker({
               </>
             )}
           </div>
+          {/* O botão já diz "A procurar…"; a régua é para a espera que passa de
+              instantânea — procurar horários varre a agenda de toda a equipa. */}
+          <ReguaDeEspera ativa={pending} />
           <Button size="lg" disabled={chosen.length === 0 || pending} onClick={advance}>
             {pending ? 'A procurar…' : ctaLabel}
           </Button>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { EmTransito, Entrada } from '@/components/ui/espera'
 import { cn, href } from '@/lib/utils'
 import { podeRede, type Acesso } from '@/server/auth/permissoes'
 
@@ -80,6 +81,7 @@ function Rail({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?
                         : 'text-muted hover:text-(--text-strong) hover:bg-(--surface-raised)/60',
                     )}
                   >
+                    <EmTransito />
                     {/* A régua de bronze, de pé: a mesma marca de trecho ativo
                         que a barra de cima usa deitada. */}
                     {atual ? (
@@ -118,6 +120,7 @@ function Fita({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?
                 : 'text-muted hover:text-(--text-strong) border-transparent',
             )}
           >
+            <EmTransito />
             {tab.label}
           </Link>
         </li>
@@ -166,17 +169,19 @@ export function AdminShell({
           <Fita grupos={grupos} active={active} />
         </nav>
 
-        <header className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <h1 className="display text-[1.625rem] leading-none font-normal sm:text-3xl">
-              {title}
-            </h1>
-            {meta ? <p className="text-muted tnum text-sm">{meta}</p> : null}
-          </div>
-          {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
-        </header>
+        <Entrada>
+          <header className="mb-7 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h1 className="display text-[1.625rem] leading-none font-normal sm:text-3xl">
+                {title}
+              </h1>
+              {meta ? <p className="text-muted tnum text-sm">{meta}</p> : null}
+            </div>
+            {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+          </header>
 
-        {children}
+          {children}
+        </Entrada>
       </div>
     </div>
   )
@@ -209,7 +214,7 @@ export function Ficha({
         href={href(voltarPara)}
         className="text-muted mb-5 inline-block text-sm transition-colors hover:text-(--text-strong)"
       >
-        ← {voltarLabel}
+        <EmTransito />← {voltarLabel}
       </Link>
       {children}
     </div>

@@ -413,6 +413,84 @@
       color-mix(in oklab, var(--on-ink-accent) 18%, transparent) 100%
     );
   }
+
+  /*
+    ── A ESPERA ────────────────────────────────────────────────────────────
+    A régua de bronze ganha um segundo trabalho: além de fechar um bloco, ela
+    mede o tempo que o ecrã seguinte demora a chegar. Nada de roda a girar com
+    o logótipo ao centro — pôr a marca a rodar a cada passo tira-lhe o estatuto
+    de assinatura, e o gesto autoral está reservado ao selo da confirmação. O
+    raciocínio inteiro está em `components/ui/espera.tsx`; aqui fica o desenho.
+  */
+
+  /* 0 ms — o elemento tocado recolhe. É a única resposta que interessa no
+     instante do toque: o dedo está ali, e é ali que tem de acontecer algo. */
+  :where(a, button):has(> [data-espera]) {
+    opacity: 0.55;
+    transition: opacity 120ms var(--ease-out-quint);
+  }
+
+  /* 150 ms — a régua atravessa o topo. Sai depressa e trava: uma barra que
+     enche até ao fim e depois espera mente duas vezes, e esta não sabe quanto
+     falta. Fica nos 92% até o ecrã chegar e a levar consigo. */
+  .regua-de-espera {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 60;
+    height: 2px;
+    transform-origin: left;
+    /* O bronze do meio da escala, e escrito à mão: esta régua cai no topo do
+       ecrã sem saber o que está por baixo — a faixa de tinta do agendamento ou
+       a pedra clara do painel. `--accent` desaparece na tinta e `--on-ink-accent`
+       desaparece na pedra; o 400 sobrevive aos dois. */
+    background: linear-gradient(
+      90deg,
+      var(--color-bronze-400) 0%,
+      var(--color-bronze-400) 72%,
+      color-mix(in oklab, var(--color-bronze-400) 35%, transparent) 100%
+    );
+    animation: regua-de-espera 9s var(--ease-out-expo) forwards;
+  }
+
+  @keyframes regua-de-espera {
+    from {
+      transform: scaleX(0.03);
+    }
+    to {
+      transform: scaleX(0.92);
+    }
+  }
+
+  /* Chegou — o conteúdo sobe seis pixels ao entrar. Curto de propósito: não é
+     uma entrada, é a continuação do toque. Mais do que isto e a recepção, que
+     troca de ecrã cem vezes por dia, passa a esperar pela animação. */
+  .entra {
+    animation: entra 160ms var(--ease-out-quint) both;
+  }
+
+  @keyframes entra {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Quem pediu para desligar movimento continua a saber que o sistema o ouviu:
+     o elemento tocado recolhe na mesma e a régua aparece na mesma — o que sai é
+     o percurso dela e a subida do conteúdo. Informação fica, movimento sai. */
+  @media (prefers-reduced-motion: reduce) {
+    .regua-de-espera {
+      animation: none;
+      transform: scaleX(0.92);
+    }
+    .entra {
+      animation: none;
+    }
+  }
 }
 
 @layer utilities {

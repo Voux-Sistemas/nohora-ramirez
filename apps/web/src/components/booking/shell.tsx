@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { FaixaDaMarca } from '@/components/brand/faixa'
+import { EmTransito, Entrada } from '@/components/ui/espera'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['Unidade', 'Serviços', 'Horário', 'Confirmar'] as const
@@ -67,6 +68,7 @@ export function BookingShell({
           href={back as never}
           className="text-muted mb-5 inline-flex items-center gap-1.5 text-sm transition-colors hover:text-(--text-strong)"
         >
+          <EmTransito />
           <span aria-hidden>←</span>
           {backLabel}
         </Link>
@@ -127,16 +129,18 @@ export function BookingShell({
           outer,
         )}
       >
-        {hasRail ? (
-          <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-16">
-            <div className={cn('mx-auto w-full', shell, 'lg:mx-0', railFirst && 'order-2 lg:order-1')}>
-              {body}
+        <Entrada>
+          {hasRail ? (
+            <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-16">
+              <div className={cn('mx-auto w-full', shell, 'lg:mx-0', railFirst && 'order-2 lg:order-1')}>
+                {body}
+              </div>
+              <aside className={cn('lg:sticky lg:top-28', railFirst && 'order-1 lg:order-2')}>{rail}</aside>
             </div>
-            <aside className={cn('lg:sticky lg:top-28', railFirst && 'order-1 lg:order-2')}>{rail}</aside>
-          </div>
-        ) : (
-          body
-        )}
+          ) : (
+            body
+          )}
+        </Entrada>
       </main>
 
       {footer ? (

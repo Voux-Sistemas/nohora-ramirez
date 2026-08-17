@@ -5,6 +5,7 @@ import { BookingShell } from '@/components/booking/shell'
 import { UnitContextCard } from '@/components/booking/unit-context-card'
 import { Avatar } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
+import { EmTransito } from '@/components/ui/espera'
 import {
   formatMoney,
   formatDateLong,
@@ -436,6 +437,9 @@ export default async function EscolherHorarioPage({
                               }
                               className="flex h-16 flex-col items-center justify-center gap-0.5 rounded-plate border border-(--border-subtle) bg-(--surface-raised) transition-[border-color,background-color,transform] duration-150 hover:border-(--surface-invert) hover:bg-(--surface-sunken) active:translate-y-px"
                             >
+                              {/* o toque na hora é o mais longo do fluxo — daqui
+                                  o sistema vai calcular a marcação inteira */}
+                              <EmTransito />
                               <span className="tnum text-[1.0625rem] font-medium">
                                 {formatTime(slot.start, unit.timezone)}
                               </span>
@@ -493,6 +497,7 @@ function PersonOption({
       aria-current={active ? 'true' : undefined}
       className="flex w-[5.25rem] flex-col items-center gap-2 rounded-plate py-1 text-center"
     >
+      <EmTransito />
       <span
         className={cn(
           'rounded-full transition-[box-shadow] duration-200 ease-(--ease-out-quint)',

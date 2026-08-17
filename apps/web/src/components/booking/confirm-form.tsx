@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Erro } from '@/components/ui/erro'
+import { ReguaDeEspera } from '@/components/ui/espera'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { confirmarAgendamento, type ConfirmState } from '@/app/agendar/[unidade]/confirmar/actions'
 
@@ -113,8 +114,12 @@ export function ConfirmForm({
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="xl" className="w-full" disabled={pending}>
-      {pending ? 'A confirmar…' : 'Confirmar marcação'}
-    </Button>
+    <>
+      {/* A espera mais longa do fluxo: aqui grava-se a marcação e sai o aviso. */}
+      <ReguaDeEspera ativa={pending} />
+      <Button type="submit" size="xl" className="w-full" disabled={pending}>
+        {pending ? 'A confirmar…' : 'Confirmar marcação'}
+      </Button>
+    </>
   )
 }

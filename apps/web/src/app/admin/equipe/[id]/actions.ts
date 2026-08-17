@@ -121,7 +121,7 @@ export async function salvarProfissional(
   const escopo = acesso.unidadeIds
   let staffId: string
   try {
-    staffId = id === 'novo' ? await createStaff(input, escopo) : id
+    staffId = id === 'novo' ? await createStaff(input, escopo, podeRede(acesso)) : id
     if (id !== 'novo') await updateStaff(id, input, escopo)
   } catch (e) {
     return { error: mensagemDoErro(e, 'não foi possível guardar este profissional') }

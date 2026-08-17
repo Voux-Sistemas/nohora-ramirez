@@ -315,13 +315,25 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
       gravar-se, mesmo quando a cliente é a cabeleireira da casa. Quem precisa
       de corrigir o nome ou o número de alguém da equipa faz isso em Equipa,
       que é onde a hierarquia é conferida.
+
+      A pergunta é feita às DUAS tabelas. Ter ficha de equipa e ter poder são
+      coisas separadas: `user_roles` é quem manda (é o que `acessoDe` lê), e
+      `criarPrimeiraConta` abre a conta da dona com papel de `owner` e sem
+      ficha de equipa nenhuma — foi assim que a produção subiu. Perguntar só a
+      `staff_profiles` deixava justamente a conta mais poderosa da casa de
+      fora da trava, bastando ela marcar uma escova para aparecer em Clientes.
     */
     const [equipa] = await tx
       .select({ nome: staffProfiles.displayName })
       .from(staffProfiles)
       .where(eq(staffProfiles.userId, profile.userId))
       .limit(1)
-    if (equipa) {
+    const [comPoder] = await tx
+      .select({ papel: userRoles.role })
+      .from(userRoles)
+      .where(eq(userRoles.userId, profile.userId))
+      .limit(1)
+    if (equipa || comPoder) {
       const [conta] = await tx
         .select({ name: users.name, phone: users.phone, email: users.email })
         .from(users)
@@ -332,8 +344,9 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
         conta?.phone !== input.phone ||
         (conta?.email ?? null) !== (input.email || null)
       if (mudou) {
+        const quem = equipa?.nome ?? conta?.name ?? 'Esta pessoa'
         throw new Error(
-          `${equipa.nome} é da equipa — o nome, o telefone e o e-mail dela alteram-se em Equipa, não por aqui`,
+          `${quem} é da equipa — o nome, o telefone e o e-mail dela alteram-se em Equipa, não por aqui`,
         )
       }
     }

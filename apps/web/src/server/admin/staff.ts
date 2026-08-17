@@ -12,7 +12,7 @@ import 'server-only'
 
 import { addDaysInZone } from '@studio/core'
 import { staffProfiles, staffSchedules, staffSkills, staffUnits, units, userRoles, users } from '@studio/db'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { toE164 } from '@/lib/format'
 
@@ -269,7 +269,15 @@ export interface StaffInput {
  */
 export type EscopoEquipe = readonly string[] | null
 
-export async function createStaff(input: StaffInput, escopo: EscopoEquipe = null): Promise<string> {
+/** Papéis que não são poder nenhum — qualquer outro é degrau acima. */
+const SEM_PODER: ('client' | 'professional')[] = ['client', 'professional']
+
+export async function createStaff(
+  input: StaffInput,
+  escopo: EscopoEquipe = null,
+  /** Quem manda na rede pode pôr na equipa uma conta que já tem poder. */
+  mandaNaRede = false,
+): Promise<string> {
   const phone = toE164(input.phone)
   if (!phone) throw new Error('telefone inválido')
 
@@ -296,6 +304,28 @@ export async function createStaff(input: StaffInput, escopo: EscopoEquipe = null
       if (jaNaEquipa) {
         throw new Error(
           `este telefone já é de ${jaNaEquipa.nome}, que está na equipa — abra a ficha dessa pessoa em vez de criar outra`,
+        )
+      }
+
+      /* Ficha de equipa e poder são coisas separadas: quem manda está em
+         `user_roles`, e a conta da dona nasce em `criarPrimeiraConta` com papel
+         de `owner` e sem ficha de equipa nenhuma — foi assim que a produção
+         subiu. Perguntar só a `staff_profiles` deixava a conta mais poderosa da
+         casa passar por aqui: bastava uma gerente escrever o telemóvel da dona
+         num cadastro novo e deixar a caixa «Ativo» por marcar. A ficha
+         desactivada colava-se à conta dela, `acessoDe` passa a tratar isso como
+         porta fechada em todos os degraus, e o salão ficava sem dona até
+         alguém abrir o Postgres à mão — a recuperação por e-mail não salva,
+         porque a sessão nasce e é logo recusada. É a mesma regra de
+         `autorizarStaff`, do lado de cá da porta. */
+      const [comPoder] = await tx
+        .select({ role: userRoles.role })
+        .from(userRoles)
+        .where(and(eq(userRoles.userId, existingUser.id), notInArray(userRoles.role, SEM_PODER)))
+        .limit(1)
+      if (comPoder && !mandaNaRede) {
+        throw new Error(
+          'este telefone é de uma conta com acesso de gestão — quem põe essa pessoa na equipa é a administração da rede',
         )
       }
     }

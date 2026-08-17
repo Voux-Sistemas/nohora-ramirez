@@ -68,6 +68,7 @@ interface DayGridProps {
   /** Base para o link de seleção, ex. `/agenda/centro?d=2026-08-04`. */
   baseHref: string
   selectedId?: string
+  className?: string
 }
 
 /**
@@ -119,6 +120,7 @@ export function DayGrid({
   appointments,
   baseHref,
   selectedId,
+  className,
 }: DayGridProps) {
   const totalMin = (to.getTime() - from.getTime()) / MIN_MS
   const height = totalMin * PX_PER_MIN
@@ -155,7 +157,7 @@ export function DayGrid({
       quando" some quando a coluna é mais larga que alta. Coluna tem teto; o
       quadro encolhe para caber nele e rola quando a equipe é grande.
     */
-    <div className="surface rounded-card w-fit max-w-full overflow-hidden">
+    <div className={cn('surface rounded-card w-fit max-w-full overflow-hidden', className)}>
       {/*
         Legenda fora da área que rola: se ela entrasse no `overflow-x-auto` de
         baixo, sumiria assim que a equipe fosse grande o bastante para rolar —

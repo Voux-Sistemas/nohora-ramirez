@@ -9,6 +9,7 @@ import {
   type GridColumn,
 } from '@/components/agenda/day-grid'
 import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { DayList, LISTA_ANCHOR_PREFIX, LISTA_NOW_MARKER_ID } from '@/components/agenda/day-list'
 import { RolarParaAgora } from '@/components/agenda/rolar-para-agora'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
@@ -71,47 +72,90 @@ export default async function AgendaDoDiaPage({
   const selected = sel ? (appointments.find((item) => item.id === sel) ?? null) : null
 
   /*
+    A grade de colunas começa a existir na segunda coluna.
+
+    Com uma só ela não é grade: é uma tira de vinte e um rem no meio de mil e
+    quatrocentos, e o que ela desenha — o vão entre um atendimento e o outro —
+    a lista escreve por extenso, com a duração. É o caso da profissional, que
+    além disso nunca encaixa ninguém: escolher cadeira é da gerência. Abaixo de
+    `md` a lista é o quadro de toda a gente, porque cinco colunas de onze rem
+    não cabem num telemóvel — cabe rolagem lateral, que ninguém faz de pé.
+  */
+  const grade = columns.length > 1
+  /* De quem é o dia que a lista narra — é quem tem vão para medir e nome para
+     calar. A gerência com equipa escalada não tem foco: mostra quem atende. */
+  const foco = gerir ? (columns.length === 1 ? (columns[0]?.staff.id ?? null) : null) : acesso.staffId
+
+  /*
     Para onde a tela rola sozinha ao abrir. "Agora" só é honesto quando a data
-    aberta é hoje e a hora corrente cai dentro da janela desenhada — fora
-    disso, mira no primeiro item do dia (não no primeiro atendimento: um
-    atendimento com dois serviços em cadeiras diferentes gera dois blocos, e o
-    alvo precisa ser um id que existe de verdade num só lugar da tela).
+    aberta é hoje — na grade, ainda por cima, quando a hora corrente cai dentro
+    da janela desenhada. Fora disso mira no começo do dia.
+
+    São dois alvos porque são dois quadros no mesmo HTML, e é o CSS que decide
+    qual aparece; o componente rola até o que estiver mesmo pintado. Na grade o
+    alvo é o item e não o atendimento — uma cliente com escova numa cadeira e
+    coloração noutra gera dois blocos, e o alvo precisa existir num só lugar.
+    Na lista é o contrário: um atendimento, uma linha.
   */
   const now = new Date()
-  const agoraNaTela = now.getTime() >= from.getTime() && now.getTime() < to.getTime()
+  const ehHoje = date === today
+  const agoraNaGrade = now.getTime() >= from.getTime() && now.getTime() < to.getTime()
   const primeiroItem = live
     .flatMap((appointment) => appointment.items.map((item) => ({ id: item.id, start: item.start })))
     .reduce<{ id: string; start: Date } | null>(
       (min, item) => (min === null || item.start < min.start ? item : min),
       null,
     )
-  const alvoRolagem = agoraNaTela
-    ? NOW_MARKER_ID
-    : primeiroItem
-      ? `${APPOINTMENT_ANCHOR_PREFIX}${primeiroItem.id}`
-      : null
+  const primeiroAtendimento = live.reduce<AppointmentView | null>(
+    (min, item) => (min === null || item.start < min.start ? item : min),
+    null,
+  )
+  const alvoLista =
+    primeiroAtendimento === null
+      ? null
+      : ehHoje
+        ? LISTA_NOW_MARKER_ID
+        : `${LISTA_ANCHOR_PREFIX}${primeiroAtendimento.id}`
+  const alvoGrade = !grade
+    ? null
+    : agoraNaGrade
+      ? NOW_MARKER_ID
+      : primeiroItem
+        ? `${APPOINTMENT_ANCHOR_PREFIX}${primeiroItem.id}`
+        : null
+  const alvos = [alvoLista, alvoGrade].filter((alvo): alvo is string => alvo !== null)
+
+  /*
+    A medida do quadro, num token que o cabeçalho e a prancheta herdam.
+    Sem grade o teto é a medida de leitura de uma lista — a 90rem o nome da
+    cliente e a hora ficariam nas duas pontas do monitor. Com grade é a conta
+    das colunas, e só a partir de `md`: abaixo disso quem manda é a lista, que
+    ocupa a largura toda do telemóvel.
+  */
+  const larguraQuadro = grade ? `${boardMaxWidthRem(columns.length)}rem` : '44rem'
+  const tetoQuadro = grade ? 'md:max-w-(--largura-quadro)' : 'max-w-(--largura-quadro)'
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
+    <main
+      className="mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-6 lg:px-8"
+      style={{ '--largura-quadro': larguraQuadro } as React.CSSProperties}
+    >
       {/* Dia que já passou não muda mais — ali o tique seria só gasto. */}
       <AtualizaSozinho ativo={date >= today} />
       {/* `key={date}`: reaparece a cada dia aberto, mas ignora as
           atualizações automáticas da própria tela — ver o componente. */}
-      <RolarParaAgora key={date} alvo={alvoRolagem} />
+      <RolarParaAgora key={date} alvos={alvos} />
 
       {/*
-        O cabeçalho tem a medida da grade, não a da tela.
+        O cabeçalho tem a medida do quadro, não a da tela.
         Ele era `justify-between` dentro de 1400px enquanto a prancheta de duas
         profissionais mede 632: título num canto, botões no outro, e setecentos
-        pixels de nada no meio ligando as duas coisas. `boardMaxWidthRem` é a
-        mesma conta que `DayGrid` usa para as próprias colunas — antes eram
-        dois cálculos, e um arredondava para cima de 2 mesmo num dia de uma
-        profissional só, deixando o cabeçalho mais largo que a grade. Com uma
-        conta só, o "Encaixar" sempre cai sobre a borda direita da última
-        coluna de verdade. `Math.max(…, 1)` é só o piso para o dia sem
-        ninguém escalado, onde `DayGrid` nem chega a desenhar a grade.
+        pixels de nada no meio ligando as duas coisas. O teto sai de
+        `--largura-quadro`, a mesma conta que `DayGrid` usa para as próprias
+        colunas — um lugar só decide a medida, e por isso o "Encaixar" cai
+        sempre sobre a borda direita da última coluna de verdade.
       */}
-      <header className="mb-5" style={{ maxWidth: `${boardMaxWidthRem(Math.max(columns.length, 1))}rem` }}>
+      <header className={cn('mb-5', tetoQuadro)}>
         <div>
           {/* Quem trabalha numa loja só não tem para onde voltar: `/agenda` a
               devolveria para cá. Link que dá em si mesmo é ruído. */}
@@ -172,27 +216,41 @@ export default async function AgendaDoDiaPage({
           com o mesmo peso de um que faz. E as setas levam nome, porque
           sozinhas um leitor de tela anuncia "seta para a esquerda", que não diz
           para onde ela leva.
+
+          Alvo de 44px, que é o padrão da casa e não a exceção: quem anda de dia
+          em dia faz isso de pé, com a mão ocupada. O `sm` do botão existe para
+          densidade em tabela, e esta linha é o comando principal do ecrã.
+
+          No telemóvel as setas encostam nas duas bordas e a data fica no meio —
+          é onde o polegar chega, e é como todo o calendário se comporta. A
+          partir de `sm` o grupo volta a ter o tamanho do que carrega, e o resto
+          da linha alinha-se à direita como antes.
         */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link
-            href={`/agenda/${unit.slug}?d=${addDaysInZone(date, -1)}`}
-            aria-label="Dia anterior"
-            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'px-2.5')}
-          >
-            ←
-          </Link>
-          <span className="text-sm font-medium">{formatDateLong(date)}</span>
-          <Link
-            href={`/agenda/${unit.slug}?d=${addDaysInZone(date, 1)}`}
-            aria-label="Próximo dia"
-            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'px-2.5')}
-          >
-            →
-          </Link>
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+            <Link
+              href={`/agenda/${unit.slug}?d=${addDaysInZone(date, -1)}`}
+              aria-label="Dia anterior"
+              className={cn(buttonVariants({ variant: 'outline' }), 'px-3')}
+            >
+              ←
+            </Link>
+            <span className="flex-1 text-center text-sm font-medium sm:flex-none sm:text-left">
+              {formatDateLong(date)}
+            </span>
+            <Link
+              href={`/agenda/${unit.slug}?d=${addDaysInZone(date, 1)}`}
+              aria-label="Próximo dia"
+              className={cn(buttonVariants({ variant: 'outline' }), 'px-3')}
+            >
+              →
+            </Link>
+          </div>
+
           {date === today ? null : (
             <Link
               href={`/agenda/${unit.slug}`}
-              className="text-muted hover:text-(--text-strong) px-1 text-sm transition-colors"
+              className="text-muted hover:text-(--text-strong) flex min-h-11 items-center px-1 text-sm transition-colors"
             >
               hoje
             </Link>
@@ -207,18 +265,15 @@ export default async function AgendaDoDiaPage({
               type="date"
               name="d"
               defaultValue={date}
-              className="h-9 rounded-lg border border-(--border-subtle) bg-(--surface-raised) px-2 text-sm"
+              className="rounded-plate h-11 border border-(--border-subtle) bg-(--surface-raised) px-2 text-sm"
             />
-            <button className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>Ir</button>
+            <button className={cn(buttonVariants({ variant: 'outline' }))}>Ir</button>
           </form>
 
           {/* Encaixar é escolher em qual cadeira a cliente senta — e para isso
               é preciso enxergar todas. Fica com quem enxerga. */}
           {gerir ? (
-            <Link
-              href={`/agenda/${unit.slug}/encaixe?d=${date}`}
-              className={cn(buttonVariants({ size: 'sm' }))}
-            >
+            <Link href={`/agenda/${unit.slug}/encaixe?d=${date}`} className={cn(buttonVariants())}>
               Encaixar
             </Link>
           ) : null}
@@ -235,22 +290,44 @@ export default async function AgendaDoDiaPage({
         e a prancheta rola por dentro, como já rolava.
       */}
       <div className={cn('grid gap-5', selected && 'lg:grid-cols-[auto_22rem] lg:justify-start')}>
-        <div className="min-w-0">
+        {/*
+          Abrir a ficha no telemóvel tem de ser abrir a ficha — e não empurrá-la
+          para setecentos pixels abaixo do fundo do quadro, onde nada parece ter
+          acontecido. Até `lg` o quadro sai da frente e a ficha fica com o ecrã;
+          o "fechar" dela é o caminho de volta. A partir de `lg` os dois cabem
+          lado a lado e nada precisa de sair.
+        */}
+        <div className={cn('min-w-0', tetoQuadro, selected && 'max-lg:hidden')}>
           {columns.length === 0 ? (
             <p className="surface rounded-card text-muted p-6 text-sm">
               {gerir ? 'Ninguém escalado neste dia.' : 'Não está escalada neste dia.'}
             </p>
           ) : (
-            <DayGrid
-              timezone={unit.timezone}
-              from={from}
-              to={to}
-              openRanges={openRanges}
-              columns={columns}
-              appointments={live}
-              baseHref={baseHref}
-              {...(sel ? { selectedId: sel } : {})}
-            />
+            <>
+              <DayList
+                timezone={unit.timezone}
+                appointments={live}
+                baseHref={baseHref}
+                foco={foco}
+                agora={ehHoje ? now : null}
+                comValor={gerir}
+                className={cn(grade && 'md:hidden')}
+                {...(sel ? { selectedId: sel } : {})}
+              />
+              {grade ? (
+                <DayGrid
+                  timezone={unit.timezone}
+                  from={from}
+                  to={to}
+                  openRanges={openRanges}
+                  columns={columns}
+                  appointments={live}
+                  baseHref={baseHref}
+                  className="hidden md:block"
+                  {...(sel ? { selectedId: sel } : {})}
+                />
+              ) : null}
+            </>
           )}
 
           {cancelled.length > 0 ? (
@@ -262,7 +339,7 @@ export default async function AgendaDoDiaPage({
                     <Link
                       href={href(`${baseHref}&sel=${item.id}`)}
                       scroll={false}
-                      className="flex items-baseline justify-between gap-3 px-4 py-2.5 text-sm hover:bg-(--surface-sunken)"
+                      className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-(--surface-sunken)"
                     >
                       <span>
                         <span className="tnum text-muted mr-2">

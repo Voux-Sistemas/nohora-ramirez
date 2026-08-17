@@ -94,7 +94,13 @@ export function AppointmentPanel({
             </a>
           </p>
         </div>
-        <Link href={href(closeHref)} scroll={false} className="text-muted text-sm hover:underline">
+        {/* No telemóvel esta ficha é o ecrã inteiro e o "fechar" é o caminho de
+            volta ao dia: precisa do alvo de polegar, não de um link de 16px. */}
+        <Link
+          href={href(closeHref)}
+          scroll={false}
+          className="text-muted -m-2 flex min-h-11 shrink-0 items-center p-2 text-sm hover:underline"
+        >
           fechar
         </Link>
       </div>
@@ -148,7 +154,7 @@ export function AppointmentPanel({
         <div className="mt-5">
           <Link
             href={href(`/agenda/${unitSlug}/comanda/${appointment.id}`)}
-            className={cn(buttonVariants({ size: 'sm' }))}
+            className={cn(buttonVariants())}
           >
             Fechar comanda
           </Link>
@@ -157,18 +163,22 @@ export function AppointmentPanel({
 
       {open ? (
         <div className="mt-5 space-y-3">
+          {/* Chegou, comecei, terminei: é o que a profissional toca dezenas de
+              vezes por turno, com o telemóvel numa mão. Fica no alvo de 44px —
+              o `sm` desce para a linha de desfazer, logo abaixo, que é a que
+              não se deve tocar por engano. */}
           <div className="flex flex-wrap gap-2">
             {steps.map((step) => (
               <form key={step.to} action={mudarStatus}>
                 <input type="hidden" name="id" value={appointment.id} />
                 <input type="hidden" name="para" value={step.to} />
-                <button className={cn(buttonVariants({ size: 'sm' }))}>{step.label}</button>
+                <button className={cn(buttonVariants())}>{step.label}</button>
               </form>
             ))}
             {gerir ? (
               <Link
                 href={`/agenda/${unitSlug}/remarcar/${appointment.id}`}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                className={cn(buttonVariants({ variant: 'outline' }))}
               >
                 Remarcar
               </Link>

@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { requireClientSession } from '@/server/auth/session'
 import { sair } from '@/server/auth/actions'
+import { PerfilForm } from '@/components/auth/perfil-form'
+import { getContaIdentidade } from '@/server/people/clients'
 import { listClientAppointments } from '@/server/scheduling/queries'
 import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -15,7 +17,10 @@ const OPEN_STATUSES = new Set(['draft', 'scheduled', 'confirmed', 'checked_in', 
 
 export default async function ContaPage() {
   const session = await requireClientSession()
-  const appointments = await listClientAppointments(session.clientId!, 50)
+  const [appointments, identidade] = await Promise.all([
+    listClientAppointments(session.clientId!, 50),
+    getContaIdentidade(session.userId),
+  ])
 
   const upcoming = appointments
     .filter((a) => OPEN_STATUSES.has(a.status) && a.start.getTime() > Date.now())
@@ -70,7 +75,7 @@ export default async function ContaPage() {
         </ul>
       </section>
 
-      <section className="surface rounded-card p-5">
+      <section className="surface rounded-card mb-6 p-5">
         <h2 className="mb-4 font-medium">Histórico</h2>
         <ul className="flex flex-col gap-3">
           {history.map((a) => (
@@ -94,6 +99,20 @@ export default async function ContaPage() {
           ) : null}
         </ul>
       </section>
+
+      {/* Os meus dados vêm por último: ela entrou para ver o horário, não para
+          editar a ficha. Mas tem de existir — sem isto, corrigir um nome mal
+          escrito ou um e-mail que já não usa obrigava a ligar para o salão. */}
+      {identidade ? (
+        <section className="surface rounded-card p-5">
+          <h2 className="mb-4 font-medium">Os meus dados</h2>
+          <PerfilForm
+            nome={identidade.name}
+            telefone={identidade.phone}
+            email={identidade.email}
+          />
+        </section>
+      ) : null}
     </div>
   )
 }

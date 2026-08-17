@@ -315,6 +315,48 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
   })
 }
 
+// ─── a ficha vista pela própria cliente ─────────────────────────────────────
+
+export interface ContaIdentidade {
+  name: string
+  phone: string
+  email: string | null
+}
+
+export async function getContaIdentidade(userId: string): Promise<ContaIdentidade | null> {
+  const [row] = await db
+    .select({ name: users.name, phone: users.phone, email: users.email })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  return row ?? null
+}
+
+/**
+ * O que a própria cliente pode corrigir: como se chama e para onde vão os
+ * e-mails. Nada mais.
+ *
+ * Deliberadamente **não** é `updateClientProfile`: aquela grava a ficha inteira
+ * — etiquetas, sinal obrigatório, profissional preferida — e é da gestão. Se a
+ * cliente passasse por ela, guardar o nome apagava o que a receção anotou.
+ *
+ * O telefone fica de fora: é a chave única de `users`, é por onde
+ * `findOrCreateClient` a reencontra e é por onde ela entra. Trocá-lo sozinha
+ * partia o histórico e o login no mesmo gesto — isso passa pela receção, que vê
+ * a ficha toda antes de mexer.
+ *
+ * O e-mail não é único de propósito: mãe e filha que se atendem na mesma casa
+ * partilham caixa de correio mais vezes do que se imagina, e o código de acesso
+ * é procurado pelo telefone, não pelo e-mail — partilhar não deixa ninguém
+ * entrar na conta da outra.
+ */
+export async function updateContaIdentidade(
+  userId: string,
+  input: { name: string; email: string | null },
+): Promise<void> {
+  await db.update(users).set({ name: input.name, email: input.email }).where(eq(users.id, userId))
+}
+
 export interface ClientNoteView {
   id: string
   body: string

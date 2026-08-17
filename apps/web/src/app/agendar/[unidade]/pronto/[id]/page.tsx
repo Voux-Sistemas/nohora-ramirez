@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { Monogram } from '@/components/brand/mark'
 import { buttonVariants } from '@/components/ui/button'
 import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
+import { loginClienteDisponivel } from '@/server/auth/otp'
 import { getAppointment } from '@/server/scheduling/queries'
 
 export const dynamic = 'force-dynamic'
@@ -112,12 +113,26 @@ export default async function ProntoPage({
           >
             Marcar outro serviço
           </Link>
-          <Link
-            href={'/' as never}
-            className="text-center text-sm text-(--on-ink-muted) transition-colors hover:text-(--on-ink)"
-          >
-            Voltar ao início
-          </Link>
+          {/*
+            A porta da conta dela só aparece quando existe por onde mandar o
+            código — a mesma regra de `/conta/entrar`. Oferecer aqui uma área
+            que responde "em preparação" seria pior do que não a oferecer.
+          */}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-(--on-ink-muted)">
+            {loginClienteDisponivel() ? (
+              <>
+                <Link href={'/conta' as never} className="transition-colors hover:text-(--on-ink)">
+                  As minhas marcações
+                </Link>
+                <span aria-hidden className="text-(--on-ink-accent)">
+                  ·
+                </span>
+              </>
+            ) : null}
+            <Link href={'/' as never} className="transition-colors hover:text-(--on-ink)">
+              Voltar ao início
+            </Link>
+          </div>
         </div>
       </div>
     </main>

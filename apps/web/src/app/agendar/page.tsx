@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { BookingShell } from '@/components/booking/shell'
 import { UnitPanel } from '@/components/booking/unit-panel'
+import { loginClienteDisponivel } from '@/server/auth/otp'
 import { listUnits } from '@/server/scheduling/context'
 import { portaDasUnidades } from '@/server/scheduling/hoje'
 
@@ -40,6 +42,26 @@ export default async function EscolherUnidadePage() {
           </li>
         ))}
       </ul>
+
+      {/*
+        Esta tela é a casa pública do salão — quem escreve o endereço de cabeça
+        cai aqui. Então é aqui que tem de estar a porta da conta da cliente, e
+        não só no fim de uma marcação: quem já é da casa vem ver o horário que
+        marcou, não marcar outro. Discreta, e depois das casas: marcar continua
+        a ser o assunto da tela.
+
+        Só aparece quando há por onde mandar o código de acesso — a mesma regra
+        de `/conta/entrar`.
+      */}
+      {loginClienteDisponivel() ? (
+        <p className="text-muted mt-12 border-t border-(--border-subtle) pt-6 text-sm">
+          Já é nossa cliente?{' '}
+          <Link href={'/conta' as never} className="underline underline-offset-4 hover:text-(--text-strong)">
+            Veja as suas marcações
+          </Link>
+          .
+        </p>
+      ) : null}
     </BookingShell>
   )
 }

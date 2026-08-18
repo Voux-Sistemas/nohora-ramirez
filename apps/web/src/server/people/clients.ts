@@ -12,7 +12,7 @@ import 'server-only'
  */
 
 import { clientNotes, clientProfiles, staffProfiles, units, userRoles, users } from '@studio/db'
-import { and, asc, desc, eq, ilike, like, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, like, ne, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { toE164 } from '@/lib/format'
 
@@ -90,12 +90,17 @@ export async function findOrCreateClient(input: {
       .values({ userId, role: 'client' })
       .onConflictDoNothing()
 
+    /* `returning` é sobre a ficha de CLIENTE, que este ramo acabou de abrir —
+       nunca sobre a conta. Quem já existia em `users` como profissional e
+       nunca foi cliente é ficha nova: dizer "esta é a ficha que já havia" a
+       quem a acabou de criar manda a recepção procurar um histórico que não
+       existe. */
     return {
       clientId: profile!.id,
       userId,
       name: found?.name ?? input.name,
       phone: input.phone,
-      returning: found !== undefined,
+      returning: false,
     }
   })
 }
@@ -333,6 +338,14 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
       ficha de equipa nenhuma — foi assim que a produção subiu. Perguntar só a
       `staff_profiles` deixava justamente a conta mais poderosa da casa de
       fora da trava, bastando ela marcar uma escova para aparecer em Clientes.
+
+      O `ne(role, 'client')` é a trava inteira, e sem ele ela fechava-se sobre
+      toda a gente: `user_roles` não é só a tabela do poder, é também onde
+      `findOrCreateClient` grava a linha `client` de cada cliente que entra.
+      Perguntar "tem alguma linha em user_roles" respondia sim para o salão
+      inteiro, e corrigir um telemóvel mal digitado passava a ser impossível —
+      com a recepção a ler que a Dona Maria "é da equipa". Ser cliente é o
+      papel que não dá poder nenhum, e é por isso o único que não tranca.
     */
     const [equipa] = await tx
       .select({ nome: staffProfiles.displayName })
@@ -342,7 +355,7 @@ export async function updateClientProfile(clientId: string, input: ClientProfile
     const [comPoder] = await tx
       .select({ papel: userRoles.role })
       .from(userRoles)
-      .where(eq(userRoles.userId, profile.userId))
+      .where(and(eq(userRoles.userId, profile.userId), ne(userRoles.role, 'client')))
       .limit(1)
     if (equipa || comPoder) {
       const [conta] = await tx

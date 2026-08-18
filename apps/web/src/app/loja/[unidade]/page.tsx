@@ -6,10 +6,11 @@ import { Wordmark } from '@/components/brand/mark'
 import { buttonVariants } from '@/components/ui/button'
 import { Photo } from '@/components/ui/photo'
 import { CabecalhoPublico } from '@/components/vitrine/cabecalho'
+import { Semana } from '@/components/vitrine/horario'
+import { IndiceDaCasa } from '@/components/vitrine/indice'
 import { Precario } from '@/components/vitrine/precario'
 import { RodapePublico } from '@/components/vitrine/rodape'
 import { Sala } from '@/components/vitrine/sala'
-import { Semana } from '@/components/vitrine/horario'
 import { formatPhone } from '@/lib/format'
 import { frasePorta } from '@/server/scheduling/hoje'
 import { lojaPorSlug, rede, type Loja } from '@/server/vitrine'
@@ -29,6 +30,14 @@ export const dynamic = 'force-dynamic'
  * Preço escondido é a coisa que faz uma pessoa fechar a página e perguntar no
  * direct — o salão perde a marcação e ganha uma conversa. O preçário do estúdio
  * é impresso e está no balcão; publicá-lo não revela nada que a rua já não veja.
+ *
+ * O QUE MUDOU DEPOIS DA REUNIÃO: "a página está bem cansativa de ler, muita
+ * coisa". Nada foi cortado do que a casa tem para dizer — cortar preçário para
+ * a página parecer curta é resolver a leitura à custa da cliente. O que entrou
+ * foi forma de a percorrer: uma barra colada com as secções e o botão de
+ * marcar, cada bloco a entrar quando é atravessado, e a abertura a ocupar o
+ * ecrã em vez de ser uma faixa. Uma página comprida não cansa; uma página
+ * comprida sem mapa, sim.
  */
 
 export async function generateMetadata({
@@ -64,25 +73,44 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
 
   const { unidade: u, fotos, hoje, precario } = loja
   const marcar = `/agendar/${u.slug}`
+  const instagram = marca?.instagram ?? null
 
   /* Sem capa, a primeira do ensaio abre a página — e sai da sala, para não
      aparecer duas vezes na mesma rolagem. */
   const capa = u.imageUrl ?? fotos[0]?.url ?? null
   const daSala = u.imageUrl ? fotos : fotos.slice(1)
 
-  const frase = frasePorta(hoje.estado)
+  /* O índice só nomeia o que a página realmente tem. Uma casa sem ensaio
+     fotográfico não ganha um separador "A casa" que salta para lado nenhum. */
+  const seccoes = [
+    temEssencial(loja, instagram) ? { id: 'onde', rotulo: 'Onde nos encontra' } : null,
+    daSala.length > 0 ? { id: 'casa', rotulo: 'A casa' } : null,
+    precario.length > 0 ? { id: 'precario', rotulo: 'Preçário' } : null,
+  ].filter((s) => s !== null)
 
   return (
     <div className="flex min-h-dvh flex-col">
       <CabecalhoPublico atual={u.slug} marcar={marcar} />
 
       <main className="flex-1">
-        <Abertura unidade={u} capa={capa} frase={frase} aberta={hoje.estado.tipo === 'aberta'} />
+        <Abertura
+          unidade={u}
+          capa={capa}
+          frase={frasePorta(hoje.estado)}
+          aberta={hoje.estado.tipo === 'aberta'}
+        />
 
-        <Essencial loja={loja} instagram={marca?.instagram ?? null} />
+        {/* Colada logo abaixo da abertura, e a única barra colada da página:
+            ver `indice.tsx` para o porquê de o cabeçalho continuar a rolar. */}
+        <IndiceDaCasa seccoes={seccoes} marcar={marcar} />
+
+        <Essencial loja={loja} instagram={instagram} />
 
         {daSala.length > 0 ? (
-          <section className="mx-auto w-full max-w-5xl px-5 pt-16 sm:px-8 sm:pt-24">
+          <section
+            id="casa"
+            className="revela mx-auto w-full max-w-5xl scroll-mt-24 px-5 pt-16 sm:px-8 sm:pt-24"
+          >
             <h2 className="display display-lg">A casa</h2>
             <div className="rule-bronze mt-4 w-14" />
             <div className="mt-8 sm:mt-10">
@@ -92,13 +120,16 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
         ) : null}
 
         {precario.length > 0 ? (
-          <section className="mx-auto w-full max-w-5xl px-5 pt-16 sm:px-8 sm:pt-24">
+          <section
+            id="precario"
+            className="revela mx-auto w-full max-w-5xl scroll-mt-24 px-5 pt-16 sm:px-8 sm:pt-24"
+          >
             <h2 className="display display-lg">Preçário</h2>
             <div className="rule-bronze mt-4 w-14" />
-            <p className="text-body measure mt-5 text-[1.0625rem]">
-              Os valores são os da casa. Serviços sobre cabelo comprido, com extensões ou de grande
-              volume ficam sujeitos a avaliação no momento.
-            </p>
+            {/* Sem parágrafo de abertura: a ressalva sobre cabelo comprido e
+                grande volume já está ao pé do bloco a que se aplica, que é
+                onde a dúvida aparece. Dizê-la duas vezes era a "muita coisa"
+                da queixa em ponto pequeno. */}
             <div className="mt-10 sm:mt-14">
               <Precario grupos={precario} />
             </div>
@@ -116,6 +147,14 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
 /**
  * A abertura. A fotografia é do tamanho de uma sala e o nome é escrito por
  * cima dela — o logotipo já está na faixa acima, então aqui vale só o lugar.
+ *
+ * `svh` e não `vh` nem `dvh`: no telemóvel, `dvh` muda de valor enquanto a
+ * barra de endereço encolhe, e a fotografia mudava de altura a meio da
+ * rolagem. `svh` é a altura pequena e estável — a abertura não salta.
+ *
+ * O estado da porta passa a pastilha, o mesmo objecto do painel das casas: é a
+ * única informação desta faixa que muda ao longo do dia, e informação que muda
+ * quer contorno próprio em vez de se confundir com o nome da casa.
  */
 function Abertura({
   unidade,
@@ -129,22 +168,26 @@ function Abertura({
   aberta: boolean
 }) {
   return (
-    <section className="relative">
+    <section className="relative overflow-hidden">
       <Photo
         src={capa}
         alt={`Salão Nohora Ramirez em ${unidade.name}`}
         name={unidade.name}
         priority
+        paralaxe
         sizes="100vw"
-        className="h-[clamp(21rem,66vh,38rem)] w-full"
+        className="h-[clamp(24rem,74svh,44rem)] w-full"
       />
 
-      <div className="scrim-photo pointer-events-none absolute inset-x-0 bottom-0 h-3/5" aria-hidden />
+      <div
+        className="scrim-photo pointer-events-none absolute inset-x-0 bottom-0 h-3/5"
+        aria-hidden
+      />
 
       <div className="absolute inset-x-0 bottom-0">
-        <div className="mx-auto w-full max-w-5xl px-5 pb-8 sm:px-8 sm:pb-12">
+        <div className="mx-auto w-full max-w-5xl px-5 pb-9 sm:px-8 sm:pb-14">
           {frase ? (
-            <p className="flex items-center gap-2 text-[0.8125rem] text-(--on-ink)">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-(--surface-ink)/78 px-3 py-1.5 text-[0.75rem] text-(--on-ink)">
               {aberta ? (
                 <span className="h-1.5 w-1.5 rounded-full bg-(--on-ink-accent)" aria-hidden />
               ) : null}
@@ -152,12 +195,25 @@ function Abertura({
             </p>
           ) : null}
 
-          <h1 className="display display-xl mt-2 text-(--on-ink)">{unidade.name}</h1>
+          <h1 className="display display-xl text-(--on-ink)">{unidade.name}</h1>
           <div className="rule-bronze-on-ink mt-5 w-16" />
         </div>
       </div>
     </section>
   )
+}
+
+/**
+ * Há alguma coisa para pôr em "Onde nos encontra"?
+ *
+ * A pergunta é feita em dois sítios — pelo índice, para decidir se nomeia a
+ * secção, e pela própria secção, para decidir se existe — e as duas respostas
+ * têm de ser a mesma. Um separador que salta para uma secção que não foi
+ * desenhada é pior do que não ter separador nenhum.
+ */
+function temEssencial(loja: Loja, instagram: string | null): boolean {
+  const { unidade: u, semana } = loja
+  return Boolean(u.addressLine) || semana.length > 0 || Boolean(u.phone || u.email || instagram)
 }
 
 /**
@@ -199,11 +255,13 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
       )}`
     : null
 
-  const temContacto = Boolean(u.phone || u.email || instagram)
-  if (!morada && semana.length === 0 && !temContacto) return null
+  if (!temEssencial(loja, instagram)) return null
 
   return (
-    <section className="mt-14 border-y border-(--border-subtle) bg-(--surface-sunken) sm:mt-20">
+    <section
+      id="onde"
+      className="revela scroll-mt-24 border-y border-(--border-subtle) bg-(--surface-sunken)"
+    >
       <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8 sm:py-20">
         <h2 className="display display-lg">Onde nos encontra</h2>
         <div className="rule-bronze mt-4 w-14" />

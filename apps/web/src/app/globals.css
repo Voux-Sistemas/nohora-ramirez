@@ -240,6 +240,10 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: var(--surface);
     color: var(--text-strong);
@@ -564,6 +568,92 @@
 
   .measure {
     max-width: 68ch;
+  }
+
+  /*
+    ── MOVIMENTO DE MONTRA ───────────────────────────────────────────────────
+    A montra é a única tela do sistema que não serve para fazer nada: serve para
+    uma pessoa decidir se quer. É a única que ganha movimento de leitura, e ele
+    é todo conduzido pela rolagem — nada dispara sozinho, nada se repete em
+    ciclo, nada depende de JavaScript e nada consome bateria depois de o dedo
+    parar. A régua continua a ser o gesto do sistema; isto é só o ar entre os
+    blocos a mexer-se quando a pessoa o atravessa.
+
+    POR QUE ESTÁ TUDO DENTRO DE `no-preference`, e não é só zelo:
+    o bloco global no fim deste ficheiro desliga movimento zerando DURAÇÕES.
+    Uma animação de linha do tempo de rolagem não tem duração — a progressão
+    vem do percurso — e passaria inteira por esse corte. Então a preferência é
+    respeitada aqui, na origem. Fora do `no-preference` estas classes não
+    existem, e o estado por omissão de cada elemento é o estado final:
+    conteúdo visível, fotografia parada, cabeçalho inteiro. Sem suporte a
+    `animation-timeline`, o mesmo. A página nunca fica à espera para aparecer.
+
+    CUIDADO HERDADO: `.revela` mexe em `transform`, e um elemento
+    transformado é bloco de contenção para os descendentes — um `position:
+    fixed` lá dentro passa a medir-se por ele. Foi assim que a barra de acção
+    da marcação foi parar ao meio do documento. Revela-se secção de conteúdo;
+    a barra fixa da montra fica ao nível da página, fora de qualquer `.revela`.
+  */
+  @keyframes revela {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Paralaxe do herói: a fotografia desce mais devagar do que a página. A
+     escala de 1.06 é a margem que o passeio precisa — sem ela, o deslocamento
+     descobriria a borda da imagem dentro do recorte. */
+  @keyframes heroi-foto {
+    from {
+      transform: scale(1.06) translateY(-2.5%);
+    }
+    to {
+      transform: scale(1.06) translateY(3.5%);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .revela {
+        animation: revela linear both;
+        animation-timeline: view();
+        animation-range: entry 4% cover 24%;
+      }
+
+      .heroi-foto {
+        animation: heroi-foto linear both;
+        animation-timeline: view();
+        animation-range: cover;
+      }
+    }
+  }
+
+  /*
+    A caixa de luz da galeria. `<dialog>` do próprio navegador: o `Esc`, o
+    foco preso lá dentro e o fundo inerte vêm de graça e correctos, o que
+    nenhuma biblioteca de modal costuma acertar. Aqui só se pinta.
+  */
+  .caixa-de-luz {
+    max-width: none;
+    max-height: none;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  .caixa-de-luz::backdrop {
+    background: oklch(0.14 0.01 48 / 0.94);
+  }
+
+  body:has(dialog[open]) {
+    overflow: hidden;
   }
 }
 

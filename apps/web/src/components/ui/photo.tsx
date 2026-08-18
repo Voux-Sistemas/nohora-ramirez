@@ -54,6 +54,12 @@ export type PhotoProps = {
   priority?: boolean
   /** Zoom lento no hover — só onde o bloco inteiro é clicável. */
   interactive?: boolean
+  /**
+   * Passeio conduzido pela rolagem: a fotografia desce mais devagar do que a
+   * página enquanto atravessa o ecrã. Só para a abertura de uma montra, onde a
+   * fotografia é o conteúdo e não a ilustração de um conteúdo.
+   */
+  paralaxe?: boolean
 }
 
 export function Photo({
@@ -64,6 +70,7 @@ export function Photo({
   sizes,
   priority = false,
   interactive = false,
+  paralaxe = false,
 }: PhotoProps) {
   if (!src) return <PhotoPlate name={name} className={className} />
 
@@ -79,6 +86,7 @@ export function Photo({
           'object-cover',
           interactive &&
             'transition-transform duration-700 ease-(--ease-out-quint) group-hover:scale-[1.04]',
+          paralaxe && 'heroi-foto',
         )}
       />
     </div>

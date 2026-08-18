@@ -129,6 +129,17 @@ ordem em que a mão desenharia.
 `prefers-reduced-motion` não é opcional. Quem desligou movimento recebe o selo
 **pronto**, não vazio: o conteúdo é o padrão e a animação é o enfeite.
 
+**Movimento conduzido pela rolagem** entrou com a montra, e traz uma armadilha
+própria: `animation-timeline: view()` e `scroll()` não têm duração, e o bloco
+global de `prefers-reduced-motion` no fim de `globals.css` só sabe encurtar
+durações. Uma animação de rolagem atravessa esse bloco intacta. Por isso toda a
+regra nova vive dentro de `@media (prefers-reduced-motion: no-preference)`, e
+não apenas dentro do `@supports`.
+
+O estado por omissão é **visível**: sem suporte, sem JavaScript ou com movimento
+desligado, o conteúdo está pronto e é a animação que não existe. Nunca há ecrã
+vazio à espera de um observador.
+
 ## 6. Marca
 
 [`components/brand/mark.tsx`](apps/web/src/components/brand/mark.tsx) —
@@ -253,9 +264,62 @@ retrato dos espelhos suspensos, que é a fotografia mais bonita das nove.
 > pedidos.
 >
 > ⚠️ **As 7 fotografias de serviço continuam ilustrativas** (Unsplash) e existem
-> para o desenho ter matéria. A lista de reposição está na secção 11.
+> para o desenho ter matéria. A lista de reposição está na secção 12.
 
-## 10. O que este sistema recusa
+## 10. A montra
+
+A montra (`/loja` e `/loja/[unidade]`) é a única parte do sistema que não serve
+para fazer nada — serve para a pessoa decidir se quer. Depois da reunião com os
+sócios ganhou vocabulário próprio, e este é o registo dele.
+
+**Uma barra colada, e só uma.** Na página da casa, quem cola é o índice de
+secções ([`components/vitrine/indice.tsx`](apps/web/src/components/vitrine/indice.tsx));
+o cabeçalho rola para fora como conteúdo. Duas barras coladas acopla-lhes as
+alturas — cada `scroll-mt` da página passa a depender de as duas continuarem
+com a altura que tinham no dia em que foram medidas, e ninguém volta a mexer numa
+sem partir a outra. A secção activa marca-se com a régua de bronze, o mesmo gesto
+que já marca a loja activa nos separadores. Sem JavaScript continuam a ser
+âncoras que funcionam.
+
+**Um separador só existe se a secção existir.** O índice nomeia o que a página
+realmente desenhou — uma casa sem ensaio fotográfico não ganha um "A casa" que
+salta para lado nenhum. Quando a decisão é a mesma em dois sítios (o índice e a
+própria secção), é uma função só, chamada nos dois.
+
+**Preçário: grupos com a mesma lista fundem-se numa tabela.**
+[`lib/precario.ts`](apps/web/src/lib/precario.ts) junta grupos **vizinhos** cujos
+serviços coincidem em nome e ordem, e só esses — uma sobreposição parcial deixava
+buracos, e um travessão numa coluna de preços lê-se como grátis ou como erro. O
+título fundido sai das palavras comuns aos nomes dos grupos ("Cabelo curto" +
+"Cabelo comprido" → "Cabelo", colunas "Curto" e "Comprido"): **sem palavra comum
+não há fusão**, porque não havia nome honesto para o bloco. Isto é uma dependência
+real do que a dona escreve no catálogo, e é de propósito — o dia em que os nomes
+deixarem de rimar, os blocos voltam a ser dois sozinhos, sem ninguém mexer em
+código.
+
+**A tabela comparada continua a ser uma `<dl>`**, com um `<dt>` por serviço e um
+`<dd>` por preço — não uma `<table>` que houvesse que desmontar no telemóvel.
+Cada preço traz o rótulo da coluna dentro da célula; a partir de `sm` o rótulo
+passa a `sr-only` e **nunca a `hidden`**, porque `display:none` tira-o da árvore
+de acessibilidade e um leitor de ecrã passaria a ouvir "Brushing, 15 €, 20 €" sem
+saber qual é qual. A fila de cabeçalhos por cima é `aria-hidden`: é decoração
+para quem vê.
+
+**Ampliar fotografia é um `<dialog>` nativo dentro de um `<a href>`.** O `<a>`
+aponta ao ficheiro, e é o que resta sem JavaScript ou em Safari antigo: o
+visualizador do navegador, que é uma caixa de luz a sério. Com JavaScript o
+clique é interceptado — excepto com modificador, que é um pedido de "abre noutro
+separador" e pertence ao navegador — e abre o `<dialog>`, que traz de graça o
+`Esc`, o foco preso, o fundo inerte e a devolução do foco. O que o `<dialog>`
+**não** traz é travar a rolagem por trás: isso é `body:has(dialog[open])` em CSS,
+não JavaScript.
+
+**A legenda escrita à mão vive na ampliação, não na grade.** As descrições do
+`alt` são boas e longas; seis delas por baixo das fotografias são mais de cem
+palavras de prosa numa página que o cliente já chamou cansativa. Na grade vê-se a
+sala; a legenda aparece a quem pediu para ver aquela fotografia.
+
+## 11. O que este sistema recusa
 
 Regras de rejeição, não de estilo. Se estiver prestes a escrever uma delas,
 reescreva o elemento com outra estrutura.
@@ -279,7 +343,7 @@ reescreva o elemento com outra estrutura.
   `cream-*`) foi removida depois da migração: alias que sobrevive passa a ser a porta
   por onde a paleta velha volta sem ninguém notar.
 
-## 11. Pendências que dependem do cliente
+## 12. Pendências que dependem do cliente
 
 Estão listadas aqui porque são bloqueios de conteúdo, não de código.
 

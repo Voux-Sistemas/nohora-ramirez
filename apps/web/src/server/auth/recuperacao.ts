@@ -31,7 +31,7 @@ import { setStaffPassword } from './password'
 import { temPapelDeEquipe } from './permissoes'
 import { createSession, revokeAllSessions } from './session'
 
-export const SENHA_MINIMA = 8
+const SENHA_MINIMA = 8
 
 export function recuperacaoDisponivel(): boolean {
   return canalEmailAtivo() || ehTeste()

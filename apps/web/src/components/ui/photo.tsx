@@ -90,7 +90,7 @@ export function Photo({
  * campo de upload — o que a cliente vê antes de escolher o arquivo é
  * exatamente o que ela verá se não escolher nenhum.
  */
-export function PhotoPlate({
+function PhotoPlate({
   name,
   className,
   children,

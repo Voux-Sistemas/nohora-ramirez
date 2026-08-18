@@ -121,7 +121,7 @@ de virar um lançamento no caixa da loja vizinha.
 | `CODIGO_INSTALACAO` | liberta `/comecar` enquanto não houver conta de equipa |
 | `PAIS` | `PT` ou `BR`. Decide moeda, idioma, fuso padrão e o formato de telefone que o formulário aceita |
 | `SITE_URL` | o endereço público, com esquema e sem barra no fim. Alimenta o `sitemap.xml`, o `robots.txt` e a fotografia do cartão de partilha. Vazia, vale o domínio que a Railway publica |
-| `DATABASE_URL` | pooler de **transação** do Supabase (6543), como o papel `app_web`. É por aqui que o site lê e escreve |
+| `DATABASE_URL` | pooler de **sessão** do Supabase (5432), como o papel `app_web`. É por aqui que o site lê e escreve. Nunca a porta 6543: o pooler de transação perde as consultas que o driver manda encavalitadas e pendura a página de agendamento |
 | `DIRECT_URL` | pooler de **sessão** do Supabase (5432), como o papel dono. Só migration, constraints e seed passam por aqui |
 | `IMAGE_STORE` | `s3` em produção, `local` no padrão. Ver abaixo |
 | `S3_BUCKET` `S3_ENDPOINT` `S3_ACCESS_KEY_ID` `S3_SECRET_ACCESS_KEY` `S3_REGION` | credenciais do bucket `imagens`, todas por referência |

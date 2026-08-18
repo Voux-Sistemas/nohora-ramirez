@@ -197,7 +197,7 @@ function localStore(): ImageStore {
 }
 
 /** Raiz dos arquivos enviados. `UPLOAD_DIR` sobrescreve para outro volume. */
-export function uploadRoot(): string {
+function uploadRoot(): string {
   return process.env.UPLOAD_DIR ?? `${process.cwd()}/.uploads`
 }
 

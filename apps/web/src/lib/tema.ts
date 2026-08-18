@@ -24,7 +24,7 @@ export type Modo = 'claro' | 'escuro' | 'sistema'
 export type Resolvido = 'light' | 'dark'
 type Valor = 'claro' | 'escuro' | 'sistema-claro' | 'sistema-escuro'
 
-export const COOKIE_TEMA = 'tema'
+const COOKIE_TEMA = 'tema'
 
 export interface Tema {
   /** O que aparece marcado no seletor. */

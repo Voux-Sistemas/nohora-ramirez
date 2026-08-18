@@ -112,7 +112,7 @@ export async function rede(): Promise<Rede | null> {
   return { nome: org.nome, instagram }
 }
 
-export async function fotosDaLoja(unitId: string): Promise<FotoDaLoja[]> {
+async function fotosDaLoja(unitId: string): Promise<FotoDaLoja[]> {
   const rows = await db
     .select({ url: unitPhotos.url, alt: unitPhotos.alt })
     .from(unitPhotos)

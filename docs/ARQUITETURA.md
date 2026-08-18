@@ -33,10 +33,12 @@ plataforma**: sem RLS, sem Supabase Auth, sem `supabase-js`. As permissões cont
 TypeScript, em `server/auth/permissoes.ts`, testáveis fora do banco. O site Next.js corre no
 Railway, em Amesterdão, e o deploy é por push na branch `producao`.
 
-Duas URLs, não uma: `DATABASE_URL` aponta ao pooler de transação (6543, sem prepared
-statements) e é por onde o site lê e escreve, como o papel `app_web`, que só sabe fazer DML;
-`DIRECT_URL` aponta ao pooler de sessão (5432), como o papel dono, e só migration, constraints
-e seed passam por lá. O motivo de cada uma está em `packages/db/src/index.ts` e no
+Duas URLs, não uma, e as duas no pooler de sessão (5432): `DATABASE_URL` é por onde o site lê
+e escreve, como o papel `app_web`, que só sabe fazer DML; `DIRECT_URL` liga-se como o papel
+dono, e só migration, constraints e seed passam por lá. Diferem no papel, não na porta — e essa
+metade não se vê ao olhar para a string. O pooler de transação (6543) está fora de questão para
+o site: ele engole as consultas que viajam encavalitadas e deixou a página de agendamento sem
+responder de todo. O motivo medido de cada escolha está em `packages/db/src/index.ts` e no
 `.env.example`.
 
 ---

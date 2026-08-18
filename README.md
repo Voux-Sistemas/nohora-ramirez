@@ -74,7 +74,7 @@ subir servidor nem banco.
 
 Moeda, idioma, fuso e formato de telefone saem da variável `PAIS`
 (`apps/web/src/lib/pais.ts`). Para o cliente atual é Portugal: euro, `pt-PT`,
-`Europe/Lisbon`, telemóvel de nove dígitos. O ambiente de demonstração corre em pt-BR.
+`Europe/Lisbon`, telemóvel de nove dígitos.
 
 Todo valor monetário é **inteiro em cêntimos**, em todo o lado. Nunca vírgula flutuante.
 

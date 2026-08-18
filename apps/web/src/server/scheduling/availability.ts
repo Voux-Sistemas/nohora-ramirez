@@ -20,13 +20,7 @@ import {
   type Slot,
   type StaffPickStrategy,
 } from '@studio/core'
-import {
-  getUnitBySlug,
-  loadBookingContext,
-  type BookingContext,
-  type ServiceInfo,
-  type UnitInfo,
-} from './context'
+import { type BookingContext, type ServiceInfo, type UnitInfo } from './context'
 
 export interface CartInput {
   serviceId: string
@@ -34,16 +28,11 @@ export interface CartInput {
   staffId?: string
 }
 
-export interface DayQuery {
-  unitSlug: string
-  /** Data de parede `YYYY-MM-DD` na timezone da unidade. */
-  date: string
+export interface SlotQuery {
   cart: readonly CartInput[]
   /** Só considera profissionais habilitados para agendamento online. */
   onlineOnly?: boolean
   strategy?: StaffPickStrategy
-  /** Ignora a ocupação deste agendamento — usado ao remarcar. */
-  excludeAppointmentId?: string
   /** Regras de antecedência desligadas: a recepção encaixa fora delas. */
   ignoreLeadRules?: boolean
   /**
@@ -76,58 +65,15 @@ export interface SlotOption {
   }[]
 }
 
-export interface DayAvailability {
-  unit: UnitInfo
-  date: string
-  /** Vazio quando a unidade não abre no dia. */
-  slots: SlotOption[]
-  closed: boolean
-}
-
-/** Contexto de um único dia — o caso comum das telas de agendamento. */
-export async function loadDayContext(
-  unitSlug: string,
-  date: string,
-  excludeAppointmentId?: string,
-): Promise<{ unit: UnitInfo; ctx: BookingContext } | null> {
-  const unit = await getUnitBySlug(unitSlug)
-  if (!unit) return null
-  const ctx = await loadBookingContext({
-    unit,
-    fromDate: date,
-    toDate: date,
-    ...(excludeAppointmentId ? { excludeAppointmentId } : {}),
-  })
-  return { unit, ctx }
-}
-
-export async function findSlotsForDay(query: DayQuery): Promise<DayAvailability | null> {
-  const loaded = await loadDayContext(query.unitSlug, query.date, query.excludeAppointmentId)
-  if (!loaded) return null
-  const { unit, ctx } = loaded
-
-  if (ctx.openRanges.length === 0) {
-    return { unit, date: query.date, slots: [], closed: true }
-  }
-
-  const slots = findAvailableSlots(buildQuery(ctx, query))
-  return {
-    unit,
-    date: query.date,
-    slots: slots.map((slot) => describeSlot(ctx, slot)),
-    closed: false,
-  }
-}
-
 /**
- * Varre um contexto já carregado. Usado quando a tela precisa de vários dias de
- * uma vez — carregar o contexto uma vez e varrer é muito mais barato que uma
- * consulta por dia.
+ * Varre um contexto já carregado.
+ *
+ * O contexto entra pronto de propósito. As telas de agendamento mostram vários
+ * dias de uma vez, e carregar o contexto uma vez e varrê-lo é muito mais barato
+ * do que uma ida ao banco por dia — mais ainda desde que se mediu quanto custa
+ * a travessia até Frankfurt.
  */
-export function findSlots(
-  ctx: BookingContext,
-  query: Omit<DayQuery, 'unitSlug' | 'date'>,
-): SlotOption[] {
+export function findSlots(ctx: BookingContext, query: SlotQuery): SlotOption[] {
   if (ctx.openRanges.length === 0) return []
   return findAvailableSlots(buildQuery(ctx, query)).map((slot) => describeSlot(ctx, slot))
 }
@@ -136,7 +82,7 @@ export function findSlots(
  * Valida um horário específico. Usado na confirmação: o cliente manda só o
  * instante, e é o servidor que replaneja quem faz o quê e em qual recurso.
  */
-export function planAt(ctx: BookingContext, query: Omit<DayQuery, 'unitSlug' | 'date'>, start: Date): Slot | null {
+export function planAt(ctx: BookingContext, query: SlotQuery, start: Date): Slot | null {
   return planVisitAt(buildQuery(ctx, query), start)
 }
 
@@ -146,18 +92,11 @@ export function planAt(ctx: BookingContext, query: Omit<DayQuery, 'unitSlug' | '
  * `planAt` devolve só `null`, e quem confirma precisa de saber se o horário
  * está ocupado ou se já passou — são frases diferentes no ecrã da cliente.
  */
-export function checkLeadAt(
-  ctx: BookingContext,
-  query: Omit<DayQuery, 'unitSlug' | 'date'>,
-  start: Date,
-): LeadCheck {
+export function checkLeadAt(ctx: BookingContext, query: SlotQuery, start: Date): LeadCheck {
   return checkLead(buildQuery(ctx, query), start)
 }
 
-function buildQuery(
-  ctx: BookingContext,
-  query: Omit<DayQuery, 'unitSlug' | 'date'> & { now?: Date },
-): AvailabilityQuery {
+function buildQuery(ctx: BookingContext, query: SlotQuery): AvailabilityQuery {
   const specs: Record<string, ReturnType<typeof serviceSpec>> = {}
   for (const [id, service] of ctx.services) specs[id] = serviceSpec(service)
 

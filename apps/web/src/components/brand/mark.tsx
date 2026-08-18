@@ -22,7 +22,7 @@ const WREATH_LEAVES =
 /** O swash que nasce no N, passa por baixo do R e rompe o círculo. */
 const SWASH = 'M 60 52 C 96 84 128 122 168 146'
 
-export const COROA_ID = 'nr-coroa'
+const COROA_ID = 'nr-coroa'
 
 /**
  * A coroa entra no documento uma vez, e as outras apontam para ela.

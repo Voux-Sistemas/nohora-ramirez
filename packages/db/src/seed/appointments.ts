@@ -99,7 +99,7 @@ export interface PlannedAppointment {
 }
 
 /** Combos que aparecem juntos de verdade numa visita. */
-const COMBOS: Readonly<Record<string, readonly string[]>> = {
+export const COMBOS: Readonly<Record<string, readonly string[]>> = {
   manicure: ['pedicure'],
   'corte-fem': ['hidratacao', 'escova'],
   coloracao: ['corte-fem'],
@@ -132,6 +132,32 @@ export interface GenerateOptions {
   today: string
   /** Instante de referência, para decidir o que já aconteceu hoje. */
   now: Date
+  /**
+   * Quantas visitas se tenta marcar por profissional em cada dia. É o teto da
+   * densidade da agenda, não o número gerado: cada tentativa ainda passa pelo
+   * `fillRate` do dia e pode não encontrar horário nenhum.
+   *
+   * O padrão de seis é para o estúdio fictício, que tem equipa larga. Um salão
+   * com uma profissional por loja e dez horas de expediente cabe muito mais do
+   * que seis, e com o padrão a agenda nascia às moscas.
+   */
+  attemptsPerStaff?: number
+  /**
+   * Que serviços costumam sair juntos, por slug. Padrão: `COMBOS`, escrito para
+   * o catálogo fictício. Quem gera sobre um catálogo real passa o seu — sem
+   * isso nenhuma chave casa e toda a visita nasce com um serviço só.
+   */
+  combos?: Readonly<Record<string, readonly string[]>>
+  /**
+   * Horário que a equipa já tem comprometido antes de esta geração começar, por
+   * id de profissional. Padrão: nenhum — a agenda nasce vazia, que é o caso do
+   * seed, onde o banco acabou de ser truncado.
+   *
+   * Quem gera por cima de uma agenda que já existe tem de passar o que lá está.
+   * Sem isso o motor propõe horários já ocupados, e o que derruba a geração é a
+   * constraint de exclusão do Postgres, no fim, com tudo por escrever.
+   */
+  preexistingBusy?: ReadonlyMap<string, readonly TimeRange[]>
 }
 
 export function generateAppointments(options: GenerateOptions): PlannedAppointment[] {
@@ -173,7 +199,9 @@ export function generateAppointments(options: GenerateOptions): PlannedAppointme
         )
         if (ranges.length === 0) return false
         working.set(person.id, ranges)
-        busyByStaff.set(person.id, [])
+        // cópia: o que a geração for marcando entra aqui e não pode voltar para
+        // o mapa de quem chamou
+        busyByStaff.set(person.id, [...(options.preexistingBusy?.get(person.id) ?? [])])
         return true
       })
       if (dayStaff.length === 0) continue
@@ -191,13 +219,13 @@ export function generateAppointments(options: GenerateOptions): PlannedAppointme
       if (doable.length === 0) continue
 
       const fill = fillRate(date, options.today, rng)
-      const attempts = dayStaff.length * 6
+      const attempts = dayStaff.length * (options.attemptsPerStaff ?? 6)
 
       for (let attempt = 0; attempt < attempts; attempt++) {
         if (!rng.bool(fill)) continue
 
         const client = pickClient(rng, clients, unit.slug)
-        const cart = buildCart(rng, doable, serviceBySlug, dayStaff)
+        const cart = buildCart(rng, doable, serviceBySlug, dayStaff, options.combos ?? COMBOS)
         if (cart.length === 0) continue
 
         // cliente com profissional favorito costuma insistir nele
@@ -307,12 +335,13 @@ function buildCart(
   doable: readonly ServiceCtx[],
   bySlug: ReadonlyMap<string, ServiceCtx>,
   dayStaff: readonly StaffCtx[],
+  combos: Readonly<Record<string, readonly string[]>>,
 ): ServiceCtx[] {
   const first = rng.pick(doable)
   const cart = [first]
 
   if (rng.bool(0.22)) {
-    const candidates = (COMBOS[first.slug] ?? [])
+    const candidates = (combos[first.slug] ?? [])
       .map((slug) => bySlug.get(slug))
       .filter((service): service is ServiceCtx => {
         if (!service) return false

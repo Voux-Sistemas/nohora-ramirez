@@ -11,8 +11,17 @@ import 'server-only'
  */
 
 import { addDaysInZone } from '@studio/core'
-import { staffProfiles, staffSchedules, staffSkills, staffUnits, units, userRoles, users } from '@studio/db'
-import { and, asc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
+import {
+  staffProfiles,
+  staffSchedules,
+  staffSkills,
+  staffTimeOff,
+  staffUnits,
+  units,
+  userRoles,
+  users,
+} from '@studio/db'
+import { and, asc, eq, gte, inArray, isNull, notInArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { toE164 } from '@/lib/format'
 
@@ -568,4 +577,80 @@ export async function replaceSchedule(
       })),
     )
   })
+}
+
+/*
+  Ausências: o "fechar a agenda" do lado da pessoa.
+
+  A loja fecha por `unit_exceptions`, na ficha da unidade. Esta é a outra
+  metade: a Ana não vem na quinta, ou vem só até às 14h. Já existia tabela
+  (`staff_time_off`), o motor de disponibilidade já a lia — e não havia, em
+  lado nenhum do produto, quem lhe escrevesse uma linha. Era uma trava
+  instalada sem manípulo.
+
+  Fica sem unidade (`unit_id` nulo), e isso é a decisão, não um esquecimento:
+  quem não vem, não vem a lado nenhum. O motor lê o nulo como "vale na rede
+  inteira", e uma ausência marcada só numa das lojas continuaria a oferecer a
+  pessoa na outra — que é exactamente o engano que esta secção existe para
+  evitar. Faltar num sítio e trabalhar noutro no mesmo dia é escala, e escala
+  tem o seu próprio formulário logo acima.
+*/
+
+export interface TimeOffRow {
+  id: string
+  startsAt: Date
+  endsAt: Date
+  diaInteiro: boolean
+  note: string | null
+}
+
+/** Só o que ainda está para vir. Ausência que já passou não se cancela. */
+export async function listTimeOff(staffId: string, agora = new Date()): Promise<TimeOffRow[]> {
+  const rows = await db
+    .select({
+      id: staffTimeOff.id,
+      startsAt: staffTimeOff.startsAt,
+      endsAt: staffTimeOff.endsAt,
+      type: staffTimeOff.type,
+      note: staffTimeOff.note,
+    })
+    .from(staffTimeOff)
+    .where(and(eq(staffTimeOff.staffId, staffId), gte(staffTimeOff.endsAt, agora)))
+    .orderBy(asc(staffTimeOff.startsAt))
+    .limit(60)
+
+  return rows.map((row) => ({
+    id: row.id,
+    startsAt: row.startsAt,
+    endsAt: row.endsAt,
+    diaInteiro: row.type === 'day_off',
+    note: row.note,
+  }))
+}
+
+export interface TimeOffInput {
+  startsAt: Date
+  endsAt: Date
+  diaInteiro: boolean
+  note?: string
+  createdBy?: string
+}
+
+export async function addTimeOff(staffId: string, input: TimeOffInput): Promise<void> {
+  await db.insert(staffTimeOff).values({
+    staffId,
+    /* `day_off` e `block` são os dois valores do enum que descrevem o que este
+       ecrã sabe marcar. Férias e baixa médica são os mesmos dias fora com outro
+       nome, e nomeá-los aqui pediria um campo que ninguém preenche. */
+    type: input.diaInteiro ? 'day_off' : 'block',
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    ...(input.note ? { note: input.note } : {}),
+    ...(input.createdBy ? { createdBy: input.createdBy } : {}),
+  })
+}
+
+/** O `staffId` entra no filtro: um id forjado apaga a ausência de ninguém. */
+export async function removeTimeOff(id: string, staffId: string): Promise<void> {
+  await db.delete(staffTimeOff).where(and(eq(staffTimeOff.id, id), eq(staffTimeOff.staffId, staffId)))
 }

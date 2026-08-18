@@ -1,15 +1,17 @@
 'use server'
 
-import { isoDateInZone } from '@studio/core'
+import { addDaysInZone, isoDateInZone, zonedDateTime } from '@studio/core'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { pais } from '@/lib/pais'
 import { setStaffPassword } from '@/server/auth/password'
 import { createSession, revokeAllSessions } from '@/server/auth/session'
 import {
+  addTimeOff,
   alcanceDoStaff,
   createStaff,
   getStaffAdmin,
+  removeTimeOff,
   replaceSchedule,
   updateStaff,
   type PapelEquipe,
@@ -259,6 +261,79 @@ export async function salvarSenha(_state: PasswordState, formData: FormData): Pr
 
   revalidatePath(`/admin/equipe/${staffId}`)
   return { success: true }
+}
+
+export interface AusenciaState {
+  error?: string
+  success?: boolean
+}
+
+/**
+ * Marcar que a pessoa não atende — o dia inteiro, ou um pedaço dele.
+ *
+ * O fuso é o do país (`pais().fusoPadrao`), o mesmo que a escala usa, e não o
+ * da unidade: a ausência vale na rede toda, portanto não há uma unidade de
+ * quem herdar o relógio. Enquanto as lojas forem todas portuguesas dá no
+ * mesmo; no dia em que não forem, o sítio de arrumar isto é este e não catorze
+ * ecrãs.
+ *
+ * "Dia inteiro" vai da meia-noite à meia-noite seguinte, e por isso a data de
+ * fim é o dia a seguir: uma ausência que acabasse às 23:59 deixava um minuto
+ * de agenda aberto na ponta do dia.
+ */
+export async function marcarAusencia(
+  _state: AusenciaState,
+  formData: FormData,
+): Promise<AusenciaState> {
+  const staffId = String(formData.get('staffId') ?? '')
+  if (!staffId) return { error: 'Profissional inválido.' }
+  const { acesso } = await autorizarStaff(staffId)
+
+  const data = String(formData.get('data') ?? '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return { error: 'Escolha o dia.' }
+
+  const diaInteiro = formData.get('diaInteiro') === 'on'
+  const das = String(formData.get('das') ?? '').trim()
+  const ate = String(formData.get('ate') ?? '').trim()
+
+  if (!diaInteiro && (!das || !ate)) {
+    return {
+      error: `Falta a hora ${das ? 'de fim' : 'de início'}. Para o dia inteiro, marque «Não atende o dia todo».`,
+    }
+  }
+  if (!diaInteiro && ate <= das) {
+    return { error: `A ausência acaba às ${ate} e começa às ${das} — o fim tem de vir depois do início.` }
+  }
+
+  const fuso = pais().fusoPadrao
+  const inicio = diaInteiro ? zonedDateTime(data, '00:00', fuso) : zonedDateTime(data, das, fuso)
+  const fim = diaInteiro
+    ? zonedDateTime(addDaysInZone(data, 1), '00:00', fuso)
+    : zonedDateTime(data, ate, fuso)
+
+  try {
+    await addTimeOff(staffId, {
+      startsAt: inicio,
+      endsAt: fim,
+      diaInteiro,
+      note: String(formData.get('motivo') ?? '').trim() || undefined,
+      createdBy: acesso.session.userId,
+    })
+  } catch (e) {
+    return { error: mensagemDoErro(e, 'não foi possível marcar esta ausência') }
+  }
+
+  revalidatePath(`/admin/equipe/${staffId}`)
+  return { success: true }
+}
+
+export async function apagarAusencia(formData: FormData): Promise<void> {
+  const staffId = String(formData.get('staffId') ?? '')
+  const id = String(formData.get('id') ?? '')
+  if (!staffId || !id) return
+  await autorizarStaff(staffId)
+  await removeTimeOff(id, staffId)
+  revalidatePath(`/admin/equipe/${staffId}`)
 }
 
 /**

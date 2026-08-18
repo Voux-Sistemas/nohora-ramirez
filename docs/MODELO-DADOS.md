@@ -124,7 +124,10 @@ agenda.
 abrir uma nova, nunca editar a linha existente — senão o passado da agenda muda junto.
 
 **`staff_time_off`** — folga, férias, almoço, formação, baixa e bloqueio avulso. `staff_id`,
-`unit_id`, `type`, `starts_at`, `ends_at`, `note`, `created_by`.
+`unit_id`, `type`, `starts_at`, `ends_at`, `note`, `created_by`. Quem escreve é a secção
+*Ausências* da ficha do profissional, e escreve só dois dos seis tipos: `day_off` para o dia
+inteiro, `block` para um pedaço dele (ADR-015). O `unit_id` fica sempre nulo — a ausência vale na
+rede toda, e é assim que o motor a lê.
 
 **`client_profiles`** — `user_id` (único), `birthdate`, `document`, `how_found_us`,
 `preferred_unit_id`, `preferred_staff_id`, `tags` (text[]), `preferences` (jsonb: bebida,

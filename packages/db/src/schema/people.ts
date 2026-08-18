@@ -166,7 +166,14 @@ export const staffSchedules = pgTable(
   (t) => [index('staff_schedules_staff_weekday_idx').on(t.staffId, t.weekday, t.validFrom)],
 )
 
-/** Folga, férias, almoço, curso, atestado — e bloqueio avulso. */
+/**
+ * Folga, férias, almoço, curso, atestado — e bloqueio avulso.
+ *
+ * `unit_id` é nulo em tudo o que a ficha do profissional escreve, e o motor lê
+ * nulo como «em toda a rede» (ADR-015): faltar numa loja e trabalhar noutra no
+ * mesmo dia é escala, não ausência. A coluna fica para o dia em que uma
+ * formação de uma casa só precise de ficar registada na casa dela.
+ */
 export const staffTimeOff = pgTable(
   'staff_time_off',
   {

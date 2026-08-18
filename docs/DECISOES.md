@@ -207,3 +207,21 @@ O formulário de `/admin/servicos/[id]` perde a secção *Regras* (avaliação p
 - **O ecrã da cliente deixou de anunciar o que já não se liga.** Saíram as etiquetas "mediante avaliação", "exige ficha de anamnese" e o rótulo do sinal — um aviso sobre uma regra impossível de activar é pior do que aviso nenhum.
 - **A barra do admin encolheu para três separadores e perdeu os grupos.** *Unidades*, *Serviços*, *Equipa*. Dois grupos com um e dois itens eram cabeçalho a mais para navegação a menos.
 - **A importação passa a oito ficheiros.** `dados/07-recursos.csv` sai. A ordem de carregamento reenumera, os nomes dos ficheiros não — `08-precos-excecoes.csv` continua a chamar-se assim, que é como está escrito em quem o lê.
+
+---
+
+## ADR-015 · Fechar a agenda tem duas metades: a loja e a pessoa
+**Data:** 2026-08-18 · **Status:** aceita
+
+A dona pode não abrir num dia, ou abrir só até certa hora — e o mesmo vale para uma profissional em particular. São quatro casos (loja e pessoa × dia inteiro e horário reduzido), e eles caem em duas tabelas diferentes: `unit_exceptions` fecha a casa, `staff_time_off` tira a pessoa.
+
+**Metade já existia e metade estava por ligar.** As exceções da unidade tinham tabela, leitura no motor e ecrã (`/admin/unidades/[id]`, secção *Exceções*). O `staff_time_off` tinha tabela e leitura no motor — e nenhum escritor: o motor descontava ausências desde o primeiro dia contra linhas que nenhum ecrã sabia criar. Não faltava capacidade, faltava porta. É por isso que isto foi um ecrã e não uma frente: a secção *Ausências* na ficha do profissional, e o motor não mudou uma linha.
+
+**Só dois dos seis tipos são escritos.** `day_off` para o dia inteiro, `block` para um pedaço dele. `vacation`, `lunch`, `training` e `sick_leave` ficam no enum sem campo que os peça: obrigariam a rececionista a classificar uma ausência antes de a marcar, e o que o salão quer dizer cabe no *Motivo*, que é texto livre. O dia inteiro vai da meia-noite à meia-noite seguinte — uma ausência que acabasse às 23:59 deixava um minuto de agenda aberto na ponta do dia.
+
+**Consequências:**
+- **A ausência vale na rede toda: o `unit_id` fica nulo.** É o que o motor já lia (`if (row.unitId && row.unitId !== unit.id) continue`). Uma ausência por loja continuaria a oferecer a pessoa na outra loja no mesmo dia, e quem não vem não vem a lado nenhum.
+- **O fuso é o do país, não o da unidade.** Sem unidade não há de quem herdar o relógio. Enquanto as lojas forem todas portuguesas dá no mesmo; no dia em que não forem, o sítio de arrumar é `marcarAusencia`, não catorze ecrãs.
+- **O que já estava marcado continua na agenda.** Fechar o dia tira-o da marcação online; não cancela nada. Está escrito no ecrã, porque avisar a cliente é decisão de uma pessoa e não de uma caixa de seleção.
+- **A lista mostra de hoje para a frente, e o campo de data tem `min`.** Antes do `min`, marcar uma ausência no passado gravava e desaparecia no mesmo instante — a lista não a mostrava.
+- **Apagar uma ausência exige o par `id` + `staff_id`.** O `DELETE` filtra pelos dois: um `id` forjado no formulário não apaga a ausência de ninguém.

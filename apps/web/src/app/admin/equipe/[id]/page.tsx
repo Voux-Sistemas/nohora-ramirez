@@ -1,13 +1,18 @@
+import { isoDateInZone } from '@studio/core'
 import { notFound } from 'next/navigation'
 import { AdminShell, Ficha, Section } from '@/components/admin/shell'
 import { FormActions } from '@/components/admin/form-actions'
 import { PasswordForm } from '@/components/admin/password-form'
 import { ScheduleForm } from '@/components/admin/schedule-form'
 import { StaffForm } from '@/components/admin/staff-form'
+import { Button } from '@/components/ui/button'
 import { ErroDoForm } from '@/components/ui/erro-do-form'
+import { FormComEstado } from '@/components/ui/form-com-estado'
 import { PhoneInput } from '@/components/ui/phone-input'
+import { formatDateLong, formatTime } from '@/lib/format'
+import { pais } from '@/lib/pais'
 import { listServicesAdmin } from '@/server/admin/services'
-import { getStaffAdmin, type StaffDetail } from '@/server/admin/staff'
+import { getStaffAdmin, listTimeOff, type StaffDetail } from '@/server/admin/staff'
 import { listUnitsAdmin } from '@/server/admin/units'
 import {
   podeRede,
@@ -16,6 +21,7 @@ import {
   unidadesVisiveis,
   veUnidade,
 } from '@/server/auth/permissoes'
+import { apagarAusencia, marcarAusencia } from './actions'
 
 const WEEKDAY_LABEL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -70,10 +76,11 @@ export default async function ProfissionalFormPage({
   const { id } = await params
   const isNew = id === 'novo'
 
-  const [data, todasUnidades, services] = await Promise.all([
+  const [data, todasUnidades, services, ausencias] = await Promise.all([
     isNew ? null : getStaffAdmin(id),
     listUnitsAdmin(),
     listServicesAdmin(),
+    isNew ? [] : listTimeOff(id),
   ])
   if (!isNew && !data) notFound()
 
@@ -101,6 +108,11 @@ export default async function ProfissionalFormPage({
   const unitIds = new Set(staff.unitIds)
   const serviceIds = new Set(staff.serviceIds)
   const schedule = data?.schedule ?? []
+  /* A ausência vale na rede toda, portanto não há unidade de quem herdar o
+     relógio: o fuso é o do país, o mesmo que `marcarAusencia` usa do outro
+     lado. Ver o comentário em `server/admin/staff.ts`. */
+  const fuso = pais().fusoPadrao
+  const hoje = isoDateInZone(new Date(), fuso)
   const scheduleByWeekday = new Map(schedule.map((s) => [s.weekday, s]))
 
   return (
@@ -339,6 +351,77 @@ export default async function ProfissionalFormPage({
                 )
               })}
             </ScheduleForm>
+          </Section>
+        )}
+
+        {isNew ? null : (
+          <Section
+            title="Ausências"
+            hint="Os dias e as horas em que esta pessoa não atende. A marcação online deixa de os oferecer; o que já estava marcado continua na agenda e tem de ser avisado à cliente."
+          >
+            <ul className="mb-4 flex flex-col gap-2">
+              {ausencias.map((ausencia) => (
+                <li
+                  key={ausencia.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-(--border-subtle) px-3 py-2 text-sm"
+                >
+                  <span>
+                    <strong>{formatDateLong(isoDateInZone(ausencia.startsAt, fuso))}</strong>{' '}
+                    {ausencia.diaInteiro
+                      ? 'não atende'
+                      : `${formatTime(ausencia.startsAt, fuso)}–${formatTime(ausencia.endsAt, fuso)}`}
+                    {ausencia.note ? ` · ${ausencia.note}` : ''}
+                  </span>
+                  <form action={apagarAusencia}>
+                    <input type="hidden" name="id" value={ausencia.id} />
+                    <input type="hidden" name="staffId" value={staff.id} />
+                    <Button type="submit" variant="ghost" size="sm">
+                      remover
+                    </Button>
+                  </form>
+                </li>
+              ))}
+              {ausencias.length === 0 ? (
+                <li className="text-muted text-sm">
+                  Nenhuma ausência marcada de hoje para a frente.
+                </li>
+              ) : null}
+            </ul>
+
+            <FormComEstado
+              action={marcarAusencia}
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+            >
+              <input type="hidden" name="staffId" value={staff.id} />
+              <label className="flex flex-col gap-1 text-sm">
+                Dia
+                {/* Ausência no passado gravava e desaparecia da lista logo a
+                    seguir — a lista só mostra o que ainda está por vir. */}
+                <input className="field" type="date" name="data" min={hoje} required />
+              </label>
+              <label className="mt-6 flex items-center gap-2 text-sm">
+                <input type="checkbox" name="diaInteiro" defaultChecked />
+                Não atende o dia todo
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Das (se for parte do dia)
+                <input className="field" type="time" name="das" />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Até (se for parte do dia)
+                <input className="field" type="time" name="ate" />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Motivo
+                <input className="field" name="motivo" placeholder="Férias, médico, formação…" />
+              </label>
+              <div className="col-span-2 sm:col-span-5">
+                <ErroDoForm className="mb-3 text-sm text-(--estado-mau)" />
+                <Button type="submit" variant="outline" size="sm">
+                  + marcar ausência
+                </Button>
+              </div>
+            </FormComEstado>
           </Section>
         )}
 

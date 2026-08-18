@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { montarPrecario } from './precario'
+import { montarPrecario, repartirEmColunas } from './precario'
 import type { GrupoPrecario } from '@/server/vitrine'
 
 /*
@@ -143,5 +143,47 @@ describe('grupo sozinho', () => {
 
     expect(blocos).toHaveLength(2)
     expect(blocos[0]?.desde).toBe(0)
+  })
+})
+
+/*
+  O equilíbrio das colunas não parte a página — deixa-a feia, que foi
+  exactamente a queixa que o levou a existir: com o `columns` do CSS, o fundo da
+  coluna esquerda era meia página em branco.
+*/
+describe('repartir os blocos por colunas', () => {
+  const bloco = (nome: string, quantas: number) =>
+    montarPrecario([grupo(nome, null, Array.from({ length: quantas }, (_, i) => [`s${i}`, 1000] as [string, number]))])[0]!
+
+  it('equilibra a altura em vez de encher a primeira coluna', () => {
+    const [esquerda, direita] = repartirEmColunas([
+      bloco('Outros serviços', 18),
+      bloco('Mãos e pés', 15),
+      bloco('Tratamentos de rosto', 9),
+      bloco('Corpo', 7),
+    ])
+
+    const linhas = (coluna: typeof esquerda) =>
+      (coluna ?? []).reduce((total, b) => total + b.linhas.length, 0)
+
+    expect(Math.abs(linhas(esquerda) - linhas(direita))).toBeLessThanOrEqual(2)
+  })
+
+  it('preserva a ordem do papel dentro de cada coluna', () => {
+    /* A e D acabam na mesma coluna sem serem vizinhos — é aí que se vê se a
+       ordem sobreviveu ao salto, e não numa corrida contígua. */
+    const [esquerda, direita] = repartirEmColunas([
+      bloco('A', 12),
+      bloco('B', 2),
+      bloco('C', 12),
+      bloco('D', 2),
+    ])
+    expect((esquerda ?? []).map((b) => b.nome)).toEqual(['A', 'D'])
+    expect((direita ?? []).map((b) => b.nome)).toEqual(['B', 'C'])
+  })
+
+  it('não devolve coluna vazia quando há menos blocos do que colunas', () => {
+    const colunas = repartirEmColunas([bloco('A', 3)], 3)
+    expect(colunas).toHaveLength(1)
   })
 })

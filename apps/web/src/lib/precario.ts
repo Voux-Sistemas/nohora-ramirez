@@ -86,6 +86,53 @@ export function montarPrecario(grupos: readonly GrupoPrecario[]): BlocoDoPrecari
   return blocos
 }
 
+/*
+  Um bloco não custa só as suas linhas: custa também o título em Bodoni, a
+  régua e o ar à volta. Três linhas é o que isso mede, e é por isso que o
+  equilíbrio conta `linhas + 3` e não `linhas` — sem esta parcela, quatro
+  blocos curtos de um lado empatariam com um bloco longo do outro no papel e
+  ficariam meia página mais altos no ecrã.
+*/
+const PESO_DO_CABECALHO = 3
+
+/**
+ * Reparte os blocos por colunas de leitura, equilibrando pela altura.
+ *
+ * O preçário estava em `columns-2` do CSS, e `columns` só equilibra o que pode
+ * cortar: com `break-inside-avoid` — que é obrigatório, senão meia lista de
+ * "Mãos e pés" fica numa coluna e metade na outra — o motor deixa de conseguir
+ * equilibrar e despeja tudo o que couber na primeira. Era o buraco branco de
+ * meia página no fundo à esquerda.
+ *
+ * Aqui a repartição é decidida antes de desenhar: cada bloco vai para a coluna
+ * que estiver mais curta nesse momento. É guloso e não procura o óptimo — com
+ * meia dúzia de blocos a diferença entre o guloso e o óptimo é de uma linha, e
+ * o guloso tem a propriedade que interessa: preserva a ordem do papel dentro de
+ * cada coluna. Um menu de duas colunas lê-se coluna a coluna, e é assim que a
+ * ordem que a dona mandou imprimir continua a valer.
+ */
+export function repartirEmColunas(
+  blocos: readonly BlocoDoPrecario[],
+  quantas = 2,
+): BlocoDoPrecario[][] {
+  const colunas: BlocoDoPrecario[][] = Array.from({ length: Math.max(1, quantas) }, () => [])
+  const alturas = new Array<number>(colunas.length).fill(0)
+
+  for (const bloco of blocos) {
+    let escolhida = 0
+    for (let i = 1; i < colunas.length; i++) {
+      if (alturas[i]! < alturas[escolhida]!) escolhida = i
+    }
+    colunas[escolhida]!.push(bloco)
+    alturas[escolhida]! += bloco.linhas.length + PESO_DO_CABECALHO
+  }
+
+  /* Colunas vazias não se desenham: com dois blocos e três colunas, a terceira
+     seria uma coluna de grelha a ocupar largura sem nada lá dentro, e as outras
+     duas encolhiam para lhe dar lugar. */
+  return colunas.filter((coluna) => coluna.length > 0)
+}
+
 function mesmaLista(a: GrupoPrecario, b: GrupoPrecario | undefined): boolean {
   if (!b || a.itens.length === 0 || a.itens.length !== b.itens.length) return false
   /* Um bloco tem um pé só. Com ressalvas diferentes, escolher uma é apagar a

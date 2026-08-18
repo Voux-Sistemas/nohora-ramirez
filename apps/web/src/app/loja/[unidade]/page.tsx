@@ -120,18 +120,37 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
         ) : null}
 
         {precario.length > 0 ? (
+          /*
+            A FOLHA. O preçário é o único bloco da montra que é um objecto e não
+            uma vista da casa: é o cartão que fica no balcão. Dar-lhe chão
+            próprio — faixa de `--surface-raised` de bordo a bordo, com fio em
+            cima e em baixo — é o que o separa da página em vez de o deixar a
+            flutuar no mesmo bege de tudo o resto, que foi a queixa de "design
+            muito simples". Não é cartão dentro de cartão nem grade de cartões:
+            é uma folha, uma vez, para a secção inteira.
+
+            E não é só aparência: a tarja alternada da tabela comparada é o bege
+            da página a aparecer por baixo desta folha. Sem a folha não havia
+            contraste nenhum para a tarja, e teria de se inventar uma cor.
+
+            O feitio da faixa (`mt` fora, `py` e `max-w-5xl` dentro) é o mesmo
+            do `Fecho`, logo abaixo — duas faixas de bordo a bordo na mesma
+            página têm de se medir da mesma maneira.
+          */
           <section
             id="precario"
-            className="revela mx-auto w-full max-w-5xl scroll-mt-24 px-5 pt-16 sm:px-8 sm:pt-24"
+            className="revela mt-16 scroll-mt-24 border-y border-(--border-subtle) bg-(--surface-raised) py-16 sm:mt-24 sm:py-24"
           >
-            <h2 className="display display-lg">Preçário</h2>
-            <div className="rule-bronze mt-4 w-14" />
-            {/* Sem parágrafo de abertura: a ressalva sobre cabelo comprido e
-                grande volume já está ao pé do bloco a que se aplica, que é
-                onde a dúvida aparece. Dizê-la duas vezes era a "muita coisa"
-                da queixa em ponto pequeno. */}
-            <div className="mt-10 sm:mt-14">
-              <Precario grupos={precario} />
+            <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
+              <h2 className="display display-lg">Preçário</h2>
+              <div className="rule-bronze mt-4 w-14" />
+              {/* Sem parágrafo de abertura: a ressalva sobre cabelo comprido e
+                  grande volume já está ao pé do bloco a que se aplica, que é
+                  onde a dúvida aparece. Dizê-la duas vezes era a "muita coisa"
+                  da queixa em ponto pequeno. */}
+              <div className="mt-10 sm:mt-14">
+                <Precario grupos={precario} />
+              </div>
             </div>
           </section>
         ) : null}

@@ -297,6 +297,44 @@ real do que a dona escreve no catálogo, e é de propósito — o dia em que os 
 deixarem de rimar, os blocos voltam a ser dois sozinhos, sem ninguém mexer em
 código.
 
+**O preçário é uma folha, e é a única da montra.** A secção assenta numa faixa
+de `--surface-raised` de bordo a bordo, com fio em cima e em baixo — o cartão que
+fica no balcão, pousado no bege da página. Não é cartão dentro de cartão nem
+grade de cartões: é uma folha, uma vez, para a secção inteira, e é o que torna o
+preçário um objecto em vez de mais uma vista da casa. A tarja alternada da tabela
+comparada é o `--surface` da página a aparecer por baixo da folha — o contraste
+já existia no par de superfícies e não houve cor nova nenhuma a inventar.
+
+**Nome e preço unem-se por pontilhado, não por fio horizontal.**
+`.leader-dots` em [`globals.css`](apps/web/src/app/globals.css). Cinquenta e oito
+`border-b` empilhados não se leem como lista, leem-se como parede — foi a queixa
+literal do cliente ("cansativa", "muita coisa"). O pontilhado corre no sentido da
+leitura em vez de a cortar, é o gesto de um menu impresso, e acende a bronze na
+fileira sob o cursor. Pontos por `radial-gradient` e nunca `border: dotted`, que
+desenha quadrados e desaparece a 1x. É `aria-hidden`: um leitor de ecrã anunciaria
+um ponto por cada 7px.
+
+**Preço redondo escreve-se sem cêntimos, e o símbolo é voz quieta.**
+`partesDoPreco` em [`lib/format.ts`](apps/web/src/lib/format.ts) devolve número e
+símbolo separados e larga o `,00` **só quando os cêntimos são zero** — não é o
+`formatMoneyShort`, que arredonda e publicaria 13 € onde o salão cobra 12,50 €.
+O símbolo sai a `--text-muted` e a 0.85em, para os algarismos ficarem sozinhos a
+desenhar a coluna que a cliente percorre.
+
+**As colunas do preçário reparte-as o código, não o `columns` do CSS.**
+`repartirEmColunas` em [`lib/precario.ts`](apps/web/src/lib/precario.ts). `columns`
+só equilibra o que pode cortar, e `break-inside-avoid` é obrigatório aqui — meia
+lista de "Mãos e pés" numa coluna e metade na outra faria ler o mesmo título duas
+vezes. Sem poder cortar, o motor desiste e despeja tudo o que couber na primeira:
+era o buraco branco de meia página no fundo à esquerda. O guloso preserva a ordem
+do papel dentro de cada coluna, que é como se lê um menu de duas colunas.
+
+**O índice do preçário são pastilhas em fila, não uma grade de fios.** Com o
+desenho das linhas de preço, o índice lia-se como mais uma tabela e não se
+percebia que era para clicar; e cinco categorias numa grade de três deixavam a
+célula órfã. A fila quebra sozinha e não tem órfãos. Continua a ser `<a href="#">`
+e nada mais: funciona sem JavaScript e imprime como sumário.
+
 **A tabela comparada continua a ser uma `<dl>`**, com um `<dt>` por serviço e um
 `<dd>` por preço — não uma `<table>` que houvesse que desmontar no telemóvel.
 Cada preço traz o rótulo da coluna dentro da célula; a partir de `sm` o rótulo

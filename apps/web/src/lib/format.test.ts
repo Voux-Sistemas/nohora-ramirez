@@ -4,6 +4,7 @@ import {
   formatPhone,
   formatPhoneLive,
   formatWeekdayShort,
+  partesDoPreco,
   telefoneInvalidoErro,
   toE164,
 } from './format'
@@ -166,6 +167,35 @@ describe('dia da semana na grelha', () => {
       expect(formatWeekdayShort('2026-08-20')).toBe('qui')
       expect(formatWeekdayShort('2026-08-21')).toBe('sex')
       expect(formatWeekdayShort('2026-08-22')).toBe('sáb')
+    })
+  })
+})
+
+/*
+  O preçário da montra escreve cinquenta e oito destes. Um arredondamento aqui
+  publica na montra um preço que o salão não cobra — é a razão de isto não ser
+  o `formatMoneyShort`, que arredonda de propósito para painéis.
+*/
+describe('preço partido para o preçário', () => {
+  it('larga os cêntimos quando eles são zero', () => {
+    emPais('PT', () => {
+      expect(partesDoPreco(1500)).toEqual({ valor: '15', moeda: '€' })
+      expect(partesDoPreco(18000)).toEqual({ valor: '180', moeda: '€' })
+    })
+  })
+
+  it('mantém os cêntimos quando eles são preço, e nunca arredonda', () => {
+    emPais('PT', () => {
+      expect(partesDoPreco(1250)).toEqual({ valor: '12,50', moeda: '€' })
+      expect(partesDoPreco(1299)).toEqual({ valor: '12,99', moeda: '€' })
+    })
+  })
+
+  it('separa o símbolo, para a coluna de números ficar só com números', () => {
+    emPais('PT', () => {
+      const { valor, moeda } = partesDoPreco(12000)
+      expect(valor).not.toContain('€')
+      expect(moeda).toBe('€')
     })
   })
 })

@@ -393,6 +393,35 @@
     }
   }
 
+  /*
+    O fio pontilhado que leva o nome do serviço até ao preço — o gesto de um
+    menu impresso, e a razão de o preçário ter deixado de ser uma grelha.
+    Cinquenta e oito fios horizontais empilhados desenham uma parede, e foi
+    isso que o cliente viu; o mesmo número de pontilhados desenha corredores, e
+    o olho anda por eles em vez de tropeçar neles.
+
+    Pontos redondos por gradiente, e não `border-bottom: dotted`: o pontilhado
+    do CSS desenha quadrados em quase todos os motores e, com um fio de 1px,
+    desaparece de vez num ecrã a 1x.
+
+    `align-self: baseline` num item de flex que não tem texto alinha a aresta
+    inferior à linha de base da fileira — que é exactamente onde o fio de um
+    menu se apoia. O `margin-bottom` é o levantar de um cabelo que separa o
+    ponto da própria linha de base.
+  */
+  .leader-dots {
+    flex: 1 1 auto;
+    min-width: 1.25rem;
+    align-self: baseline;
+    height: 3px;
+    margin-bottom: 0.14em;
+    color: var(--border-strong);
+    background-image: radial-gradient(circle at center, currentColor 1px, transparent 1.5px);
+    background-size: 0.4375rem 3px;
+    background-repeat: repeat-x;
+    transition: color 180ms var(--ease-out-quint);
+  }
+
   /* Régua de bronze — a assinatura gráfica do sistema. Vem da coroa botânica
      da logo: um fio fino que fecha um bloco. */
   .rule-bronze {

@@ -41,6 +41,40 @@ export function paraCentimos(texto: string): number | null {
   return Math.round(numero * 100)
 }
 
+/**
+ * O preço partido em número e símbolo, e sem os cêntimos quando não os há.
+ *
+ * Num preçário de salão quase todo o valor é redondo, e escrever "15,00 €"
+ * cinquenta e oito vezes são cento e dezasseis caracteres que não dizem nada
+ * numa coluna cuja única função é ser lida de relance. Onde os cêntimos
+ * existem ficam, porque aí são preço — é por isso que isto não é o
+ * `formatMoneyShort`, que arredonda e transformaria 12,50 € em 13 €.
+ *
+ * Vem partido em dois porque a montra escreve o número com a voz do texto forte
+ * e o símbolo com a do texto quieto: a coluna de números fica limpa e o "€"
+ * deixa de competir com ela. Partido por `formatToParts` e não por `split`:
+ * em pt-PT o símbolo vem depois do número, noutras praças vem à frente, e quem
+ * sabe qual é o caso é o `Intl` — não nós.
+ */
+export function partesDoPreco(cents: number): { valor: string; moeda: string } {
+  const { locale, moeda } = pais()
+  const partes = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: moeda,
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).formatToParts(cents / 100)
+
+  return {
+    valor: partes
+      .filter((parte) => parte.type !== 'currency')
+      .map((parte) => parte.value)
+      .join('')
+      .trim(),
+    moeda: partes.find((parte) => parte.type === 'currency')?.value ?? '',
+  }
+}
+
 /** Sem cêntimos — para números grandes de painel. */
 export function formatMoneyShort(cents: number): string {
   const { locale, moeda } = pais()

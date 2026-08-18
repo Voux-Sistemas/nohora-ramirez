@@ -20,10 +20,14 @@ export async function generateMetadata({ params }: { params: Promise<{ unidade: 
 
 export default async function EscolherServicosPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ unidade: string }>
+  /** `s` = os serviços que já estavam escolhidos, quando se chega aqui de volta. */
+  searchParams: Promise<{ s?: string }>
 }) {
   const { unidade } = await params
+  const { s } = await searchParams
   const unit = await getUnitBySlug(unidade)
   if (!unit) notFound()
 
@@ -64,6 +68,12 @@ export default async function EscolherServicosPage({
     }
   })
 
+  /* Filtrado contra o cardápio desta casa: um id que veio do endereço e já não
+     se entrega aqui não pode ficar seleccionado num item que não existe — e a
+     cliente ficaria com um total que não bate com o que vê. */
+  const disponiveis = new Set(services.map((service) => service.id))
+  const escolhidos = (s ?? '').split(',').filter((id) => disponiveis.has(id))
+
   return (
     <BookingShell
       step={2}
@@ -78,7 +88,11 @@ export default async function EscolherServicosPage({
           receção.
         </p>
       ) : (
-        <ServicePicker nextHref={`/agendar/${unit.slug}/horarios`} services={services} />
+        <ServicePicker
+          nextHref={`/agendar/${unit.slug}/horarios`}
+          services={services}
+          escolhidos={escolhidos}
+        />
       )}
     </BookingShell>
   )

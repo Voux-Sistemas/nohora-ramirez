@@ -38,15 +38,25 @@ export interface PickableService {
 export function ServicePicker({
   nextHref,
   services,
+  escolhidos,
   ctaLabel = 'Ver horários',
 }: {
   /** Para onde ir com a escolha; os ids entram como `s=` nesta rota. */
   nextHref: string
   services: PickableService[]
+  /**
+   * O que já estava escolhido — é o que faz "Mudar os serviços" ser mudar em
+   * vez de recomeçar. Quem volta do passo dos horários para trocar UM item
+   * encontrava o cardápio limpo e tinha de remarcar os outros três à mão.
+   */
+  escolhidos?: readonly string[]
   ctaLabel?: string
 }) {
   const router = useRouter()
-  const [selected, setSelected] = useState<string[]>([])
+  /* Semente, não controlo: a partir daqui quem manda é o toque na tela. Passar
+     isto por `useEffect` desfaria a escolha da cliente a cada re-render do
+     servidor. */
+  const [selected, setSelected] = useState<string[]>(() => [...(escolhidos ?? [])])
   const [pending, setPending] = useState(false)
 
   function toggle(id: string) {

@@ -71,6 +71,14 @@ export interface ComandaView {
   unitId: string
   status: string
   clientName: string
+  /**
+   * O instante do atendimento — é o que devolve a recepção ao dia certo.
+   *
+   * A comanda abre-se a partir de um dia da agenda, e o caminho de volta tem
+   * de ser esse dia e não hoje: quem está a fechar as contas de sábado à
+   * segunda-feira de manhã não quer voltar a segunda-feira.
+   */
+  startsAt: Date
   items: ComandaItemView[]
   subtotal: number
   discount: number
@@ -103,6 +111,7 @@ export async function getComanda(appointmentId: string): Promise<ComandaView | n
       unitId: appointments.unitId,
       status: appointments.status,
       totalPrice: appointments.totalPrice,
+      startsAt: appointments.startsAt,
       clientName: users.name,
     })
     .from(appointments)
@@ -156,6 +165,7 @@ export async function getComanda(appointmentId: string): Promise<ComandaView | n
     unitId: row.unitId,
     status: row.status,
     clientName: row.clientName,
+    startsAt: row.startsAt,
     items,
     subtotal,
     discount,

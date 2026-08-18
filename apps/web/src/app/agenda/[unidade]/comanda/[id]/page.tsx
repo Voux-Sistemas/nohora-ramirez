@@ -35,9 +35,17 @@ export default async function ComandaPage({
     rotulo: PAYMENT_METHOD_LABEL[valor],
   }))
 
+  /* Com o dia do atendimento, e não sem ele: a agenda abre em `hoje` quando
+     não lhe dizem outra coisa, e voltar de uma comanda de sábado aterrava na
+     segunda-feira, com a recepção a procurar o dia outra vez à mão. */
+  const diaDoAtendimento = isoDateInZone(comanda.startsAt, unit.timezone)
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
-      <Link href={href(`/agenda/${unit.slug}`)} className="text-muted text-sm hover:underline">
+      <Link
+        href={href(`/agenda/${unit.slug}?d=${diaDoAtendimento}`)}
+        className="text-muted text-sm hover:underline"
+      >
         ← agenda
       </Link>
 

@@ -31,22 +31,42 @@ import { useEffect } from 'react'
 /*
  * Módulo, não estado do componente: a instância morre e nasce a cada dia
  * (`key={data}`), e a pergunta "como é que se chegou a este dia" é anterior a
- * ela. `popstate` marca; qualquer toque na página desmarca, porque um gesto é
+ * ela. `popstate` marca; qualquer gesto na página desmarca, porque um gesto é
  * sempre um destino escolhido — é o que faz as setas de dia voltarem a rolar
  * logo a seguir a um passo atrás.
+ *
+ * São precisas as duas perguntas porque há dois voltares. `popstate` responde
+ * pelo voltar dentro do mesmo documento, que é o comum; mas o campo "Ir para
+ * uma data" é um `<form>` de HTML e faz navegação de página inteira, e a
+ * agenda é `force-dynamic` — servida com `no-store`, fica fora do bfcache.
+ * Voltar dali carrega um documento novo, onde este módulo re-avalia a zero e
+ * `popstate` nunca chega a disparar. `getEntriesByType('navigation')` é a
+ * mesma pergunta feita ao carregamento em vez de ao histórico, e é a única que
+ * responde nesse caminho.
+ *
+ * O teclado desmarca ao lado do ponteiro: quem carrega em Enter no "hoje" ou
+ * submete o campo de data escolheu o destino tanto como quem clicou. Sem isso a
+ * marca ficava pendurada depois de um voltar que não remonta o componente —
+ * fechar a ficha lateral, que muda `sel` e não `d` — e comia a rolagem da
+ * mudança de dia seguinte.
  */
-let veioDoBotaoDeTras = false
+let veioDoBotaoDeTras = chegouPorTravessia()
+
+function chegouPorTravessia(): boolean {
+  if (typeof performance === 'undefined') return false
+  const [entrada] = performance.getEntriesByType('navigation')
+  return (entrada as PerformanceNavigationTiming | undefined)?.type === 'back_forward'
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
     veioDoBotaoDeTras = true
   })
-  window.addEventListener(
-    'pointerdown',
-    () => {
-      veioDoBotaoDeTras = false
-    },
-    true,
-  )
+  const escolheu = () => {
+    veioDoBotaoDeTras = false
+  }
+  window.addEventListener('pointerdown', escolheu, true)
+  window.addEventListener('keydown', escolheu, true)
 }
 export function RolarParaAgora({ alvos }: { alvos: readonly string[] }) {
   /* Lista nova a cada render seria efeito a cada render; a chave é o conteúdo. */

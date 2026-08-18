@@ -172,7 +172,7 @@ export default async function EscolherHorarioPage({
       step={3}
       title="Com quem, e quando?"
       subtitle={chosen.map((service) => service.name).join(' + ')}
-      back={`/agendar/${unidade}`}
+      back={`/agendar/${unidade}?s=${serviceIds.join(',')}`}
       backLabel="Mudar os serviços"
       rail={
         <div className="flex flex-col gap-6">

@@ -59,7 +59,7 @@ export default async function PainelDasCasas() {
   if (unidades.length === 0) redirect('/agendar')
 
   const portas = await portaDasUnidades(unidades)
-  const cidades = [...new Set(unidades.map((u) => u.city).filter(Boolean))]
+  const cidades = [...new Set(unidades.map((u) => u.city).filter((c) => c !== null))]
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -67,14 +67,12 @@ export default async function PainelDasCasas() {
 
       <main className="flex-1">
         <section className="mx-auto w-full max-w-5xl px-5 pt-14 sm:px-8 sm:pt-20">
-          {cidades.length > 0 ? (
-            <p className="label-caps text-muted">{cidades.join(' · ')}</p>
-          ) : null}
-          <h1 className="display display-xl mt-3">As nossas casas</h1>
+          <h1 className="display display-xl">As nossas casas</h1>
           <div className="rule-bronze mt-5 w-16" />
           <p className="text-body measure mt-6 text-[1.0625rem]">
-            Cada casa tem a sua sala, a sua equipa e a sua agenda. Entre para ver o espaço, o
-            horário e o preçário — ou marque já, na que lhe fica mais à mão.
+            {cidades.length > 0 ? `${enumerar(cidades)}. ` : ''}Cada casa tem a sua sala, a sua
+            equipa e a sua agenda. Entre para ver o espaço, o horário e o preçário — ou marque já,
+            na que lhe fica mais à mão.
           </p>
         </section>
 
@@ -128,6 +126,15 @@ export default async function PainelDasCasas() {
       <RodapePublico />
     </div>
   )
+}
+
+/*
+  "Valongo e Maia", não "Valongo, Maia" — a frase é para se ler em voz alta, e
+  uma lista separada por vírgula até ao fim é lista de formulário.
+*/
+function enumerar(itens: readonly string[]): string {
+  if (itens.length <= 1) return itens[0] ?? ''
+  return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`
 }
 
 /*

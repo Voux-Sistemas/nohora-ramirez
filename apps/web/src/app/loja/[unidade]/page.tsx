@@ -136,7 +136,7 @@ function Abertura({
         name={unidade.name}
         priority
         sizes="100vw"
-        className="h-[clamp(20rem,62vh,36rem)] w-full"
+        className="h-[clamp(21rem,66vh,38rem)] w-full"
       />
 
       <div className="scrim-photo pointer-events-none absolute inset-x-0 bottom-0 h-3/5" aria-hidden />
@@ -161,127 +161,147 @@ function Abertura({
 }
 
 /**
- * O essencial, em três colunas separadas por fio.
+ * Onde nos encontra — a placa da porta, e não três colunas apagadas.
  *
- * Não são cartões: são três blocos de texto num mesmo bloco, divididos por uma
- * linha de um pixel. É a diferença entre a ficha de um lugar e uma grade de
- * caixinhas — e a informação aqui é toda do mesmo tipo, então não há hierarquia
- * a inventar entre elas.
+ * A queixa da reunião foi literal: "morada e horário meio apagado, morto". E era
+ * verdade por três motivos somados. Este bloco era o único da página sem voz de
+ * display e sem régua de bronze, num sítio onde as vizinhas ("A casa",
+ * "Preçário") têm as duas; tinha a letra mais pequena da montra a dizer a
+ * informação mais procurada dela; e respirava metade do que as vizinhas
+ * respiram. Três sinais de "isto é rodapé" numa secção que é a razão de metade
+ * das visitas.
  *
- * Cada coluna só existe se tiver o que dizer. Sem horário cadastrado, não há
+ * A correção não foi escurecer o cinzento — o contraste já passava. Foi dar-lhe
+ * o peso que o conteúdo tem. A morada e o estado da porta passam a Bodoni, que
+ * é a voz que esta casa usa quando fala a sério, e são hoje o segundo e o
+ * terceiro maior tipo da página, atrás só do nome da loja. O bloco ganha fundo
+ * próprio e o ar das outras secções.
+ *
+ * Duas colunas desiguais, e não três iguais: morada e horário são o que se
+ * procura, contacto é o que se usa depois de decidir. Três colunas do mesmo
+ * tamanho diziam que as três perguntas pesam o mesmo, e não pesam.
+ *
+ * Cada bloco só existe se tiver o que dizer. Sem horário cadastrado, não há
  * coluna de horário: a página não escreve "a consultar" sobre um campo vazio,
  * porque quem lê isso entende "fechado".
  */
 function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }) {
   const { unidade: u, hoje, semana } = loja
   const frase = frasePorta(hoje.estado)
+  const aberta = hoje.estado.tipo === 'aberta'
   const diaDeHoje = weekdayInZone(new Date(), u.timezone)
 
-  const morada = [u.addressLine, [u.postalCode, u.city].filter(Boolean).join(' ')]
-    .filter(Boolean)
-    .join(', ')
+  const localidade = [u.postalCode, u.city].filter(Boolean).join(' ')
+  const morada = [u.addressLine, localidade].filter(Boolean).join(', ')
   const mapa = morada
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
         `Nohora Ramirez ${u.name}, ${morada}`,
       )}`
     : null
 
-  const colunas: React.ReactNode[] = []
+  const temContacto = Boolean(u.phone || u.email || instagram)
+  if (!morada && semana.length === 0 && !temContacto) return null
 
-  if (morada) {
-    colunas.push(
-      <Bloco key="morada" titulo="Morada">
-        <p className="text-body text-[0.9375rem] leading-relaxed">
-          {u.addressLine}
-          {u.postalCode || u.city ? (
-            <>
-              <br />
-              {[u.postalCode, u.city].filter(Boolean).join(' ')}
-            </>
-          ) : null}
-        </p>
-        {mapa ? (
-          <a
-            href={mapa}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-block text-[0.875rem] text-(--accent-ink) underline decoration-(--accent)/40 underline-offset-4 transition-colors hover:decoration-(--accent)"
-          >
-            Ver no mapa
-          </a>
-        ) : null}
-      </Bloco>,
-    )
-  }
+  return (
+    <section className="mt-14 border-y border-(--border-subtle) bg-(--surface-sunken) sm:mt-20">
+      <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8 sm:py-20">
+        <h2 className="display display-lg">Onde nos encontra</h2>
+        <div className="rule-bronze mt-4 w-14" />
 
-  if (semana.length > 0) {
-    colunas.push(
-      <Bloco key="horario" titulo="Horário">
-        {frase ? <p className="text-[0.9375rem] text-(--text-strong)">{frase}</p> : null}
-        <Semana semana={semana} hoje={diaDeHoje} />
-        {hoje.excecao ? (
-          <p className="text-muted mt-3 text-[0.8125rem] italic">
-            Hoje o horário é especial e já está considerado acima.
-          </p>
-        ) : null}
-      </Bloco>,
-    )
-  }
+        <div className="mt-10 grid gap-12 sm:mt-14 sm:grid-cols-12 sm:gap-14">
+          {morada ? (
+            <div className="sm:col-span-7">
+              <h3 className="label-caps text-muted">Morada</h3>
 
-  if (u.phone || u.email || instagram) {
-    colunas.push(
-      <Bloco key="contacto" titulo="Contacto">
-        <div className="flex flex-col items-start gap-2 text-[0.9375rem]">
-          {u.phone ? (
-            /* `tel:` e não texto: quem chega do Instagram está no telemóvel, e
-               a chamada é a marcação de quem não quer marcar por app. */
-            <a href={`tel:${u.phone}`} className="tnum text-(--text-strong) hover:underline">
-              {formatPhone(u.phone)}
-            </a>
+              {/* A rua em Bodoni. É a linha que a cliente copia para o mapa e a
+                  que ela lê em voz alta ao motorista — merece o corpo que tem. */}
+              <p className="display display-md mt-4 max-w-[22ch] leading-[1.14] text-(--text-strong)">
+                {u.addressLine}
+              </p>
+              {localidade ? (
+                <p className="text-body mt-2.5 text-[1.0625rem]">{localidade}</p>
+              ) : null}
+
+              <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
+                {mapa ? (
+                  <a
+                    href={mapa}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[0.9375rem] text-(--accent-ink) underline decoration-(--accent)/40 underline-offset-4 transition-colors hover:decoration-(--accent)"
+                  >
+                    Ver no mapa
+                  </a>
+                ) : null}
+                {u.phone ? (
+                  /* `tel:` e não texto: quem chega do Instagram está no
+                     telemóvel, e a chamada é a marcação de quem não quer
+                     marcar por app. */
+                  <a
+                    href={`tel:${u.phone}`}
+                    className="tnum text-[0.9375rem] text-(--text-strong) underline decoration-(--border-strong) underline-offset-4 transition-colors hover:decoration-(--text-strong)"
+                  >
+                    {formatPhone(u.phone)}
+                  </a>
+                ) : null}
+              </div>
+
+              {u.email || instagram ? (
+                <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-(--border-subtle) pt-6">
+                  {u.email ? (
+                    <a
+                      href={`mailto:${u.email}`}
+                      className="text-body text-[0.9375rem] break-all hover:text-(--text-strong)"
+                    >
+                      {u.email}
+                    </a>
+                  ) : null}
+                  {instagram ? (
+                    <a
+                      href={`https://instagram.com/${instagram}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-body text-[0.9375rem] hover:text-(--text-strong)"
+                    >
+                      @{instagram}
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           ) : null}
-          {u.email ? (
-            <a href={`mailto:${u.email}`} className="text-body break-all hover:underline">
-              {u.email}
-            </a>
-          ) : null}
-          {instagram ? (
-            <a
-              href={`https://instagram.com/${instagram}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-body hover:underline"
-            >
-              @{instagram}
-            </a>
+
+          {semana.length > 0 ? (
+            <div className="sm:col-span-5">
+              <h3 className="label-caps text-muted">Horário</h3>
+
+              {/* O estado da porta é a pergunta que traz a pessoa a esta secção.
+                  Estava numa linha de 15px entre outras duas; agora é a segunda
+                  voz da página. */}
+              {frase ? (
+                <p className="display display-md mt-4 flex items-baseline gap-3 text-(--text-strong)">
+                  {aberta ? (
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 translate-y-[-0.3em] rounded-full bg-(--accent)"
+                    />
+                  ) : null}
+                  {frase}
+                </p>
+              ) : null}
+
+              <Semana semana={semana} hoje={diaDeHoje} className="mt-7" />
+
+              {hoje.excecao ? (
+                <p className="text-muted mt-5 text-[0.875rem] italic">
+                  Hoje o horário é especial e já está considerado acima.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      </Bloco>,
-    )
-  }
-
-  if (colunas.length === 0) return null
-
-  return (
-    <section className="mx-auto w-full max-w-5xl px-5 pt-10 sm:px-8 sm:pt-14">
-      <div
-        className={
-          /* Fio entre colunas no ecrã largo, fio entre linhas no telemóvel — a
-             mesma divisão, na direcção em que a leitura acontece. */
-          'grid divide-y divide-(--border-subtle) border-y border-(--border-subtle) sm:grid-cols-3 sm:divide-x sm:divide-y-0'
-        }
-      >
-        {colunas}
       </div>
     </section>
-  )
-}
-
-function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="py-6 sm:px-7 sm:py-8 sm:first:pl-0 sm:last:pr-0">
-      <h2 className="label-caps text-muted">{titulo}</h2>
-      <div className="mt-3">{children}</div>
-    </div>
   )
 }
 

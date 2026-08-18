@@ -12,6 +12,12 @@ import type { DiaDaSemana } from '@/server/vitrine'
  *
  * A semana começa à segunda: é a semana portuguesa, não a do índice 0 do
  * `Date`.
+ *
+ * Hoje leva ponto de bronze e não negrito sozinho: numa lista de quatro linhas,
+ * o peso da letra por si só é a diferença que ninguém vê de relance. O ponto
+ * ocupa lugar fixo em todas as linhas, para que marcar o dia não desalinhe a
+ * coluna dos nomes — a lista continua a ler-se como coluna, com uma linha
+ * assinalada, e não como uma linha empurrada para fora das outras.
  */
 
 const ORDEM = [1, 2, 3, 4, 5, 6, 0] as const
@@ -33,18 +39,30 @@ export function Semana({
   const faixas = agrupar(semana)
 
   return (
-    <dl className={cn('mt-3 space-y-1.5', className)}>
+    <dl className={cn('space-y-2.5', className)}>
       {faixas.map((faixa) => {
         const atual = hoje !== undefined && faixa.dias.includes(hoje)
         return (
           <div key={faixa.dias.join('-')} className="flex items-baseline justify-between gap-4">
-            <dt className={cn('text-[0.875rem]', atual ? 'text-(--text-strong)' : 'text-muted')}>
+            <dt
+              className={cn(
+                'flex items-baseline gap-2.5 text-[0.9375rem]',
+                atual ? 'font-medium text-(--text-strong)' : 'text-muted',
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'h-1.5 w-1.5 shrink-0 translate-y-[-0.15em] rounded-full',
+                  atual ? 'bg-(--accent)' : 'bg-transparent',
+                )}
+              />
               {rotulo(faixa.dias)}
             </dt>
             <dd
               className={cn(
-                'tnum text-right text-[0.875rem] whitespace-nowrap',
-                atual ? 'text-(--text-strong)' : 'text-body',
+                'tnum text-right text-[0.9375rem] whitespace-nowrap',
+                atual ? 'font-medium text-(--text-strong)' : 'text-body',
               )}
             >
               {faixa.janelas.length === 0

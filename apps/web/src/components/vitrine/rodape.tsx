@@ -45,7 +45,12 @@ export async function RodapePublico({
                 )}
               >
                 {loja.name}
-                {loja.city ? <span className="text-muted"> · {loja.city}</span> : null}
+                {/* As duas casas chamam-se pelo nome da terra onde estão, e o
+                    rodapé escrevia "Maia · Maia". A cidade só acrescenta
+                    alguma coisa quando diz outra coisa que o nome. */}
+                {loja.city && loja.city !== loja.name ? (
+                  <span className="text-muted"> · {loja.city}</span>
+                ) : null}
               </Link>
             ))}
           </Coluna>

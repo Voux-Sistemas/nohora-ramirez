@@ -13,16 +13,29 @@ import 'server-only'
  * horário, a vitrine não fala de horário.
  */
 
-import { isoDateInZone, weekdayInZone, zonedDateTime } from '@studio/core'
+import { addDaysInZone, isoDateInZone, weekdayInZone, zonedDateTime } from '@studio/core'
 import { unitExceptions, unitHours } from '@studio/db'
 import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import type { UnitInfo } from './context'
 
+/**
+ * Quando a porta volta a abrir. `dias` conta a partir de hoje — 1 é amanhã.
+ * `null` quando não há abertura nos sete dias seguintes, que é o único caso
+ * em que a vitrine não promete regresso nenhum.
+ */
+export interface Regresso {
+  dias: number
+  weekday: number
+  as: string
+}
+
 export type EstadoDaPorta =
   | { tipo: 'aberta'; ate: string }
   | { tipo: 'abre-hoje'; as: string }
-  | { tipo: 'fechada-hoje' }
+  /** Abriu hoje e já fechou. Não é o mesmo que nunca ter aberto. */
+  | { tipo: 'ja-fechou'; desde: string; regresso: Regresso | null }
+  | { tipo: 'fechada-hoje'; regresso: Regresso | null }
   /** Nenhum horário cadastrado. Não é o mesmo que fechada. */
   | { tipo: 'sem-horario' }
 
@@ -50,8 +63,14 @@ export async function portaDasUnidades(
 
   const ids = unidades.map((u) => u.id)
   /* As datas de "hoje" podem diferir entre unidades de fusos diferentes — a
-     consulta pega todas as candidatas de uma vez e o filtro fino é por loja. */
-  const datas = [...new Set(unidades.map((u) => isoDateInZone(agora, u.timezone)))]
+     consulta pega todas as candidatas de uma vez e o filtro fino é por loja.
+
+     Sete dias à frente e não só hoje: a frase da porta fechada diz quando ela
+     volta a abrir, e prometer "abre amanhã às 09:00" na véspera de um feriado
+     que está cadastrado seria mentir com cara de informação. */
+  const datas = [
+    ...new Set(unidades.flatMap((u) => semanaAPartirDe(isoDateInZone(agora, u.timezone)))),
+  ]
 
   const [horarios, excecoes] = await Promise.all([
     db.select().from(unitHours).where(inArray(unitHours.unitId, ids)),
@@ -82,7 +101,12 @@ export async function portaDaUnidade(unidade: UnitInfo, agora = new Date()): Pro
     db
       .select()
       .from(unitExceptions)
-      .where(and(eq(unitExceptions.unitId, unidade.id), eq(unitExceptions.date, hoje))),
+      .where(
+        and(
+          eq(unitExceptions.unitId, unidade.id),
+          inArray(unitExceptions.date, semanaAPartirDe(hoje)),
+        ),
+      ),
   ])
   return portaDeUma(unidade, agora, horarios, excecoes)
 }
@@ -123,7 +147,8 @@ function portaDeUma(
 
   janelas.sort((a, b) => a.abre.localeCompare(b.abre))
   if (janelas.length === 0) {
-    return { janelas, estado: { tipo: 'fechada-hoje' }, excecao }
+    const regresso = proximaAbertura(unidade, hoje, horarios, excecoes)
+    return { janelas, estado: { tipo: 'fechada-hoje', regresso }, excecao }
   }
 
   for (const janela of janelas) {
@@ -137,8 +162,65 @@ function portaDeUma(
     }
   }
 
-  return { janelas, estado: { tipo: 'fechada-hoje' }, excecao }
+  /* Passou por todas as janelas do dia sem estar dentro de nenhuma e sem
+     nenhuma ainda por vir: abriu, e já fechou. Antes isto caía no mesmo
+     `fechada-hoje` de quem nunca abriu, e às 19:58 de uma terça em que o salão
+     trabalhou das 09:00 às 19:00 a montra escrevia "Hoje não abre". */
+  return {
+    janelas,
+    estado: {
+      tipo: 'ja-fechou',
+      desde: janelas[janelas.length - 1]!.fecha,
+      regresso: proximaAbertura(unidade, hoje, horarios, excecoes),
+    },
+    excecao,
+  }
 }
+
+/** Hoje e os sete dias seguintes, no fuso de quem pergunta. */
+function semanaAPartirDe(hoje: string): string[] {
+  return Array.from({ length: 8 }, (_, i) => addDaysInZone(hoje, i))
+}
+
+/**
+ * A primeira abertura depois de hoje, dentro de uma semana.
+ *
+ * Olha os sete dias um a um em vez de saltar para a linha semanal seguinte
+ * porque uma excepção manda sobre a semana: um feriado cadastrado tira o dia
+ * inteiro, e um horário especial pode abrir um dia que a semana tem fechado.
+ * Uma semana é o horizonte honesto — para lá disso a resposta útil deixa de ser
+ * uma hora e passa a ser um telefonema.
+ */
+function proximaAbertura(
+  unidade: UnitInfo,
+  hoje: string,
+  horarios: (typeof unitHours.$inferSelect)[],
+  excecoes: (typeof unitExceptions.$inferSelect)[],
+): Regresso | null {
+  for (let dias = 1; dias <= 7; dias++) {
+    const data = addDaysInZone(hoje, dias)
+    /* Meio-dia e não meia-noite: a mudança da hora legal acontece de
+       madrugada, e um dia que começa às 01:00 pode nem existir. */
+    const weekday = weekdayInZone(zonedDateTime(data, '12:00', unidade.timezone), unidade.timezone)
+
+    const doDia = excecoes.filter((e) => e.date === data)
+    const aberturas =
+      doDia.length > 0
+        ? doDia.some((e) => e.closed)
+          ? []
+          : doDia.filter((e) => e.opensAt).map((e) => hhmm(e.opensAt!))
+        : horarios.filter((h) => h.weekday === weekday).map((h) => hhmm(h.opensAt))
+
+    if (aberturas.length > 0) {
+      aberturas.sort((a, b) => a.localeCompare(b))
+      return { dias, weekday, as: aberturas[0]! }
+    }
+  }
+  return null
+}
+
+/** Os dias como se dizem numa frase, não como se escrevem numa tabela. */
+const DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'] as const
 
 /** O que a vitrine escreve. `null` quando não há o que dizer com honestidade. */
 export function frasePorta(estado: EstadoDaPorta): string | null {
@@ -147,9 +229,19 @@ export function frasePorta(estado: EstadoDaPorta): string | null {
       return `Aberto até às ${estado.ate}`
     case 'abre-hoje':
       return `Abre hoje às ${estado.as}`
+    case 'ja-fechou':
+      return `Fechou às ${estado.desde}${volta(estado.regresso)}`
     case 'fechada-hoje':
-      return 'Hoje não abre'
+      return `Hoje não abre${volta(estado.regresso)}`
     case 'sem-horario':
       return null
   }
+}
+
+/* Sem regresso conhecido a frase acaba onde está: "Hoje não abre" sozinho é
+   verdade, e "abre daqui a algumas semanas" não é informação. */
+function volta(regresso: Regresso | null): string {
+  if (!regresso) return ''
+  const quando = regresso.dias === 1 ? 'amanhã' : DIA[regresso.weekday]!
+  return ` · abre ${quando} às ${regresso.as}`
 }

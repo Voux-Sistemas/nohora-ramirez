@@ -79,9 +79,12 @@ dos testes vive lá.
 
 Duas áreas, e a divisão importa porque as cenas de uso não se parecem.
 
-**A vitrine e a cliente**, tudo público — `/loja` e `/loja/[unidade]` (a montra),
-`/agendar` → `/agendar/[unidade]` → `/horarios` → `/confirmar` → `/pronto/[id]` (marcar sem
-conta nenhuma), e `/conta` com `/conta/entrar` e `/conta/verificar` para ver e cancelar.
+**A vitrine e a cliente**, tudo público — `/loja` é o painel das casas e `/loja/[unidade]` é a
+montra de cada uma, ligadas pelo cabeçalho comum (`components/vitrine/cabecalho.tsx`) e fechadas
+pelo rodapé comum (`rodape.tsx`), que é onde mora a porta da equipa (ADR-017); `/agendar` →
+`/agendar/[unidade]` → `/horarios` → `/confirmar` → `/pronto/[id]` (marcar sem conta nenhuma),
+com `/marcar` como atalho para o princípio disso; e `/conta` com `/conta/entrar` e
+`/conta/verificar` para ver e cancelar.
 
 **A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda` e
 `/agenda/[unidade]` com `/comanda/[id]`, `/encaixe` e `/remarcar/[id]`; `/caixa` e

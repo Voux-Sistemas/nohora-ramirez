@@ -244,3 +244,23 @@ A dona pode não abrir num dia, ou abrir só até certa hora — e o mesmo vale 
 - **A data é uma só para as duas lojas.** É um dia de parede, e a rede está toda no mesmo país. O sítio de partir isto, no dia em que houver loja noutro fuso, é o `hoje` de `/agenda/page.tsx`.
 - **Três coisas duplicadas passaram a uma:** o navegador de dia (`components/agenda/navegador-de-dia.tsx`), o conjunto de estados cancelados (`CANCELADOS`, em `server/scheduling/queries.ts`) e o recorte da agenda da profissional (`soDaProfissional`, ao lado dele). Encaixe e remarcação mantêm navegador próprio: ali não se anda no ecrã, anda-se dentro de um formulário a meio.
 - **A pílula de estado do caixa saiu da tela da loja para `components/caixa/estado.tsx`.** Duas telas dizem-no agora, e um estado desenhado de duas maneiras é um estado que se lê devagar.
+
+---
+
+## ADR-017 · A montra é um sítio com corredores, não duas páginas soltas
+**Data:** 2026-08-18 · **Status:** aceita
+
+O lado público passa a ter cabeçalho e rodapé próprios, partilhados por todas as telas de montra. O cabeçalho leva as casas todas e o botão de marcar; o rodapé leva a conta da cliente, o Instagram e a porta da equipa. E `/loja` deixa de reencaminhar: é o painel das duas casas.
+
+**O sistema não era navegável por si próprio.** A montra de Valongo não sabia que a Maia existia — para ver a outra casa era preciso escrever o endereço à mão ou voltar ao Instagram. `/loja` sem nome de casa atirava para `/agendar`, ou seja, quem chegava para *ver* o salão aterrava dentro de um formulário de três passos com uma barra de progresso por cima: a resposta à pergunta "que salão é este?" era "passo 1 de 3". E a área da equipa só se alcançava decorando `/entrar`. Foi a queixa da reunião, dita por outras palavras: cada tela vivia num endereço que alguém tinha de saber de cor.
+
+**Ver e marcar são duas intenções, e por isso são duas portas.** No painel, cada casa tem a fotografia inteira a levar à montra dela e, por baixo, um link para a marcação dessa casa e o telefone. `/agendar` continua a escolher casa e continua a existir: a diferença é o que a pessoa já decidiu quando lá chega. Ali já decidiu marcar; aqui ainda não.
+
+**Consequências:**
+- **A porta da equipa está no rodapé da montra, à vista.** É a única frase da página escrita para quem não é cliente; quem a lê percebe que não é para si, e quem a procura encontra-a onde toda a gente a põe. Escondê-la de vez era obrigar a decorar `/entrar` — exatamente o defeito que este ADR fecha. Continua a ser uma porta com fechadura: quem carrega sem sessão bate em `/entrar`, e é `/entrar` que decide.
+- **O logótipo da montra leva a `/loja`, e nunca a `/`.** `/` é a pauta do dia da equipa; para a cliente seria um pedido de palavra-passe no sítio onde ela esperava a casa da marca.
+- **A casa aberta leva régua de bronze no cabeçalho** — a mesma marca de secção activa da barra da equipa, porque é o mesmo gesto: dizer onde se está sem gritar.
+- **`/marcar` existe e reencaminha para `/agendar`.** É a palavra que uma pessoa de cá escreve; o funil chama-se `/agendar` porque foi assim que o código o baptizou, e mudar-lhe o nome partia todos os links já partilhados. Fica fora do sitemap: duas entradas para o mesmo destino é o que faz um motor de busca escolher qual delas mostrar.
+- **Para o Instagram são dois links, e não um.** Na bio, `/loja` — quem chega de um perfil quer ver a casa antes de escolher hora. Na chamada directa (o botão do story, o cartaz), `/marcar`.
+- **O painel só existe com mais de uma casa.** Com uma, `/loja` reencaminha para ela: escolher entre um é ler o nome dele duas vezes. Mesma régua do "Todas" da operação (ADR-016).
+- **O rodapé só mostra a conta da cliente quando há por onde mandar o código.** Mesma regra de `/conta/entrar`: um link que não abre é pior do que nenhum.

@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic'
  * O mapa das páginas que uma cliente pode encontrar na busca.
  *
  * São dois endereços por loja, e mais nenhum: o catálogo dessa casa e a montra
- * dessa casa, além da escolha da casa. Tudo o resto do site ou exige sessão, ou
+ * dessa casa, além das duas telas que existem sobre as duas — o painel das casas
+ * e a escolha de casa da marcação. Tudo o resto do site ou exige sessão, ou
  * é um passo a meio de uma marcação — `/agendar/valongo/horarios` sem serviços
  * escolhidos devolve a pessoa ao princípio, e um resultado de busca que faz
  * isso é um resultado que não serve.
@@ -19,7 +20,7 @@ export const dynamic = 'force-dynamic'
  * `changeFrequency` e `priority` são pistas, não ordens, e é por isso que só
  * dizem a hierarquia real: a marcação vale mais do que a montra.
  *
- * Se o banco não responder, o mapa sai com a página de escolha e mais nada, em
+ * Se o banco não responder, o mapa sai com as duas telas de rede e mais nada, em
  * vez de sair com erro 500: meio mapa vale mais do que um sitemap que o Google
  * marca como partido e deixa de pedir.
  */
@@ -29,6 +30,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const raiz: MetadataRoute.Sitemap = [
     { url: url('/agendar'), changeFrequency: 'weekly', priority: 1 },
+    /* O painel das casas é o endereço da bio do Instagram: é montra, não funil,
+       e por isso vale menos que a marcação e mais que a montra de uma casa só. */
+    { url: url('/loja'), changeFrequency: 'monthly', priority: 0.8 },
   ]
 
   let unidades: { slug: string }[]

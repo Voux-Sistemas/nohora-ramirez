@@ -5,7 +5,9 @@ import { notFound } from 'next/navigation'
 import { Wordmark } from '@/components/brand/mark'
 import { buttonVariants } from '@/components/ui/button'
 import { Photo } from '@/components/ui/photo'
+import { CabecalhoPublico } from '@/components/vitrine/cabecalho'
 import { Precario } from '@/components/vitrine/precario'
+import { RodapePublico } from '@/components/vitrine/rodape'
 import { Sala } from '@/components/vitrine/sala'
 import { Semana } from '@/components/vitrine/horario'
 import { formatPhone } from '@/lib/format'
@@ -72,19 +74,7 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="bg-(--surface-ink) text-(--on-ink)">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-4 px-5 py-4 sm:px-8">
-          <Link href="/agendar" className="shrink-0 rounded-plate">
-            <Wordmark size="sm" align="left" />
-          </Link>
-          <Link
-            href={marcar as never}
-            className={`${buttonVariants({ variant: 'on-ink', size: 'sm' })} ml-auto`}
-          >
-            Marcar
-          </Link>
-        </div>
-      </header>
+      <CabecalhoPublico atual={u.slug} marcar={marcar} />
 
       <main className="flex-1">
         <Abertura unidade={u} capa={capa} frase={frase} aberta={hoje.estado.tipo === 'aberta'} />
@@ -117,6 +107,8 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
 
         <Fecho unidade={u} marcar={marcar} />
       </main>
+
+      <RodapePublico atual={u.slug} />
     </div>
   )
 }

@@ -63,7 +63,6 @@ export type BookingError =
   | 'invalid_start'
   | 'service_unavailable'
   | 'not_online_bookable'
-  | 'requires_assessment'
   | 'slot_taken'
   | 'too_soon'
   | 'too_far'
@@ -79,7 +78,6 @@ const MESSAGES: Record<BookingError, string> = {
   invalid_start: 'Horário inválido.',
   service_unavailable: 'Este serviço não está disponível nesta unidade.',
   not_online_bookable: 'Este serviço só pode ser marcado pela receção.',
-  requires_assessment: 'Este procedimento exige avaliação presencial antes de marcar.',
   slot_taken: 'Este horário acabou de ser ocupado. Escolha outro, por favor.',
   too_soon: 'Este horário já não está a tempo. Escolha um mais à frente, por favor.',
   too_far: 'A agenda ainda não está aberta para essa data.',
@@ -138,8 +136,13 @@ async function planBooking(
   for (const item of input.cart) {
     const service = ctx.services.get(item.serviceId)
     if (!service) return 'service_unavailable'
+    /* Uma pergunta só, e é a que a dona controla: o interruptor "marcável
+       online" da ficha de serviço. Havia aqui uma segunda trava, "exige
+       avaliação presencial", que a reunião mandou retirar do formulário — e
+       uma regra que ninguém consegue ligar nem desligar não é regra, é um
+       serviço que some da montra sem explicação. Quem precisa de ver o fio
+       antes desliga o "marcável online", que diz o mesmo e está à mão. */
     if (online && !service.onlineBookable) return 'not_online_bookable'
-    if (online && service.requiresAssessment) return 'requires_assessment'
   }
 
   const opcoes = {

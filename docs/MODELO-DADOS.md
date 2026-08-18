@@ -147,8 +147,14 @@ um preço na cabeça e outro na conta.
 **`services`** — o catálogo é da rede. `organization_id`, `category_id`, `name`, `description`,
 `image_url`, `base_price`, `setup_min`, `processing_min`, `finish_min`, `buffer_before_min`,
 `buffer_after_min`, `online_bookable`, `requires_deposit`, `deposit_type` (`percent` guarda
-pontos-base: 5000 = 50 %; `fixed` guarda cêntimos), `deposit_value`, `requires_assessment`,
-`requires_anamnesis`, `sort_order`, `active`.
+pontos-base: 5000 = 50 %; `fixed` guarda cêntimos), `deposit_value`, `sort_order`, `active`.
+
+> `requires_assessment` e `requires_anamnesis` continuam nas colunas e **não são lidas por
+> ninguém**. A reunião com os sócios mandou tirar as regras da ficha de serviço, e sem
+> interruptor no formulário a primeira era um serviço a desaparecer da montra sem explicação e
+> a segunda nunca chegou a fazer nada. Quem precisa de ver a cliente antes de marcar desliga o
+> `online_bookable`. As colunas ficam até haver migração que as largue — largar coluna é DDL em
+> produção, e vai com a que larga as tabelas de comissão.
 
 > As três colunas de duração são herança do motor de agenda, que sabe libertar a profissional a
 > meio do atendimento. **O produto não oferece isso:** a ficha de serviço tem um campo de duração só,

@@ -191,8 +191,6 @@ async function main(): Promise<void> {
         requiresDeposit: service.requiresDeposit ?? false,
         depositType: service.depositType ?? null,
         depositValue: service.depositValue ?? null,
-        requiresAssessment: service.requiresAssessment ?? false,
-        requiresAnamnesis: service.requiresAnamnesis ?? false,
         sortOrder: index,
       })
       .returning({ id: services.id })

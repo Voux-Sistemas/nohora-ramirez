@@ -94,8 +94,6 @@ export interface ServiceInfo {
   /** Duração que o cliente enxerga: setup + processing + finish. */
   clientDurationMin: number
   onlineBookable: boolean
-  requiresAssessment: boolean
-  requiresAnamnesis: boolean
   deposit: { type: 'percent'; bps: number } | { type: 'fixed'; cents: number } | null
   /** Foto do serviço. Nem todo serviço fotografa bem; `null` é o caso normal. */
   imageUrl: string | null
@@ -335,8 +333,6 @@ async function loadServices(unit: UnitInfo): Promise<Map<string, ServiceInfo>> {
       },
       clientDurationMin: row.setupMin + row.processingMin + row.finishMin,
       onlineBookable: row.onlineBookable,
-      requiresAssessment: row.requiresAssessment,
-      requiresAnamnesis: row.requiresAnamnesis,
       deposit: depositPolicy(row),
       imageUrl: row.imageUrl,
       sortOrder: row.sortOrder,
@@ -656,7 +652,7 @@ export function deliverableServices(
 
   return [...ctx.services.values()]
     .filter((service) => {
-      if (options.onlineOnly && (!service.onlineBookable || service.requiresAssessment)) return false
+      if (options.onlineOnly && !service.onlineBookable) return false
       if (!usable.has(service.id)) return false
       return service.spec.requiredResourceTypeIds.every((type) => resourceTypesPresent.has(type))
     })

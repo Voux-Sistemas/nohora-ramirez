@@ -159,8 +159,6 @@ export interface ServiceSeed {
   requiresDeposit?: boolean
   depositType?: 'percent' | 'fixed'
   depositValue?: number
-  requiresAssessment?: boolean
-  requiresAnamnesis?: boolean
 }
 
 export const SERVICES: readonly ServiceSeed[] = [
@@ -219,7 +217,6 @@ export const SERVICES: readonly ServiceSeed[] = [
     bufferAfterMin: 15,
     resourceTypes: ['Cadeira'],
     onlineBookable: false,
-    requiresAssessment: true,
   },
   {
     slug: 'hidratacao',
@@ -280,7 +277,6 @@ export const SERVICES: readonly ServiceSeed[] = [
     durationMin: 70,
     bufferAfterMin: 15,
     resourceTypes: ['Cabine'],
-    requiresAnamnesis: true,
   },
 ]
 

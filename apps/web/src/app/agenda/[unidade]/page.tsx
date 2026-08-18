@@ -1,4 +1,4 @@
-import { addDaysInZone, zonedDateTime, type TimeRange } from '@studio/core'
+import { isIsoDate, zonedDateTime, type TimeRange } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
@@ -10,21 +10,27 @@ import {
 } from '@/components/agenda/day-grid'
 import { AppointmentPanel, STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { DayList, LISTA_ANCHOR_PREFIX, LISTA_NOW_MARKER_ID } from '@/components/agenda/day-list'
+import { NavegadorDeDia } from '@/components/agenda/navegador-de-dia'
 import { RolarParaAgora } from '@/components/agenda/rolar-para-agora'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
+import { formatMoney, formatTime } from '@/lib/format'
 import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
 import { podeGerir, requireAcesso, requireUnidade } from '@/server/auth/permissoes'
 import { todayInUnit } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext } from '@/server/scheduling/context'
-import { countDay, listDayAppointments, type AppointmentView } from '@/server/scheduling/queries'
+import {
+  CANCELADOS,
+  countDay,
+  listDayAppointments,
+  soDaProfissional,
+  type AppointmentView,
+} from '@/server/scheduling/queries'
 
 export const dynamic = 'force-dynamic'
 
 const HOUR_MS = 3_600_000
-const CANCELLED = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
 
 export default async function AgendaDoDiaPage({
   params,
@@ -44,7 +50,7 @@ export default async function AgendaDoDiaPage({
   const gerir = podeGerir(acesso)
 
   const today = todayInUnit(unit)
-  const date = isValidDate(d) ? d : today
+  const date = isIsoDate(d) ? d : today
   const [ctx, todos] = await Promise.all([
     loadBookingContext({ unit, fromDate: date, toDate: date }),
     listDayAppointments(unit, date),
@@ -60,8 +66,8 @@ export default async function AgendaDoDiaPage({
   */
   const appointments = gerir ? todos : soDaProfissional(todos, acesso.staffId)
 
-  const live = appointments.filter((item) => !CANCELLED.has(item.status))
-  const cancelled = appointments.filter((item) => CANCELLED.has(item.status))
+  const live = appointments.filter((item) => !CANCELADOS.has(item.status))
+  const cancelled = appointments.filter((item) => CANCELADOS.has(item.status))
   const counters = countDay(appointments)
 
   const columns = buildColumns(ctx, live, gerir ? null : acesso.staffId)
@@ -209,93 +215,31 @@ export default async function AgendaDoDiaPage({
         </div>
 
         {/*
-          A data é o rótulo entre as setas, e não uma linha de apoio embaixo do
-          título repetida depois dentro do seletor. É o mesmo navegador de dia
-          das telas de encaixe e de remarcação — três lugares do sistema em que
-          se anda no calendário, um só desenho.
+          O navegador de dia é o mesmo componente da agenda das lojas todas:
+          duas telas que fazem a mesma pergunta têm de a fazer com o mesmo
+          gesto, senão quem trabalha nelas aprende dois calendários.
 
-          "hoje" só existe quando não é hoje: um botão que não faz nada é ruído
-          com o mesmo peso de um que faz. E as setas levam nome, porque
-          sozinhas um leitor de tela anuncia "seta para a esquerda", que não diz
-          para onde ela leva.
-
-          Alvo de 44px, que é o padrão da casa e não a exceção: quem anda de dia
-          em dia faz isso de pé, com a mão ocupada. O `sm` do botão existe para
-          densidade em tabela, e esta linha é o comando principal do ecrã.
-
-          No telemóvel as setas encostam nas duas bordas e a data fica no meio —
-          é onde o polegar chega, e é como todo o calendário se comporta. A
-          partir de `sm` o grupo volta a ter o tamanho do que carrega, e o resto
-          da linha alinha-se à direita como antes.
-
-          E são duas filas até `sm`, não uma que se desdobra. Numa fila só, os
-          quatro comandos somam mais do que os 358px úteis de um iPhone, e o que
-          acontecia não era transbordo limpo: a data por extenso ("segunda-feira,
-          17 de agosto") partia em duas linhas por cima do seletor nativo de
-          data, e a agenda abria com o cabeçalho encavalitado. Em cima anda-se no
-          calendário um dia de cada vez; em baixo salta-se para longe e encaixa-se
-          alguém. Duas perguntas, duas filas.
+          O que muda é o comando da direita. Encaixar é escolher em qual
+          cadeira a cliente senta, e para isso é preciso enxergar todas — fica
+          com quem enxerga, e não existe na vista das lojas todas, onde não há
+          cadeira nenhuma desenhada.
         */}
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="flex min-w-0 items-center gap-2 sm:flex-none">
-            <Link
-              href={`/agenda/${unit.slug}?d=${addDaysInZone(date, -1)}`}
-              aria-label="Dia anterior"
-              className={cn(buttonVariants({ variant: 'outline' }), 'px-3')}
-            >
-              ←
-            </Link>
-            <span className="flex-1 text-center text-sm font-medium sm:flex-none sm:text-left">
-              {formatDateLong(date)}
-            </span>
-            <Link
-              href={`/agenda/${unit.slug}?d=${addDaysInZone(date, 1)}`}
-              aria-label="Próximo dia"
-              className={cn(buttonVariants({ variant: 'outline' }), 'px-3')}
-            >
-              →
-            </Link>
-
-            {date === today ? null : (
+        <NavegadorDeDia
+          base={`/agenda/${unit.slug}`}
+          date={date}
+          today={today}
+          className="mt-4"
+          acao={
+            gerir ? (
               <Link
-                href={`/agenda/${unit.slug}`}
-                className="text-muted hover:text-(--text-strong) flex min-h-11 shrink-0 items-center px-1 text-sm transition-colors"
-              >
-                hoje
-              </Link>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 sm:ml-auto">
-            <form
-              action={`/agenda/${unit.slug}`}
-              className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none"
-            >
-              <label htmlFor="ir-para-dia" className="sr-only">
-                Ir para uma data
-              </label>
-              <input
-                id="ir-para-dia"
-                type="date"
-                name="d"
-                defaultValue={date}
-                className="rounded-plate h-11 min-w-0 flex-1 border border-(--border-subtle) bg-(--surface-raised) px-2 text-sm sm:flex-none"
-              />
-              <button className={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}>Ir</button>
-            </form>
-
-            {/* Encaixar é escolher em qual cadeira a cliente senta — e para isso
-                é preciso enxergar todas. Fica com quem enxerga. */}
-            {gerir ? (
-              <Link
-                href={`/agenda/${unit.slug}/encaixe?d=${date}`}
+                href={href(`/agenda/${unit.slug}/encaixe?d=${date}`)}
                 className={cn(buttonVariants(), 'shrink-0')}
               >
                 Encaixar
               </Link>
-            ) : null}
-          </div>
-        </div>
+            ) : null
+          }
+        />
       </header>
 
       {/*
@@ -409,17 +353,6 @@ function Num({ children }: { children: React.ReactNode }) {
   return <strong className="tnum text-(--text-strong) font-medium">{children}</strong>
 }
 
-/** Os atendimentos em que esta profissional executa pelo menos um serviço. */
-function soDaProfissional(
-  list: readonly AppointmentView[],
-  staffId: string | null,
-): AppointmentView[] {
-  /* Sem perfil de agenda não há coluna nem atendimento — lista vazia é a
-     resposta honesta, e não "então mostra tudo". */
-  if (!staffId) return []
-  return list.filter((item) => item.items.some((entry) => entry.staffId === staffId))
-}
-
 /**
  * Uma coluna por profissional escalado — mais quem tem atendimento no dia.
  *
@@ -468,6 +401,3 @@ function drawWindow(
   return { from, to }
 }
 
-function isValidDate(value: string | undefined): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-}

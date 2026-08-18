@@ -1,11 +1,10 @@
 import { isoDateInZone } from '@studio/core'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AbrirCaixaForm } from '@/components/caixa/abrir-form'
+import { EstadoDoCaixa } from '@/components/caixa/estado'
 import { FecharCaixaForm } from '@/components/caixa/fechar-form'
 import { MovimentoForm } from '@/components/caixa/movimento-form'
 import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
-import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
 import { getOpenSession, listMovements, listSessionsForUnit } from '@/server/finance/caixa'
 import { getUnitBySlug } from '@/server/scheduling/context'
@@ -47,18 +46,23 @@ export default async function CaixaUnidadePage({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-      <Link href={href('/caixa')} className="text-muted text-sm hover:underline">
-        ← unidades
-      </Link>
-
-      <header className="mt-4 mb-8 flex flex-wrap items-end justify-between gap-4">
+      {/*
+        Aqui esteve um "← unidades", e ele mentia — a mesma seta que já saiu da
+        agenda pela mesma razão. Não havia ecrã de unidades: `/caixa` sozinho
+        reencaminhava para a PRIMEIRA loja da pessoa, e quem estava na Maia a
+        conferir a gaveta carregava em voltar e aterrava em Valongo. Hoje esse
+        endereço é uma tela de verdade, com as duas gavetas — e chega-se lá pelo
+        "Todas" do seletor da barra, que é onde se troca de loja em todo o
+        sistema. Duas portas para o mesmo sítio ensinariam duas gramáticas.
+      */}
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="display text-[2rem] leading-[1.1] font-normal sm:text-[2.5rem]">
             Caixa
           </h1>
           <p className="text-muted mt-1 text-sm">{unit.name}</p>
         </div>
-        <StatusPill open={Boolean(session)} />
+        <EstadoDoCaixa aberto={session !== null} />
       </header>
 
       {session ? (
@@ -163,28 +167,5 @@ export default async function CaixaUnidadePage({
         </section>
       ) : null}
     </div>
-  )
-}
-
-/** Estado da gaveta, em forma antes de número: quem olha de longe já sabe. */
-function StatusPill({ open }: { open: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium',
-        open
-          ? 'border-(--estado-bom)/30 text-(--estado-bom)'
-          : 'border-(--border-subtle) text-(--text-muted)',
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          'h-1.5 w-1.5 rounded-full',
-          open ? 'bg-(--estado-bom)' : 'bg-(--text-muted)',
-        )}
-      />
-      {open ? 'Caixa aberto' : 'Caixa fechado'}
-    </span>
   )
 }

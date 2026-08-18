@@ -43,14 +43,11 @@ export default async function AvisosDaUnidadePage({
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <header className="mb-5">
-        {/* Sem volta para uma lista de uma loja só: o link levaria a um
-            redirecionamento de volta para esta mesma tela. */}
-        {acesso.unidadeIds !== null && acesso.unidadeIds.length <= 1 ? null : (
-          <Link href={href('/avisos')} className="text-muted text-sm hover:underline">
-            ← unidades
-          </Link>
-        )}
-        <h1 className="display mt-1 text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
+        {/* Aqui esteve um "← unidades" com uma condição a explicar quando é que
+            ele não mentia. Saiu inteiro: trocar de loja é o seletor da barra,
+            em todas as secções, e o "Todas" dele leva ao painel das duas filas —
+            que agora é uma tela de verdade e não um reencaminhamento. */}
+        <h1 className="display text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
           Avisos · {unit.name}
         </h1>
         <p className="text-body mt-2 text-sm">

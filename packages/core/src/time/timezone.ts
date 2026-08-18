@@ -151,3 +151,25 @@ export function weekdayOfIsoDate(isoDate: string): number {
 function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
+
+/**
+ * `'2026-08-10'` — a data de parede que existe, e não só a que tem a forma certa.
+ *
+ * A conferência do calendário é a metade que faltava nas três cópias locais que
+ * esta função substituiu, todas elas só `/^\d{4}-\d{2}-\d{2}$/`. Esse teste
+ * aceita `2026-02-31`, e daí para a frente `Date.UTC` rola calado para 3 de
+ * março: a agenda abria com a data da URL escrita no cabeçalho e os
+ * atendimentos de outro dia por baixo. Um `?d=` vem da barra de endereço, de um
+ * favorito antigo ou de um link colado no WhatsApp — nunca só do seletor.
+ */
+export function isIsoDate(value: string | undefined | null): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [y, m, d] = value.split('-').map(Number)
+  if (y === undefined || m === undefined || d === undefined) return false
+  const instante = new Date(Date.UTC(y, m - 1, d))
+  return (
+    instante.getUTCFullYear() === y &&
+    instante.getUTCMonth() === m - 1 &&
+    instante.getUTCDate() === d
+  )
+}

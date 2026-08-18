@@ -225,3 +225,22 @@ A dona pode não abrir num dia, ou abrir só até certa hora — e o mesmo vale 
 - **O que já estava marcado continua na agenda.** Fechar o dia tira-o da marcação online; não cancela nada. Está escrito no ecrã, porque avisar a cliente é decisão de uma pessoa e não de uma caixa de seleção.
 - **A lista mostra de hoje para a frente, e o campo de data tem `min`.** Antes do `min`, marcar uma ausência no passado gravava e desaparecia no mesmo instante — a lista não a mostrava.
 - **Apagar uma ausência exige o par `id` + `staff_id`.** O `DELETE` filtra pelos dois: um `id` forjado no formulário não apaga a ausência de ninguém.
+
+---
+
+## ADR-016 · "Todas as lojas" é um sítio, e não a primeira loja da lista
+**Data:** 2026-08-18 · **Status:** aceita
+
+`/agenda`, `/caixa` e `/avisos` sem loja no endereço passam a ser ecrãs de verdade, com as duas lojas lado a lado. Eram reencaminhamentos para a primeira unidade visível da pessoa. E o seletor de loja da barra deixa de ser um `<select>` escuro sobre a faixa escura: é um comutador com as lojas à vista e mais uma posição, *Todas*, que leva a esses ecrãs.
+
+**São duas queixas da reunião a resolverem-se uma à outra.** Uma foi "melhorar visibilidade de switch, nova opção «todos»". A outra foi "às vezes ao clicar em voltar a tela buga agenda" — e a segunda era um sintoma da primeira. Quem estava na Maia, no dia 27, e carregava numa seta de voltar aterrava em Valongo, hoje: o `← unidades` prometia um ecrã de unidades que não existia, e o reencaminhamento escolhia a loja por ele. Havia três dessas setas (agenda, caixa, avisos); a da agenda já tinha saído, as outras duas saíram agora, e a promessa passou a ter para onde levar.
+
+**A vista não é um posto de trabalho.** Mostra o dia das duas agendas, o saldo das duas gavetas e quem falta avisar nas duas filas — e mais nada. Não há grade de cadeiras (uma grade que misturasse as cadeiras das duas lojas numa coluna desenharia um salão que não existe), não há encaixe, não há abrir nem fechar caixa. Agir é entrar numa loja, e cada linha destas telas é a porta para lá.
+
+**Consequências:**
+- **A escolha de loja segue a pessoa entre secções, e "Todas" também.** Quem vê as duas agendas e carrega em Caixa vê as duas gavetas. É a mesma regra de sempre — a barra leva o slug consigo —, agora com a ausência de slug a valer como escolha.
+- **A consulta viaja com a troca, menos `sel`.** Quem está no dia 27 da Maia continua no dia 27 ao passar para Valongo; o atendimento aberto na ficha lateral é de lá e não existe cá. Foi o que obrigou o seletor a ler `useSearchParams`, e por isso ele tem fronteira de suspensão própria — para que o que fica em branco por um instante seja o seletor e não a navegação inteira.
+- **Com uma loja só, o reencaminhamento fica.** "Todas" de uma seria a mesma agenda com um cabeçalho a mais, e o seletor nem aparece. É o caso da profissional de uma loja.
+- **A data é uma só para as duas lojas.** É um dia de parede, e a rede está toda no mesmo país. O sítio de partir isto, no dia em que houver loja noutro fuso, é o `hoje` de `/agenda/page.tsx`.
+- **Três coisas duplicadas passaram a uma:** o navegador de dia (`components/agenda/navegador-de-dia.tsx`), o conjunto de estados cancelados (`CANCELADOS`, em `server/scheduling/queries.ts`) e o recorte da agenda da profissional (`soDaProfissional`, ao lado dele). Encaixe e remarcação mantêm navegador próprio: ali não se anda no ecrã, anda-se dentro de um formulário a meio.
+- **A pílula de estado do caixa saiu da tela da loja para `components/caixa/estado.tsx`.** Duas telas dizem-no agora, e um estado desenhado de duas maneiras é um estado que se lê devagar.

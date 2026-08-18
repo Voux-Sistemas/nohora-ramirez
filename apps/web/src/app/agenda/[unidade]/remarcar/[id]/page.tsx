@@ -1,4 +1,4 @@
-import { addDaysInZone, isoDateInZone } from '@studio/core'
+import { addDaysInZone, isIsoDate, isoDateInZone } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { buttonVariants } from '@/components/ui/button'
@@ -37,7 +37,7 @@ export default async function RemarcarPage({
   requireUnidade(acesso, unit.id)
 
   const originalDate = isoDateInZone(appointment.start, unit.timezone)
-  const date = isValidDate(d) ? d : originalDate
+  const date = isIsoDate(d) ? d : originalDate
   const serviceIds = appointment.items.map((item) => item.serviceId)
   const staffId = p || undefined
 
@@ -186,6 +186,3 @@ function Chip({
   )
 }
 
-function isValidDate(value: string | undefined): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-}

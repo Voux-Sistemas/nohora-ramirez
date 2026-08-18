@@ -1,4 +1,4 @@
-import { addDaysInZone, priceRange, resolvePrice } from '@studio/core'
+import { addDaysInZone, isIsoDate, priceRange, resolvePrice } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { EncaixeForm } from '@/components/agenda/encaixe-form'
@@ -57,7 +57,7 @@ export default async function EncaixePage({
   if (!unit) notFound()
   requireUnidade(acesso, unit.id)
 
-  const date = isValidDate(query.d) ? query.d : todayInUnit(unit)
+  const date = isIsoDate(query.d) ? query.d : todayInUnit(unit)
   const serviceIds = (query.s ?? '').split(',').filter(Boolean)
   const staffId = query.p || undefined
   const base = `/agenda/${unit.slug}/encaixe?d=${date}`
@@ -363,6 +363,3 @@ function Chip({
   )
 }
 
-function isValidDate(value: string | undefined): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
-}

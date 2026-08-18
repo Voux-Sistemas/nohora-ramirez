@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addDaysInZone,
+  isIsoDate,
   isoDateInZone,
   isoTimeInZone,
   toZonedParts,
@@ -76,5 +77,32 @@ describe('addDaysInZone', () => {
 
   it('atravessa a virada de ano', () => {
     expect(addDaysInZone('2026-12-30', 3)).toBe('2027-01-02')
+  })
+})
+
+describe('isIsoDate', () => {
+  it('aceita a data que existe', () => {
+    expect(isIsoDate('2026-08-10')).toBe(true)
+    expect(isIsoDate('2024-02-29')).toBe(true) // ano bissexto
+    expect(isIsoDate('2026-12-31')).toBe(true)
+  })
+
+  it('recusa o que não tem a forma', () => {
+    expect(isIsoDate(undefined)).toBe(false)
+    expect(isIsoDate(null)).toBe(false)
+    expect(isIsoDate('')).toBe(false)
+    expect(isIsoDate('10/08/2026')).toBe(false)
+    expect(isIsoDate('2026-8-10')).toBe(false)
+    expect(isIsoDate('2026-08-10T12:00:00Z')).toBe(false)
+  })
+
+  /* A metade que o regex sozinho não fazia: com qualquer uma destas a passar,
+     `Date.UTC` rolava para o mês seguinte e a agenda abria noutro dia. */
+  it('recusa a data que tem a forma e não existe no calendário', () => {
+    expect(isIsoDate('2026-02-31')).toBe(false)
+    expect(isIsoDate('2026-13-01')).toBe(false)
+    expect(isIsoDate('2026-00-10')).toBe(false)
+    expect(isIsoDate('2026-04-31')).toBe(false)
+    expect(isIsoDate('2025-02-29')).toBe(false) // 2025 não é bissexto
   })
 })

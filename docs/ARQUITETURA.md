@@ -83,9 +83,12 @@ Duas áreas, e a divisão importa porque as cenas de uso não se parecem.
 `/agendar` → `/agendar/[unidade]` → `/horarios` → `/confirmar` → `/pronto/[id]` (marcar sem
 conta nenhuma), e `/conta` com `/conta/entrar` e `/conta/verificar` para ver e cancelar.
 
-**A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda/[unidade]` com `/comanda/[id]`,
-`/encaixe` e `/remarcar/[id]`; `/caixa/[unidade]`; `/clientes` com `/[id]`, `/novo` e `/importar`;
-`/avisos/[unidade]`; e a área da dona em `/admin` — `/unidades`, `/servicos` e `/equipe`. O
+**A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda` e
+`/agenda/[unidade]` com `/comanda/[id]`, `/encaixe` e `/remarcar/[id]`; `/caixa` e
+`/caixa/[unidade]`; `/avisos` e `/avisos/[unidade]`; `/clientes` com `/[id]`, `/novo` e
+`/importar`; e a área da dona em `/admin` — `/unidades`, `/servicos` e `/equipe`. As três
+secções por loja existem duas vezes de propósito: sem loja no endereço são a vista das lojas
+todas, e é para lá que aponta o "Todas" do seletor da barra (ADR-016). O
 acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
 a primeira conta de todas nasce em `/comecar` (ver `ops/README.md`).
 

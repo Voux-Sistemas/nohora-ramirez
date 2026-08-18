@@ -171,6 +171,20 @@ export async function listClientAppointments(
   return attachItems(rows)
 }
 
+/**
+ * Os estados que já não ocupam horário: desmarcado dos dois lados, e a falta.
+ *
+ * Vive aqui e não em cada tela porque eram três cópias do mesmo conjunto — o
+ * contador, a agenda de uma loja e a das lojas todas. Um estado que entra numa
+ * lista e não na outra é a agenda a dizer dois números diferentes para o mesmo
+ * dia, e quem trabalha nela deixa de acreditar nos dois.
+ */
+export const CANCELADOS: ReadonlySet<string> = new Set([
+  'cancelled_by_client',
+  'cancelled_by_studio',
+  'no_show',
+])
+
 export interface DayCounters {
   total: number
   reserved: number
@@ -182,7 +196,6 @@ export interface DayCounters {
 
 /** Cabeçalho da agenda da recepção. */
 export function countDay(list: readonly AppointmentView[]): DayCounters {
-  const cancelled = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
   let counters: DayCounters = {
     total: list.length,
     reserved: 0,
@@ -193,7 +206,7 @@ export function countDay(list: readonly AppointmentView[]): DayCounters {
   }
 
   for (const item of list) {
-    if (cancelled.has(item.status)) {
+    if (CANCELADOS.has(item.status)) {
       counters.cancelled += 1
       continue
     }
@@ -208,3 +221,23 @@ export function countDay(list: readonly AppointmentView[]): DayCounters {
   return counters
 }
 
+/**
+ * Os atendimentos em que esta profissional executa pelo menos um serviço.
+ *
+ * O recorte é por atendimento, não por coluna: a cliente que fez escova com uma
+ * e coloração com outra aparece inteira para as duas — é o mesmo horário, e
+ * esconder metade dele faria a agenda mentir sobre quando ela sai.
+ *
+ * Vive aqui, e não na tela, porque são duas telas a fazer o mesmo recorte: a
+ * agenda de uma loja e a das lojas todas. Uma cópia divergente seria uma delas
+ * a mostrar-lhe a agenda da colega.
+ */
+export function soDaProfissional(
+  list: readonly AppointmentView[],
+  staffId: string | null,
+): AppointmentView[] {
+  /* Sem perfil de agenda não há coluna nem atendimento — lista vazia é a
+     resposta honesta, e não "então mostra tudo". */
+  if (!staffId) return []
+  return list.filter((item) => item.items.some((entry) => entry.staffId === staffId))
+}

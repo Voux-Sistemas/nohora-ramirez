@@ -62,6 +62,62 @@ function ehPoolerDeTransacao(url: string): boolean {
   }
 }
 
+/** Qualquer pooler, de transação ou de sessão — o da Supabase anuncia-se no nome. */
+function ehPooler(url: string): boolean {
+  try {
+    return ehPoolerDeTransacao(url) || new URL(url).hostname.includes('.pooler.')
+  } catch {
+    return false
+  }
+}
+
+/*
+  O pooler de TRANSAÇÃO não serve para este site, e a prova está medida.
+
+  O `postgres.js` não espera a resposta de uma consulta para mandar a seguinte
+  pela mesma ligação — chama-se pipelining e é o que o torna rápido. Quando o
+  pool está todo ocupado, a consulta que sobra não fica à espera de uma ligação
+  livre: viaja colada a uma que já está a trabalhar.
+
+  Contra o Supavisor da 6543 isso não funciona. Medido a 2026-08-18 contra a
+  base de produção, oito consultas triviais lançadas de uma vez numa ligação:
+  **duas respondem, as outras seis nunca respondem**. Não dão erro, não expiram,
+  ficam pendentes para sempre. As mesmas oito, pelas mesmas credenciais, na
+  porta de sessão 5432: 8/8 em 1,5 s.
+
+  É a avaria que pendurou o site duas vezes, e a que deixou o `/agendar/valongo`
+  a girar sem nunca responder: a tela que monta a agenda pergunta quinze coisas
+  ao banco em três vagas, passa dos dez da piscina, e a partir daí há sempre
+  consultas encavalitadas. Nada do lado do banco a pode salvar — o Postgres nem
+  chega a receber a pergunta, portanto o `statement_timeout` de dez segundos do
+  papel `app_web` não tem o que cortar. Do lado do cliente, o relógio do socket
+  também não arma: as respostas das consultas vizinhas chegam pelo mesmo fio e
+  reiniciam-lhe a contagem.
+
+  Por isso a porta de transação é corrigida aqui em vez de ser respeitada. Uma
+  aplicação Node com pool de ligações longas é exactamente o caso para que a
+  Supabase publica a porta de sessão; a 6543 é para funções efémeras, que abrem
+  e fecham uma ligação por pedido e nunca encavalitam nada. A troca é anunciada
+  no arranque, e não feita em silêncio: quem lê o log vê que a URL que deu não
+  é a URL que está a ser usada, e corrige a variável na origem.
+*/
+const PORTA_DE_SESSAO = '5432'
+
+function urlDaAplicacao(): string {
+  const bruta = connectionString()
+  if (!ehPoolerDeTransacao(bruta)) return bruta
+
+  const url = new URL(bruta)
+  const antes = url.port
+  url.port = PORTA_DE_SESSAO
+  console.warn(
+    `[db] DATABASE_URL aponta para o pooler de transação (porta ${antes}), que perde ` +
+      `consultas em paralelo. A usar a porta de sessão ${PORTA_DE_SESSAO} em ${url.hostname}. ` +
+      'Corrija a variável na origem.',
+  )
+  return url.toString()
+}
+
 /*
   O que aconteceu em 2026-08-17, e porque é que estes três números existem.
 
@@ -87,23 +143,32 @@ function ehPoolerDeTransacao(url: string): boolean {
 
 /*
   Ocioso: o `postgres.js` vem com `idle_timeout: null` e segura a ligação para
-  sempre. Contra um pooler de *transação* isso não poupa nada — quem multiplexa
-  é ele, e a ligação do cliente não guarda estado entre consultas —, só acumula
-  sockets à espera de apodrecer do lado de lá. Dois minutos larga o que está
-  parado sem transformar cada visita num aperto de mão TLS novo.
+  sempre, e o outro extremo — largar depressa — sai caro neste sítio. Abrir uma
+  ligação nova custa 1,2 s medidos (TCP + TLS + autenticação até eu-central-1),
+  e uma tela que pergunta treze coisas ao banco abre dez ligações de uma vez:
+  com a piscina fria são 1,4 s só de apertos de mão, com ela quente são 0,4 s.
+  Num salão de bairro passam minutos entre duas visitas, portanto um prazo curto
+  garante que quase toda a cliente paga o aperto de mão outra vez.
+
+  Dez minutos. Na porta de *sessão* cada ligação nossa segura uma ligação do
+  servidor, por isso não se pode segurar para sempre — mas dez das sessenta que
+  a base tem, guardadas dez minutos, é troca justa por não pôr um segundo em
+  cima de cada primeira tela.
 */
-const OCIOSO_S = 120
+const OCIOSO_S = 600
 
 /** Falhar em 10 s e dizer que falhou vale mais do que pendurar meio minuto. */
 const LIGACAO_S = 10
 
 /*
-  Vida máxima: o driver traz 30 a 60 minutos. Meia hora é muito tempo para uma
-  ligação que o pooler do outro lado já pode ter reciclado sem nos avisar.
-  Dez minutos, com a mesma folga aleatória do driver para as ligações não
-  expirarem todas no mesmo segundo e deixarem o site sem nenhuma.
+  Vida máxima: o driver traz 30 a 60 minutos. Os dez minutos que aqui estiveram
+  eram medo do pooler de *transação*, que podia reciclar o backend por baixo de
+  nós sem avisar. Na porta de sessão a ligação é nossa do princípio ao fim, e
+  reciclá-la de dez em dez minutos era só voltar a pagar o aperto de mão de 1,2 s
+  a meio da tarde. Meia hora, com a mesma folga aleatória do driver para as
+  ligações não expirarem todas no mesmo segundo e deixarem o site sem nenhuma.
 */
-const VIDA_S = 600 + Math.floor(Math.random() * 300)
+const VIDA_S = 1_800 + Math.floor(Math.random() * 600)
 
 /*
   O quarto número é do nosso lado do fio, e é o que faltava.
@@ -118,6 +183,11 @@ const VIDA_S = 600 + Math.floor(Math.random() * 300)
   pendente para sempre, a ligação nunca volta ao pool, e ao fim de dez pedidos o
   site está pendurado outra vez. Foi assim que uma ligação sozinha ficou 448
   segundos a segurar um `select` da tabela `units`.
+
+  A causa desse silêncio só apareceu no dia seguinte, e está escrita mais acima:
+  era o pooler de transação a engolir as consultas encavalitadas. Tratada a
+  causa, este relógio deixa de ser o que segura o site de pé — passa a ser o que
+  costuma ser um prazo, a rede de quem já não conta cair.
 
   O prazo tem de ser nosso e tem de estar no socket, porque o socket é a única
   peça que ninguém está a vigiar. Damos a tomada ao driver já ligada e deixamos
@@ -240,19 +310,31 @@ function vigiarSilencio(tomada: net.Socket): void {
  */
 export function getDb(options?: { max?: number }) {
   const holder = globalThis as PoolHolder
-  const url = connectionString()
-  const opcoes: OpcoesComTomada = {
-    max: options?.max ?? 10,
-    prepare: !ehPoolerDeTransacao(url),
-    idle_timeout: OCIOSO_S,
-    connect_timeout: LIGACAO_S,
-    max_lifetime: VIDA_S,
-    // o Postgres devolve timestamptz; deixamos o driver entregar Date em UTC
-    transform: { undefined: null },
-    socket: tomadaComPrazo,
+  /* A URL só se resolve quando há piscina para abrir — `urlDaAplicacao` avisa no
+     log quando corrige a porta, e esse aviso é para sair uma vez por processo,
+     não uma vez por módulo que importe o banco. */
+  if (!holder[POOL]) {
+    const url = urlDaAplicacao()
+    const opcoes: OpcoesComTomada = {
+      max: options?.max ?? 10,
+      /* Na porta de sessão o statement preparado sobrevive à ligação e podia
+         ficar ligado. Fica desligado à mesma: quem multiplexa do outro lado é o
+         mesmo Supavisor, e o que se poupa — uma análise de SQL por consulta
+         repetida — não se vê ao lado dos 190 ms de ida e volta até
+         eu-central-1. Não vale um modo de falha intermitente a mais. */
+      prepare: !ehPooler(url),
+      idle_timeout: OCIOSO_S,
+      connect_timeout: LIGACAO_S,
+      max_lifetime: VIDA_S,
+      // o Postgres devolve timestamptz; deixamos o driver entregar Date em UTC
+      transform: { undefined: null },
+      socket: tomadaComPrazo,
+    }
+    holder[POOL] = postgres(url, opcoes)
   }
-  holder[POOL] ??= postgres(url, opcoes)
-  return drizzle(holder[POOL], { schema })
+  const piscina = holder[POOL]
+  if (!piscina) throw new Error('piscina de ligações não abriu')
+  return drizzle(piscina, { schema })
 }
 
 export type Database = ReturnType<typeof getDb>

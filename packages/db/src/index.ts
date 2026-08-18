@@ -151,11 +151,34 @@ function urlDaAplicacao(): string {
   garante que quase toda a cliente paga o aperto de mão outra vez.
 
   Dez minutos. Na porta de *sessão* cada ligação nossa segura uma ligação do
-  servidor, por isso não se pode segurar para sempre — mas dez das sessenta que
-  a base tem, guardadas dez minutos, é troca justa por não pôr um segundo em
-  cima de cada primeira tela.
+  servidor, por isso não se pode segurar para sempre — mas um punhado delas,
+  guardadas dez minutos, é troca justa por não pôr um segundo em cima de cada
+  primeira tela. Quantas são esse punhado está em `TETO_DE_LIGACOES`, logo
+  abaixo, e é um número muito mais apertado do que parecia.
 */
 const OCIOSO_S = 600
+
+/*
+  O TECTO. Este número já deitou o site abaixo, e vale a pena dizer como.
+
+  O pooler de sessão do Supabase não abre as sessenta ligações da base: abre
+  quinze, e responde `EMAXCONNSESSION` à décima sexta. Aqui estavam dez por
+  processo, o que parecia caber à vontade — mas a Railway troca de versão
+  sobrepondo os contentores, e durante a troca há dois processos vivos ao mesmo
+  tempo. Dez mais dez são vinte, e a montra passou a responder 500 a meio do
+  deploy: as consultas do horário e do preçário morriam à chegada.
+
+  Cinco cabe duas vezes com folga de cinco para quem mais precise da base — uma
+  migração, um script, a pré-visualização local, que corre com as credenciais de
+  produção e conta para o mesmo tecto. Cinco também chegam de sobra para o
+  trabalho real: num salão de bairro as visitas vêm com minutos de intervalo, e
+  `postgres.js` abre as ligações à medida que faz falta, nunca todas de uma vez.
+
+  `DB_MAX_LIGACOES` existe para o dia em que a base crescer: sobe-se a variável
+  em vez de se voltar a mexer aqui, e continua a ser um número por processo — a
+  conta de o multiplicar por dois durante o deploy é sempre a mesma.
+*/
+const TETO_DE_LIGACOES = Number(process.env.DB_MAX_LIGACOES) || 5
 
 /** Falhar em 10 s e dizer que falhou vale mais do que pendurar meio minuto. */
 const LIGACAO_S = 10
@@ -316,7 +339,7 @@ export function getDb(options?: { max?: number }) {
   if (!holder[POOL]) {
     const url = urlDaAplicacao()
     const opcoes: OpcoesComTomada = {
-      max: options?.max ?? 10,
+      max: options?.max ?? TETO_DE_LIGACOES,
       /* Na porta de sessão o statement preparado sobrevive à ligação e podia
          ficar ligado. Fica desligado à mesma: quem multiplexa do outro lado é o
          mesmo Supavisor, e o que se poupa — uma análise de SQL por consulta

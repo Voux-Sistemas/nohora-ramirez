@@ -6,7 +6,7 @@
  * A radiografia do `inspect` responde "o que é que está guardado". Esta responde
  * outra pergunta, a das noites más: "porque é que a consulta não volta". São
  * coisas diferentes e por isso são dois ficheiros — quem está com o salão em
- * baixo não quer esperar por uma contagem de comissões para saber que há um
+ * baixo não quer esperar por uma contagem de marcações para saber que há um
  * `idle in transaction` a segurar a tabela toda.
  *
  * Nada aqui escreve. Pode correr contra produção com o site no ar.

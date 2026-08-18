@@ -26,7 +26,6 @@ import {
   appointmentStatusEvents,
   clientNotes,
   clientProfiles,
-  commissionRules,
   organizations,
   resources,
   resourceTypes,
@@ -48,7 +47,6 @@ import {
   ADMINS,
   CATEGORIES,
   CLIENTS,
-  COMMISSIONS,
   ORGANIZATION,
   PRICING_EXCEPTIONS,
   RESOURCES,
@@ -342,21 +340,6 @@ async function main(): Promise<void> {
       durationOverrideMin: exception.durationOverrideMin ?? null,
     })
   }
-
-  // ─── comissões ────────────────────────────────────────────────────────────
-
-  /* Sem regra nenhuma na tabela, fechar comanda gera comissão zero e a tela
-     "A pagar" nasce vazia — a demonstração mostraria um produto que não
-     calcula o que promete calcular. */
-  for (const rule of COMMISSIONS) {
-    await db.insert(commissionRules).values({
-      organizationId: orgId,
-      staffId: rule.staff ? staffCtxBySlug.get(rule.staff)!.id : null,
-      serviceId: rule.service ? serviceCtxBySlug.get(rule.service)!.id : null,
-      percentBps: rule.percentBps,
-    })
-  }
-  console.log(`  regras de comissão: ${COMMISSIONS.length}`)
 
   // ─── clientes ─────────────────────────────────────────────────────────────
 

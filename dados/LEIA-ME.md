@@ -1,6 +1,6 @@
-# O formato de importação, em dez ficheiros
+# O formato de importação, em nove ficheiros
 
-Estes dez `.csv` são **material de referência**: mostram, coluna a coluna, o
+Estes nove `.csv` são **material de referência**: mostram, coluna a coluna, o
 formato em que o sistema espera receber os dados de um salão novo. Não são
 pré-requisito para arrancar nada — o sistema sobe com o seed e funciona sem eles
 (ADR-008 em `docs/DECISOES.md`). Servem para duas coisas:
@@ -15,11 +15,11 @@ com três lojas.
 > **Os ficheiros com dados a sério vão para `dados/real/`, não por cima destes.**
 > Essa pasta está no `.gitignore`: nome, telemóvel e e-mail de clientes de
 > verdade não entram no repositório. Copie o modelo para lá (`dados/real/
-> 10-clientes.csv`) e preencha a cópia. Os dez daqui ficam como estão, que é
+> 10-clientes.csv`) e preencha a cópia. Os nove daqui ficam como estão, que é
 > para isso que servem — mostrar o formato à próxima pessoa.
 
 Só o `10-clientes.csv` entra sozinho no sistema, pelo ecrã *Clientes →
-Importar*. Os outros nove são para preencher à mão nos formulários.
+Importar*. Os outros oito são para preencher à mão nos formulários.
 
 | Ordem | Ficheiro | O que carrega |
 |---|---|---|
@@ -31,8 +31,7 @@ Importar*. Os outros nove são para preencher à mão nos formulários.
 | 6 | `04-escalas.csv` | quando cada uma trabalha. Sem escala a profissional não tem coluna na agenda |
 | 7 | `07-recursos.csv` | lavatórios, cadeiras e cabines — é o que impede duas clientes na mesma cabine |
 | 8 | `08-precos-excecoes.csv` | só se o preço variar por profissional ou por loja |
-| 9 | `09-comissoes.csv` | fase seguinte, mas recolhe-se junto para não haver segunda ronda de perguntas |
-| 10 | `10-clientes.csv` | a carteira de clientes — o único que o sistema importa sozinho |
+| 9 | `10-clientes.csv` | a carteira de clientes — o único que o sistema importa sozinho |
 
 A ordem da tabela não é a ordem dos números no nome do ficheiro: é a ordem em
 que os dados fazem falta. Cada linha depende de a anterior já estar respondida —
@@ -93,12 +92,6 @@ profissional + unidade  →  profissional  →  unidade  →  preço base do ser
 
 Ou seja: se a Ana cobra mais caro por madeixas em qualquer loja, é uma linha com
 `profissional=ana` e `unidade` vazia.
-
-### Sobre `09-comissoes.csv`
-
-Preencha **ou** `percentual` **ou** `valor_fixo`, nunca os dois na mesma linha.
-Deixar `servico` e `categoria` vazios significa "regra geral desta
-profissional".
 
 ### Sobre `10-clientes.csv`
 

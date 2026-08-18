@@ -17,7 +17,7 @@ export interface ComandaState {
 }
 
 /**
- * Fechar comanda grava pagamento, desconto e comissão. Não tinha porteiro
+ * Fechar comanda grava pagamento e desconto. Não tinha porteiro
  * nenhum: com o id do atendimento na mão, sem sessão, dava para lançar um
  * "pago em dinheiro" no caixa da loja. A unidade que manda é a do atendimento,
  * lida do banco — `unitSlug` no formulário serve só para revalidar a tela.

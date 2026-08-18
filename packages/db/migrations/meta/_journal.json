@@ -50,6 +50,13 @@
       "when": 1786584471085,
       "tag": "0006_stiff_grandmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787067957567,
+      "tag": "0007_brave_punisher",
+      "breakpoints": true
     }
   ]
 }

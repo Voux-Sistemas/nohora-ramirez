@@ -10,13 +10,7 @@ import { db } from '@/lib/db'
 import { formatDateLong, formatMoney, formatMoneyShort, formatMonthLong } from '@/lib/format'
 import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
-import {
-  podeRede,
-  requireGestaoOuMontra,
-  unidadesVisiveis,
-  type Acesso,
-} from '@/server/auth/permissoes'
-import { commissionSummaryByStaff } from '@/server/finance/commissions'
+import { requireGestaoOuMontra, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
 
 export const dynamic = 'force-dynamic'
 
@@ -288,12 +282,7 @@ export default async function PainelPage() {
      endereço lia o caixa da rede. Hoje ela é da dona e do gerente — quem atende
      é levado para a própria agenda, que é o "hoje" dela. */
   const acesso = await requireGestaoOuMontra()
-  const rede = podeRede(acesso)
-
-  const [{ unidades, serie, diaAtual, mesLabel }, commissions] = await Promise.all([
-    loadPainel(acesso),
-    rede ? commissionSummaryByStaff() : Promise.resolve(null),
-  ])
+  const { unidades, serie, diaAtual, mesLabel } = await loadPainel(acesso)
 
   const hoje = unidades.reduce(
     (acc, unit) => ({
@@ -314,12 +303,6 @@ export default async function PainelPage() {
   const ticket = concluidos > 0 ? Math.round(faturamento / concluidos) : 0
   const ticketAnterior =
     concluidosAnterior > 0 ? Math.round(faturamentoAnterior / concluidosAnterior) : 0
-
-  const comissoesPendentes = (commissions ?? []).reduce((acc, c) => acc + c.pendingAmount, 0)
-  const pendentes = (commissions ?? [])
-    .filter((c) => c.pendingAmount > 0)
-    .sort((a, b) => b.pendingAmount - a.pendingAmount)
-    .slice(0, 6)
 
   const maxMes = Math.max(1, ...unidades.map((u) => u.faturamento))
   /* A data do cabeçalho no fuso da loja, e não no do servidor. O servidor corre
@@ -431,26 +414,10 @@ export default async function PainelPage() {
                   value={formatMoneyShort(marcados)}
                   nota={`${marcadosCount} marcaç${marcadosCount === 1 ? 'ão' : 'ões'} de pé`}
                 />
-                {rede ? (
-                  <MetricaLinha
-                    label="Comissões"
-                    value={formatMoneyShort(comissoesPendentes)}
-                    // Saldo em aberto agora, não um fluxo do mês — comparar com
-                    // "o pendente no mesmo dia do mês passado" pediria
-                    // reconstruir o histórico de commissionEntries a partir de
-                    // createdAt/paidAt, que hoje a consulta não faz.
-                    nota="por pagar, hoje"
-                  />
-                ) : null}
               </dl>
             </div>
 
-            <div
-              className={cn(
-                'grid grid-cols-1 gap-8',
-                rede && 'xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]',
-              )}
-            >
+            <div className="grid grid-cols-1 gap-8">
               <Section title="As lojas" className="mb-0">
                 <div className="plate">
                   {unidades.map((unit) => (
@@ -458,8 +425,6 @@ export default async function PainelPage() {
                   ))}
                 </div>
               </Section>
-
-              {rede ? <APagar pendentes={pendentes} /> : null}
             </div>
           </>
         )}
@@ -673,40 +638,3 @@ function Numero({ label, value, wide }: { label: string; value: string; wide?: b
   )
 }
 
-function APagar({
-  pendentes,
-}: {
-  pendentes: { staffId: string; staffName: string; pendingAmount: number }[]
-}) {
-  return (
-    <Section
-      title="A pagar"
-      className="mb-0"
-      actions={
-        <Link
-          href={href('/admin/comissoes')}
-          className="text-muted hover:text-(--text-strong) transition-colors"
-        >
-          todas →
-        </Link>
-      }
-    >
-      <div className="plate">
-        <ul>
-          {pendentes.map((row) => (
-            <li
-              key={row.staffId}
-              className="flex items-baseline justify-between gap-4 border-b border-(--border-subtle) px-5 py-3.5 text-[0.9375rem] last:border-0"
-            >
-              <span>{row.staffName}</span>
-              <span className="tnum font-medium">{formatMoney(row.pendingAmount)}</span>
-            </li>
-          ))}
-          {pendentes.length === 0 ? (
-            <li className="text-muted px-5 py-10 text-center text-sm">Nada por pagar.</li>
-          ) : null}
-        </ul>
-      </div>
-    </Section>
-  )
-}

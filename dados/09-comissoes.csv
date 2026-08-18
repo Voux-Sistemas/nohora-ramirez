@@ -1,8 +1,0 @@
-profissional;servico;categoria;percentual;valor_fixo;desconta_produto;observacao
-ana;;Química;40;;sim;Desconta o custo da coloração antes de comissionar
-ana;;;35;;nao;Regra geral da Ana para os restantes serviços
-bia;;;30;;nao;
-carla;;;50;;nao;
-duda;pestanas;;;20,00;nao;Valor fixo por aplicação em vez de percentagem
-duda;;;40;;nao;
-elis;;;45;;sim;

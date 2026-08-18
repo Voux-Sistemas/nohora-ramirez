@@ -41,7 +41,7 @@ const ACESSOS: readonly {
     papel: 'dona',
     titulo: 'Dona',
     explica:
-      'Vê a rede inteira e mexe no registo: unidades, serviços, comissões e o acesso das outras pessoas.',
+      'Vê a rede inteira e mexe no registo: unidades, serviços e o acesso das outras pessoas.',
   },
 ]
 

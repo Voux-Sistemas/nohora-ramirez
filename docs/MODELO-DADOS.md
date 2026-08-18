@@ -34,16 +34,14 @@ resource_types (da rede, não da unidade) ── resources
 users ──┬── user_roles (papel por unidade; sem unidade = escopo rede)
         ├── sessions · auth_otps
         ├── staff_profiles ──┬── staff_units · staff_schedules · staff_time_off
-        │                    ├── staff_skills (n:n com services)
-        │                    └── commission_rules
+        │                    └── staff_skills (n:n com services)
         └── client_profiles ── client_notes
 
 service_categories ── services ──┬── service_pricing (exceção por unidade e/ou profissional)
                                  └── service_resource_requirements (n:n com resource_types)
 
 appointments ──┬── appointment_items ──┬── appointment_staff_blocks
-               │                       ├── appointment_resource_blocks
-               │                       └── commission_entries
+               │                       └── appointment_resource_blocks
                ├── appointment_status_events
                ├── appointment_discounts
                ├── payments
@@ -202,11 +200,11 @@ inteiro. `appointment_item_id`, `resource_id`, `block` (`tstzrange`).
 `cancelled`), `offered_at`, `offer_expires_at`. **A tabela existe e nenhum ecrã a escreve:** não
 há hoje quem ofereça a vaga quando alguém cancela.
 
-### Comanda, caixa e comissão — `schema/finance.ts`
+### Comanda e caixa — `schema/finance.ts`
 
 **Não há tabela de comanda.** A comanda **é** a marcação: os itens já estão em
 `appointment_items` com profissional e preço congelados, e tudo o que o fecho acrescenta
-pendura-se directamente nela — desconto, pagamento, fecho e comissão, uma tabela cada. Uma
+pendura-se directamente nela — desconto, pagamento e fecho, uma tabela cada. Uma
 tabela de comanda separada seria uma segunda cópia dos mesmos itens, com o dobro das
 oportunidades de divergir do que a agenda diz.
 
@@ -228,16 +226,8 @@ em dinheiro; os outros dois são lançamentos avulsos do balcão.
 é único). `amount`, `reason`, `applied_by`. Não mexe no preço congelado do item.
 
 **`comanda_closures`** — a comanda fechada, também uma por marcação. `appointment_id` (único),
-`closed_by`, `closed_at`. Trava novos pagamentos e descontos, e é o que dispara a comissão.
-
-**`commission_rules`** — `organization_id`, `staff_id` (nulo), `service_id` (nulo),
-`percent_bps` (pontos-base: 3000 = 30 %). Precedência igual à de preço: profissional + serviço →
-profissional → serviço → padrão da rede. Quem resolve é `resolveCommission` em `@studio/core`.
-
-**`commission_entries`** — gerada por item ao fechar a comanda. `appointment_item_id` (único),
-`staff_id`, `service_id`, `base_amount` (o preço efectivamente cobrado, já com o desconto
-rateado), `percent_bps`, `amount`, `status` (`pending`/`paid`), `paid_at`. A percentagem fica
-congelada junto: mudar a regra depois nunca reescreve comissão já gerada.
+`closed_by`, `closed_at`. Trava novos pagamentos e descontos. Uma vez fechada não reabre:
+para corrigir faz-se um lançamento de ajuste.
 
 ### Comunicação — `schema/messaging.ts`
 
@@ -297,14 +287,12 @@ lê esta tabela antes de qualquer escrita e recusa-se a correr quando encontra `
 3. **Fuso horário** — tudo em `timestamptz` (UTC), convertido na borda com o fuso **da unidade**.
 4. **Preço congelado** — `appointment_items.price` e `appointment_items.duration_min` guardam o
    valor do momento do evento. Mudar a tabela de preços não reescreve o passado.
-5. **Comissão é derivada, mas persistida.** Gerar `commission_entries` no fecho da comanda e
-   nunca recomputar em cima do histórico: recalcular retroactivamente muda o que já foi pago.
-6. **Cliente é única na rede** — `users.phone` é a chave, e o histórico atravessa as duas lojas.
-7. **Cancelar apaga bloco.** A definição de "horário ocupado" é "existe linha de bloco", então
+5. **Cliente é única na rede** — `users.phone` é a chave, e o histórico atravessa as duas lojas.
+6. **Cancelar apaga bloco.** A definição de "horário ocupado" é "existe linha de bloco", então
    cancelar uma marcação apaga as linhas de `appointment_staff_blocks` e
    `appointment_resource_blocks` em cascata. Não há estado "bloco cancelado" a filtrar em todas as
    consultas, e é por isso que a constraint de exclusão pode ser incondicional.
-8. **O site não escreve DDL.** Em produção o `web` liga-se como `app_web`, um papel só com
+7. **O site não escreve DDL.** Em produção o `web` liga-se como `app_web`, um papel só com
    `SELECT/INSERT/UPDATE/DELETE` (ADR-009 e `packages/db/sql/03_app_web_role.sql`). Migration,
    constraints e seed passam pelo papel dono, por `DIRECT_URL`.
 
@@ -315,7 +303,8 @@ lê esta tabela antes de qualquer escrita e recusa-se a correr quando encontra `
 Registado aqui porque a ausência é informação: quem procurar estas tabelas não as vai encontrar,
 e não é por estarem noutro ficheiro.
 
-**Não existe** stock (produto, saldo por unidade, movimento, transferência entre lojas, ficha
+**Não existe** comissão — saiu do produto por decisão da dona (ADR-013). **Não existe** stock
+(produto, saldo por unidade, movimento, transferência entre lojas, ficha
 de consumo por serviço), **não existe** pacote de sessões nem fidelidade ou cupão, **não
 existe** anamnese nem galeria antes/depois, **não existe** conversa nem mensagem — o chat não foi
 construído, e o que há é o clique para o WhatsApp do próprio salão —, **não existe** avaliação

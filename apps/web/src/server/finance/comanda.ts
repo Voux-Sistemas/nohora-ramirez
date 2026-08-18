@@ -1,10 +1,9 @@
 import 'server-only'
 
 /**
- * Fechamento de comanda: confere o total, aplica desconto opcional, registra
- * o(s) pagamento(s) e gera a comissão de cada item. Uma vez fechada, a
- * comanda trava — reabrir não existe neste corte, é feito um novo lançamento
- * de ajuste se precisar corrigir.
+ * Fechamento de comanda: confere o total, aplica desconto opcional e registra
+ * o(s) pagamento(s). Uma vez fechada, a comanda trava — reabrir não existe
+ * neste corte; para corrigir faz-se um novo lançamento de ajuste.
  */
 
 import {
@@ -15,15 +14,11 @@ import {
   cashSessions,
   clientProfiles,
   comandaClosures,
-  commissionEntries,
-  commissionRules,
-  organizations,
   payments,
   services,
   staffProfiles,
   users,
 } from '@studio/db'
-import { ratearDesconto, resolveCommission } from '@studio/core'
 import { and, eq, isNull } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { pais } from '@/lib/pais'
@@ -260,48 +255,6 @@ export async function closeComanda(appointmentId: string, input: CloseComandaInp
     }
 
     await tx.insert(comandaClosures).values({ appointmentId })
-
-    const items = await tx
-      .select({
-        id: appointmentItems.id,
-        serviceId: appointmentItems.serviceId,
-        staffId: appointmentItems.staffId,
-        price: appointmentItems.price,
-      })
-      .from(appointmentItems)
-      .where(eq(appointmentItems.appointmentId, appointmentId))
-
-    const [org] = await tx.select({ id: organizations.id }).from(organizations).limit(1)
-    const rules = org
-      ? await tx
-          .select({
-            staffId: commissionRules.staffId,
-            serviceId: commissionRules.serviceId,
-            percentBps: commissionRules.percentBps,
-          })
-          .from(commissionRules)
-          .where(eq(commissionRules.organizationId, org.id))
-      : []
-
-    /* O desconto é lançado sobre a visita inteira, mas a comissão é por item —
-       cada linha tem a sua profissional. `ratearDesconto` reparte-o na proporção
-       do preço sem perder cêntimos pelo caminho; a conta e o porquê estão lá. */
-    const partes = ratearDesconto(
-      items.map((i) => i.price),
-      input.discountAmount,
-    )
-    for (const [indice, item] of items.entries()) {
-      const baseAmount = Math.max(0, item.price - partes[indice]!)
-      const resolved = resolveCommission(rules, item.staffId, item.serviceId, baseAmount)
-      await tx.insert(commissionEntries).values({
-        appointmentItemId: item.id,
-        staffId: item.staffId,
-        serviceId: item.serviceId,
-        baseAmount,
-        percentBps: resolved.percentBps,
-        amount: resolved.amount,
-      })
-    }
   })
 }
 

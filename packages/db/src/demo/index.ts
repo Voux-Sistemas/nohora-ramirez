@@ -6,9 +6,8 @@
  *
  * Para que serve: o salão tem os 67 serviços, as duas lojas, as fotografias e a
  * equipa cadastrados, e nenhum movimento. Sem movimento não há como julgar o
- * produto — a agenda está vazia, o caixa nunca abriu, a faturação do mês é zero
- * e o mapa de comissões diz que não há nada a pagar a ninguém. Isto enche essas
- * telas com uma operação plausível de sete semanas.
+ * produto — a agenda está vazia, o caixa nunca abriu e a faturação do mês é
+ * zero. Isto enche essas telas com uma operação plausível de sete semanas.
  *
  * O que NÃO faz, e porquê:
  *
@@ -35,10 +34,7 @@ import { randomUUID } from 'node:crypto'
 import {
   addDaysInZone,
   isoDateInZone,
-  ratearDesconto,
-  resolveCommission,
   zonedDateTime,
-  type CommissionRule,
   type PriceOverride,
   type TimeRange,
 } from '@studio/core'
@@ -58,8 +54,6 @@ import {
   clientNotes,
   clientProfiles,
   comandaClosures,
-  commissionEntries,
-  commissionRules,
   organizations,
   payments,
   resources,
@@ -124,19 +118,6 @@ const TENTATIVAS_POR_PROFISSIONAL = 14
 
 /** Troco com que a gaveta abre de manhã. */
 const ABERTURA_DE_CAIXA = 5_000
-
-/**
- * A percentagem de comissão da demonstração.
- *
- * A tabela `commission_rules` está vazia em produção, e sem uma regra qualquer
- * o fecho da comanda grava comissão zero: a tela "A pagar" ficava vazia e a
- * demonstração mostrava um produto que não calcula o que promete calcular.
- *
- * Quarenta por cento é um valor de praça, não é o do salão. O valor verdadeiro é
- * decisão de negócio da dona e cadastra-se em /admin/comissoes — esta linha sai
- * inteira no `--limpar`.
- */
-const COMISSAO_DEMO_BPS = 4_000
 
 /** Um serviço curto e barato é o que sai junto de outro; um segundo trabalho de
     três horas na mesma visita não acontece. */
@@ -429,12 +410,6 @@ async function semearDemonstracao(db: Db): Promise<void> {
      caminho — as marcações e os pagamentos, mais abaixo. */
   registo.registar('users', linhasDeUtilizador.map((linha) => linha.id!))
 
-  // ─── a regra de comissão ──────────────────────────────────────────────────
-
-  const regraId = randomUUID()
-  const regras: CommissionRule[] = [{ staffId: null, serviceId: null, percentBps: COMISSAO_DEMO_BPS }]
-  registo.registar('commission_rules', [regraId])
-
   // ─── a agenda ─────────────────────────────────────────────────────────────
 
   const planeadas = generateAppointments({
@@ -584,7 +559,6 @@ async function semearDemonstracao(db: Db): Promise<void> {
     comandas,
     lojas,
     equipa,
-    regras,
     tz,
     hoje,
     agora,
@@ -593,7 +567,6 @@ async function semearDemonstracao(db: Db): Promise<void> {
   registo.registar('cash_sessions', caixa.sessoes.map((linha) => linha.id!))
   registo.registar('payments', caixa.pagamentos.map((linha) => linha.id!))
   registo.registar('cash_movements', caixa.movimentos.map((linha) => linha.id!))
-  registo.registar('commission_entries', caixa.comissoes.map((linha) => linha.id!))
 
   // ─── a escrita, de uma vez ────────────────────────────────────────────────
 
@@ -601,7 +574,7 @@ async function semearDemonstracao(db: Db): Promise<void> {
   console.log(
     `  a escrever: ${CLIENTES.length} clientes · ${linhasDeMarcacao.length} marcações ` +
       `(${reservam} a ocupar horário) · ${caixa.sessoes.length} caixas · ` +
-      `${caixa.pagamentos.length} pagamentos · ${caixa.comissoes.length} comissões`,
+      `${caixa.pagamentos.length} pagamentos`,
   )
 
   await db.transaction(async (tx) => {
@@ -611,14 +584,6 @@ async function semearDemonstracao(db: Db): Promise<void> {
     await inserirEmLotes(tx, clientProfiles, linhasDePerfil, 200)
     await inserirEmLotes(tx, userRoles, linhasDePapel, 500)
     await inserirEmLotes(tx, clientNotes, linhasDeObservacao, 200)
-
-    await tx.insert(commissionRules).values({
-      id: regraId,
-      organizationId: org.id,
-      staffId: null,
-      serviceId: null,
-      percentBps: COMISSAO_DEMO_BPS,
-    })
 
     await inserirEmLotes(tx, appointments, linhasDeMarcacao, 150)
     await inserirEmLotes(tx, appointmentItems, linhasDeItem, 200)
@@ -631,7 +596,6 @@ async function semearDemonstracao(db: Db): Promise<void> {
     await inserirEmLotes(tx, payments, caixa.pagamentos, 400)
     await inserirEmLotes(tx, cashMovements, caixa.movimentos, 400)
     await inserirEmLotes(tx, comandaClosures, caixa.fechos, 400)
-    await inserirEmLotes(tx, commissionEntries, caixa.comissoes, 300)
 
     /* A ficha da cliente conta a história dela: primeira visita, última visita e
        quantas vezes faltou. São colunas de `client_profiles` que o fecho da
@@ -664,18 +628,12 @@ interface EntradaDoCaixa {
   pagamentos: (typeof payments.$inferInsert)[]
   fechos: (typeof comandaClosures.$inferInsert)[]
   descontos: (typeof appointmentDiscounts.$inferInsert)[]
-  comissoes: (typeof commissionEntries.$inferInsert)[]
 }
 
 /**
  * Percorre as visitas concluídas por loja e por dia e faz o que a recepção faria:
  * abre a gaveta de manhã, fecha cada comanda à medida que a cliente sai, lança
  * uma sangria a meio da tarde e conta o dinheiro ao fim do dia.
- *
- * As contas são exactamente as do produto — `ratearDesconto` para repartir o
- * desconto pelos itens e `resolveCommission` para o percentual de cada um. Se
- * fossem contas próprias, a demonstração mostraria números que o sistema não
- * produz, e o primeiro fecho de comanda a sério não bateria com o histórico.
  *
  * A gaveta de hoje fica ABERTA, e só ela: `cash_sessions_um_aberto_por_unidade`
  * é um índice único parcial, e duas abertas na mesma loja seriam recusadas pelo
@@ -692,32 +650,21 @@ function fecharComandas(opcoes: {
   }[]
   lojas: { id: string; timezone: string }[]
   equipa: { id: string; userId: string }[]
-  regras: CommissionRule[]
   tz: string
   hoje: string
   agora: Date
 }): EntradaDoCaixa {
-  const { rng, comandas, lojas, equipa, regras, hoje, agora } = opcoes
+  const { rng, comandas, lojas, equipa, hoje, agora } = opcoes
   const saida: EntradaDoCaixa = {
     sessoes: [],
     movimentos: [],
     pagamentos: [],
     fechos: [],
     descontos: [],
-    comissoes: [],
   }
 
   const fusoDaLoja = new Map(lojas.map((loja) => [loja.id, loja.timezone]))
   const utilizadorDaEquipa = new Map(equipa.map((pessoa) => [pessoa.id, pessoa.userId]))
-
-  /*
-    A comissão do mês passado já foi paga; a deste mês está a acumular. É o que
-    faz a tela "A pagar" ter um saldo em aberto em vez de mostrar sete semanas
-    inteiras por liquidar, que nenhum salão deixaria acontecer.
-  */
-  const inicioDoMes = `${hoje.slice(0, 7)}-01`
-  const diaDePagamento = zonedDateTime(`${hoje.slice(0, 7)}-05`, '12:00', opcoes.tz)
-  const pagoEm = new Date(Math.min(diaDePagamento.getTime(), agora.getTime()))
 
   // loja → dia de parede → comandas daquele dia, por ordem de saída
   const porLojaEDia = new Map<string, Map<string, typeof comandas>>()
@@ -795,27 +742,6 @@ function fecharComandas(opcoes: {
           closedBy: responsavel,
           closedAt: new Date(comanda.fim.getTime() + 300_000),
         })
-
-        const partes = ratearDesconto(
-          comanda.itens.map((item) => item.price),
-          desconto,
-        )
-        for (const [indice, item] of comanda.itens.entries()) {
-          const base = Math.max(0, item.price - partes[indice]!)
-          const resolvida = resolveCommission(regras, item.staffId, item.serviceId, base)
-          const liquidada = dia < inicioDoMes
-          saida.comissoes.push({
-            id: randomUUID(),
-            appointmentItemId: item.id,
-            staffId: item.staffId,
-            serviceId: item.serviceId,
-            baseAmount: base,
-            percentBps: resolvida.percentBps,
-            amount: resolvida.amount,
-            status: liquidada ? 'paid' : 'pending',
-            paidAt: liquidada ? pagoEm : null,
-          })
-        }
       }
 
       // sangria para o cofre e reforço de troco — o avulso do dia

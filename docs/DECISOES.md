@@ -172,3 +172,20 @@ A verificação semanal do backup (`ops/backup/verificar.sh`) deixa de se ligar 
 **Provado a 14 de agosto de 2026.** O primeiro ciclo completo contra o Supabase saiu `BACKUP OK … (52.0K)`, `restore: 41 tabelas, 2 travas de exclusão`, `RESTORE OK`, e repetiu-se sem alteração nas três noites seguintes. O serviço em produção ficou em `VERIFICAR=sempre`, não no `semanal` do padrão — decisão de operação, porque nas primeiras semanas de um banco novo a prova diária custa segundos e responde um dia mais cedo. O que este script **não** prova é que o dump veio do banco certo: para isso serve o tamanho do ficheiro, e está registado em `ops/backup/README.md`.
 
 **O linter passou a existir.** Havia nove `// eslint-disable-next-line` no código a pedir dispensa a um ESLint que ninguém tinha instalado — comentário que não desliga nada e faz quem lê supor uma regra que não existe. Agora existe: `npm run lint`, com `next/core-web-vitals` e `no-console` (ver `apps/web/eslint.config.mjs`). Apanhou logo cinco erros a sério, incluindo dois `<a>` onde devia estar `<Link>`.
+
+---
+
+## ADR-013 · Comissão sai do produto
+**Data:** 2026-08-18 · **Status:** aceita
+
+As tabelas `commission_rules` e `commission_entries`, o ecrã `/admin/comissoes`, o cálculo em `packages/core/src/commission/` e o crédito no fecho da comanda são removidos. Não escondidos do menu: removidos, código, testes e schema.
+
+**O motivo é da dona, não técnico.** O salão paga a equipa por outra via e nunca usou o ecrã. O que ficava era uma frente inteira — regra com precedência, entrada congelada por item, estado de pagamento, rateio de desconto — a ser mantida, testada e explicada em cada demonstração, para uma pergunta que ninguém faz. A pesquisa de mercado dizia que comissão é o coração do produto dos concorrentes (ver `docs/PESQUISA.md`); dizia-o sobre redes grandes com profissional parceiro e nota fiscal por atendimento, que não é este salão.
+
+**Custou zero em dados.** Produção tinha zero regras e zero entradas — o ecrã nunca foi usado. Não há histórico para exportar nem migração de dados a fazer, só o `DROP` das duas tabelas e do enum `commission_status`.
+
+**Consequências:**
+- **O fecho da comanda encolheu para o que é.** Confere o total, aplica o desconto, regista o pagamento e tranca. Deixou de ler regra, de ratear desconto por item e de escrever uma segunda tabela dentro da mesma transação.
+- **`packages/core` perdeu a única frente sem uso.** Ficam disponibilidade, preço, fuso, csv e segurança — todas com ecrã vivo por cima.
+- **O painel da dona ficou de uma coluna.** A métrica "Comissões" e o cartão "A pagar" saíram; o que resta é receita, marcações e ocupação.
+- **Voltar atrás é reconstruir.** Não fica nada dormente no schema à espera. Se um dia a regra de pagamento da equipa mudar, desenha-se de novo a partir do que o salão fizer nessa altura — que era, de resto, o que estava errado nesta: foi desenhada a partir do que os concorrentes fazem.

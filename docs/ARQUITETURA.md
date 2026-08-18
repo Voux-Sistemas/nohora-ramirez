@@ -56,8 +56,8 @@ apps/
         └── server/             admin, auth, finance, notifications, people,
                                 scheduling, security, storage
 packages/
-├── core/                       domínio puro: availability, pricing, commission,
-│                               time, csv, security, s3. Sem Next, sem ORM
+├── core/                       domínio puro: availability, pricing, time, csv,
+│                               security, s3. Sem Next, sem ORM
 └── db/                         schema Drizzle, migrations, sql/, seed, cadastro
 ops/                            backup diário e prova de restauro, onboarding
 dados/                          os CSV que definem o formato de importação
@@ -72,7 +72,7 @@ segundo consumidor para justificar a fronteira.
 
 **Regra de ouro (ADR-007):** `packages/core` não importa Next, não importa Drizzle e não sabe o
 que é HTTP. Regra de negócio pura, com teste unitário. É o que garante que o cálculo de
-comissão e o motor de disponibilidade sejam de confiança — e é por isso que a esmagadora maioria
+preço e o motor de disponibilidade sejam de confiança — e é por isso que a esmagadora maioria
 dos testes vive lá.
 
 ### As rotas
@@ -85,8 +85,8 @@ conta nenhuma), e `/conta` com `/conta/entrar` e `/conta/verificar` para ver e c
 
 **A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda/[unidade]` com `/comanda/[id]`,
 `/encaixe` e `/remarcar/[id]`; `/caixa/[unidade]`; `/clientes` com `/[id]` e `/importar`;
-`/avisos/[unidade]`; e a área da dona em `/admin` — painel, `/unidades`, `/servicos`, `/equipe`,
-`/recursos`, `/comissoes`. O acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
+`/avisos/[unidade]`; e a área da dona em `/admin` — painel, `/unidades`, `/servicos`, `/equipe`
+e `/recursos`. O acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
 a primeira conta de todas nasce em `/comecar` (ver `ops/README.md`).
 
 **As três rotas de API** são `/api/imagens/[...key]` (serve a fotografia a partir do bucket, e é
@@ -256,7 +256,7 @@ autoridade de controlo é a CNPD. O que isso obriga, em termos de sistema:
 
 **Auditoria é a lacuna maior.** `audit_logs` existe no schema e nada escreve nela. O rasto que
 há de facto é `appointment_status_events`, que cobre mudança de estado da marcação e mais nada —
-preço, comissão e comanda mudam sem deixar rasto de quem mudou.
+preço e comanda mudam sem deixar rasto de quem mudou.
 
 ---
 

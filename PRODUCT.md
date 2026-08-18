@@ -20,13 +20,12 @@ gerente ou como profissional, e a cena de balcão continua a existir sem login p
 - **Cliente do salão** (cena: telemóvel, à noite, fora do horário comercial). Marca sozinha,
   escolhe unidade + serviço + profissional favorita, quer ver preço e duração antes de
   confirmar, quer mandar foto de referência. Não quer ligar. Meta de produto: agendar em < 60s.
-- **Profissional** (telemóvel, entre atendimentos). Agenda do dia, ficha do cliente antes de
-  começar, extrato de comissão em tempo real — este último é o item que mais gera confiança.
+- **Profissional** (telemóvel, entre atendimentos). Agenda do dia e ficha do cliente antes de
+  começar. Só a própria coluna: o que ela abre entre dois atendimentos tem de caber num ecrã.
 - **Gerente de unidade** (desktop, e tablet em pé no balcão com a cliente à espera em frente).
   Ocupação, faturação, escala, stock da unidade — e o ecrã de agenda, onde precisa de
   velocidade acima de tudo.
-- **Dona / rede** (desktop). Painel consolidado das unidades, comissão da rede, catálogo
-  e regras padronizados.
+- **Dona / rede** (desktop). Painel consolidado das unidades, catálogo e regras padronizados.
 
 A profissional vê **só a própria agenda** — sem as colunas das colegas. Também decisão do
 dono do produto.
@@ -34,13 +33,13 @@ dono do produto.
 ## Product Purpose
 
 Plataforma própria de agendamento e gestão para estúdio de beleza multi-unidade: o cliente
-marca sozinho, a receção opera comanda e caixa no mesmo ecrã, o profissional vê comissão em
-tempo real e a dona vê as unidades num painel só.
+marca sozinho, a receção opera comanda e caixa no mesmo ecrã, o profissional vê a agenda dele
+no telemóvel e a dona vê as unidades num painel só.
 
 ## Success Criteria
 
 As metas fixadas no início do projeto, para 90 dias de uso real. São a régua pela qual o
-produto se mede — e a razão pela qual a velocidade da receção e o extrato de comissão têm o
+produto se mede — e a razão pela qual a velocidade da receção e o tempo de marcação têm o
 peso que têm nas decisões de design.
 
 | Métrica | Meta |
@@ -48,7 +47,6 @@ peso que têm nas decisões de design.
 | Agendamentos feitos pela própria cliente (self-service) | ≥ 60% |
 | Taxa de falta (no-show) | queda ≥ 30% face ao método anterior |
 | Ocupação de cadeira | +10 p.p. |
-| Tempo de fecho de comissão | de horas para < 15 min |
 | Tempo médio para marcar, do lado da cliente | < 60 s |
 
 Nenhuma delas está medida ainda. O painel de `/admin` mostra faturação e marcações por unidade,
@@ -85,7 +83,7 @@ variáveis por profissional e por unidade.
 
 Construído e a funcionar: agendamento do cliente (unidade → serviço → horário → confirmar),
 agenda da receção com encaixe e remarcação, comanda, caixa, clientes com importação CSV,
-comissões, registos de admin (unidades, serviços, equipa, recursos), login por OTP para
+registos de admin (unidades, serviços, equipa, recursos), login por OTP para
 cliente e por palavra-passe para a equipa.
 
 Restrições e factos que o design não pode contrariar:
@@ -130,8 +128,9 @@ de tempo — cada uma tem um motivo que continua de pé.
   ser feita onde o salão já a faz. A decisão original foi tomada a pensar em nota fiscal
   brasileira e, com o cliente em Portugal, **entrar nisto passa a ser decisão nova**, com
   fornecedor e obrigação legal portuguesas — não é portar o que estava planeado.
-- **Folha de pagamento e obrigações laborais.** A contabilidade externa do salão resolve. O
-  sistema apura a comissão e mostra o extrato; o que se faz com ele é fora daqui.
+- **Folha de pagamento, comissão e obrigações laborais.** A contabilidade externa do salão
+  resolve, e o salão paga a equipa por outra via. A comissão chegou a existir e saiu do produto
+  por decisão da dona — ver ADR-013.
 - **Integração com terminal de pagamento físico.** Registar a forma de pagamento à mão no fecho
   da comanda já chega, e evita depender de hardware de terceiros para o caixa fechar.
 
@@ -187,11 +186,11 @@ dourado brilhante que é o rendering automático dessa categoria.
 
 - `docs/` — pesquisa de concorrentes (Booksy, Fresha, Trinks, Avec), modelo de dados,
   arquitetura, roadmap e ADRs. Material real, escrito para este projeto.
-- `dados/*.csv` — 10 ficheiros que definem o **formato de importação** do onboarding (unidades,
+- `dados/*.csv` — 9 ficheiros que definem o **formato de importação** do onboarding (unidades,
   horários, profissionais, escalas, serviços, matriz de habilidades, recursos, exceções de
-  preço, comissões e clientes). Por ADR-008 são referência de formato, não dado de cliente.
+  preço e clientes). Por ADR-008 são referência de formato, não dado de cliente.
   Um único deles tem ecrã que o leia: `10-clientes.csv`, em `/clientes/importar`. Os outros
-  nove entram por script, e é essa a distância que falta para o onboarding ser um produto.
+  entram por script, e é essa a distância que falta para o onboarding ser um produto.
 - `packages/db/src/seed/` — estúdio fictício completo. É o ambiente de demonstração.
 - `material/` — o que a dona **de facto** mandou: as nove fotografias das duas lojas, o
   preçário impresso (`precario.pdf`) e o logo. É a única fonte de dado real de cliente no

@@ -3,8 +3,8 @@ import { pk, tz } from './_shared'
 import { users } from './people'
 
 /**
- * Trilha de auditoria. Toda alteração de agenda, preço, comanda, comissão e
- * estoque grava `before`/`after`. É o que permite responder "quem mudou esse
+ * Trilha de auditoria. Toda alteração de agenda, preço, comanda e estoque
+ * grava `before`/`after`. É o que permite responder "quem mudou esse
  * horário?" sem depender da memória de ninguém.
  */
 export const auditLogs = pgTable(

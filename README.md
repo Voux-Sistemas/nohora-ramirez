@@ -1,7 +1,7 @@
 # Sistema para estúdio de beleza multi-unidade
 
 Plataforma própria de agendamento e gestão. A cliente marca sozinha pelo telemóvel, o balcão
-opera comanda e caixa no mesmo ecrã, a profissional vê a comissão em tempo real e a dona
+opera comanda e caixa no mesmo ecrã, a profissional vê a agenda dela no telemóvel e a dona
 vê as unidades num painel só.
 
 White-label, sem marketplace, sem taxa por agendamento: o sistema veste a marca do estúdio
@@ -43,7 +43,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 
 ```
 apps/web/          Next.js 15 (App Router, RSC, server actions) — a aplicação inteira
-packages/core/     regra de negócio pura: disponibilidade, preço, fuso, comissão. Sem Next, sem ORM
+packages/core/     regra de negócio pura: disponibilidade, preço, fuso. Sem Next, sem ORM
 packages/db/       schema Drizzle, migrations, travas SQL, seed e cadastro do cliente real
 ops/               o que corre em produção fora da aplicação: backup diário, onboarding
 dados/             CSVs que definem o formato de importação do onboarding

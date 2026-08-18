@@ -36,7 +36,6 @@ const GRUPOS = [
     tabs: [
       { path: '/admin/unidades', label: 'Unidades', rede: true },
       { path: '/admin/servicos', label: 'Serviços', rede: true },
-      { path: '/admin/comissoes', label: 'Comissões', rede: true },
     ],
   },
   {

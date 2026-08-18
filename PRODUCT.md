@@ -83,7 +83,7 @@ variáveis por profissional e por unidade.
 
 Construído e a funcionar: agendamento do cliente (unidade → serviço → horário → confirmar),
 agenda da receção com encaixe e remarcação, comanda, caixa, clientes com importação CSV,
-registos de admin (unidades, serviços, equipa, recursos), login por OTP para
+registos de admin (unidades, serviços, equipa), login por OTP para
 cliente e por palavra-passe para a equipa.
 
 Restrições e factos que o design não pode contrariar:
@@ -186,8 +186,8 @@ dourado brilhante que é o rendering automático dessa categoria.
 
 - `docs/` — pesquisa de concorrentes (Booksy, Fresha, Trinks, Avec), modelo de dados,
   arquitetura, roadmap e ADRs. Material real, escrito para este projeto.
-- `dados/*.csv` — 9 ficheiros que definem o **formato de importação** do onboarding (unidades,
-  horários, profissionais, escalas, serviços, matriz de habilidades, recursos, exceções de
+- `dados/*.csv` — 8 ficheiros que definem o **formato de importação** do onboarding (unidades,
+  horários, profissionais, escalas, serviços, matriz de habilidades, exceções de
   preço e clientes). Por ADR-008 são referência de formato, não dado de cliente.
   Um único deles tem ecrã que o leia: `10-clientes.csv`, em `/clientes/importar`. Os outros
   entram por script, e é essa a distância que falta para o onboarding ser um produto.

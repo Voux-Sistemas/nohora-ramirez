@@ -38,14 +38,7 @@ export function Precario({ grupos }: { grupos: readonly GrupoPrecario[] }) {
                 key={item.id}
                 className="flex items-baseline justify-between gap-5 border-b border-(--border-subtle) py-2.5"
               >
-                <dt className="text-body text-[0.9375rem] leading-snug">
-                  {item.nome}
-                  {item.requerAvaliacao ? (
-                    <span className="text-muted block text-[0.8125rem] italic">
-                      mediante avaliação
-                    </span>
-                  ) : null}
-                </dt>
+                <dt className="text-body text-[0.9375rem] leading-snug">{item.nome}</dt>
                 {/* `tnum` alinha a coluna de preços; `whitespace-nowrap` impede
                     que "120,00 €" parta entre o número e o símbolo. */}
                 <dd className="tnum shrink-0 text-[0.9375rem] whitespace-nowrap text-(--text-strong)">

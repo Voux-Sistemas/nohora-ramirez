@@ -89,8 +89,6 @@ export default async function EncaixePage({
         priceVaries: range.varies,
         durationMin,
         categoryName: (service.categoryId && ctx.categories.get(service.categoryId)) || 'Outros',
-        requiresAnamnesis: service.requiresAnamnesis,
-        depositLabel: null,
         imageUrl: service.imageUrl,
       }
     })
@@ -103,22 +101,19 @@ export default async function EncaixePage({
       configuração. O gémeo virado à cliente já dizia o que se passava; este,
       que é onde está quem tem a correção na mão, nunca teve a frase.
 
-      As duas causas possíveis são exactamente estas, e cada uma tem link.
+      Sobrou uma causa possível, e ela tem link.
     */
     if (services.length === 0) {
       return (
         <Shell unit={unit.name} date={date} slug={unit.slug} title="Nada para marcar ainda">
           <p className="text-body measure">
-            Nenhum serviço desta casa está pronto a ser executado. Ou ninguém tem os serviços
-            marcados em <strong className="font-medium">Serviços que executa</strong>, na ficha da
-            profissional, ou os serviços exigem um recurso que esta loja ainda não tem instalado.
+            Nenhum serviço desta casa está pronto a ser executado: ninguém tem os serviços marcados
+            em <strong className="font-medium">Serviços que executa</strong>, na ficha da
+            profissional.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href={href('/admin/equipe')} className={buttonVariants({ variant: 'outline' })}>
               Abrir a equipa
-            </Link>
-            <Link href={href('/admin/recursos')} className={buttonVariants({ variant: 'outline' })}>
-              Abrir os recursos
             </Link>
           </div>
         </Shell>

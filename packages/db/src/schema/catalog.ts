@@ -123,7 +123,12 @@ export const staffSkills = pgTable(
   (t) => [uniqueIndex('staff_skills_uq').on(t.staffId, t.serviceId)],
 )
 
-/** Quais recursos o serviço consome (cabine, lavatório, equipamento). */
+/**
+ * Quais recursos o serviço consome (cabine, lavatório, equipamento).
+ * Sem escrita desde que `/admin/recursos` saiu (ADR-014): o motor continua a ler
+ * daqui, não encontra linha nenhuma e não prende recurso. Fica pela tabela, não
+ * pelo produto.
+ */
 export const serviceResourceRequirements = pgTable(
   'service_resource_requirements',
   {

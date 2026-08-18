@@ -18,10 +18,12 @@ import { podeRede, type Acesso } from '@/server/auth/permissoes'
  * coluna fixa com fio próprio, e o conteúdo ganha largura para se organizar em
  * colunas em vez de fila indiana.
  *
- * O rail agrupa por quem manda no quê, não por ordem alfabética. "A rede" muda
- * as lojas todas de uma vez e é assunto da dona; "A loja" é o que gerir uma
- * unidade quer dizer na prática, e por isso o gerente também vê. Para ele o
- * primeiro grupo não aparece — o rail é o rosto da permissão, como sempre foi.
+ * O rail já não agrupa. Agrupava por quem manda no quê — "A rede" contra "A
+ * loja" —, e com três destinos ao todo os dois títulos ocupavam mais altura do
+ * que orientavam; para o gerente, que só vê Equipa, sobrava um título sozinho
+ * sobre uma linha. Quem manda no quê continua a ler-se: o que é da rede
+ * simplesmente não aparece a quem não é da rede. O rail é o rosto da permissão,
+ * como sempre foi.
  *
  * O rail já não tem "Painel". Painel é o número do mês, e número do mês não é
  * cadastro: estava aqui só porque `/admin` precisava de aterrar em alguma coisa,
@@ -30,81 +32,58 @@ import { podeRede, type Acesso } from '@/server/auth/permissoes'
  * abria o dia; aqui ficou o que "Gestão" sempre quis dizer: o cadastro.
  */
 
-const GRUPOS = [
-  {
-    titulo: 'A rede',
-    tabs: [
-      { path: '/admin/unidades', label: 'Unidades', rede: true },
-      { path: '/admin/servicos', label: 'Serviços', rede: true },
-    ],
-  },
-  {
-    titulo: 'A loja',
-    tabs: [
-      { path: '/admin/equipe', label: 'Equipa', rede: false },
-      { path: '/admin/recursos', label: 'Recursos', rede: false },
-    ],
-  },
+const ABAS = [
+  { path: '/admin/unidades', label: 'Unidades', rede: true },
+  { path: '/admin/servicos', label: 'Serviços', rede: true },
+  { path: '/admin/equipe', label: 'Equipa', rede: false },
 ] as const
 
-type Tab = (typeof GRUPOS)[number]['tabs'][number]
+type Tab = (typeof ABAS)[number]
 export type AbaAdmin = Tab['path']
 
-function visiveis(acesso: Acesso) {
+function visiveis(acesso: Acesso): readonly Tab[] {
   const rede = podeRede(acesso)
-  return GRUPOS.map((grupo) => ({
-    titulo: grupo.titulo,
-    tabs: grupo.tabs.filter((tab) => rede || !tab.rede) as readonly Tab[],
-  })).filter((grupo) => grupo.tabs.length > 0)
+  return ABAS.filter((tab) => rede || !tab.rede)
 }
 
-/** O rail de computador: sempre à vista, agrupado, e acompanha a rolagem. */
-function Rail({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?: AbaAdmin }) {
+/** O rail de computador: sempre à vista, e acompanha a rolagem. */
+function Rail({ abas, active }: { abas: readonly Tab[]; active?: AbaAdmin }) {
   return (
-    <div className="flex flex-col gap-7">
-      {grupos.map((grupo) => (
-        <div key={grupo.titulo}>
-          <p className="label-caps text-muted mb-2 pl-3">{grupo.titulo}</p>
-          <ul className="flex flex-col gap-0.5">
-            {grupo.tabs.map((tab) => {
-              const atual = active === tab.path
-              return (
-                <li key={tab.path}>
-                  <Link
-                    href={href(tab.path)}
-                    aria-current={atual ? 'page' : undefined}
-                    className={cn(
-                      'rounded-plate relative block py-1.5 pr-3 pl-3 text-sm transition-colors',
-                      atual
-                        ? 'bg-(--surface-raised) text-(--text-strong) font-medium'
-                        : 'text-muted hover:text-(--text-strong) hover:bg-(--surface-raised)/60',
-                    )}
-                  >
-                    <EmTransito />
-                    {/* A régua de bronze, de pé: a mesma marca de trecho ativo
-                        que a barra de cima usa deitada. */}
-                    {atual ? (
-                      <span
-                        aria-hidden
-                        className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-(--accent)"
-                      />
-                    ) : null}
-                    {tab.label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <ul className="flex flex-col gap-0.5">
+      {abas.map((tab) => {
+        const atual = active === tab.path
+        return (
+          <li key={tab.path}>
+            <Link
+              href={href(tab.path)}
+              aria-current={atual ? 'page' : undefined}
+              className={cn(
+                'rounded-plate relative block py-1.5 pr-3 pl-3 text-sm transition-colors',
+                atual
+                  ? 'bg-(--surface-raised) text-(--text-strong) font-medium'
+                  : 'text-muted hover:text-(--text-strong) hover:bg-(--surface-raised)/60',
+              )}
+            >
+              <EmTransito />
+              {/* A régua de bronze, de pé: a mesma marca de trecho ativo
+                  que a barra de cima usa deitada. */}
+              {atual ? (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-(--accent)"
+                />
+              ) : null}
+              {tab.label}
+            </Link>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
-/** Abaixo de `lg`: os mesmos destinos numa fita que rola. Sem os títulos de
- *  grupo, que a essa largura custariam mais altura do que orientam. */
-function Fita({ grupos, active }: { grupos: ReturnType<typeof visiveis>; active?: AbaAdmin }) {
-  const tabs = grupos.flatMap((grupo) => grupo.tabs)
+/** Abaixo de `lg`: os mesmos destinos numa fita que rola. */
+function Fita({ abas: tabs, active }: { abas: readonly Tab[]; active?: AbaAdmin }) {
   return (
     <ul className="flex min-w-max gap-1 border-b border-(--border-subtle)">
       {tabs.map((tab) => (
@@ -145,7 +124,7 @@ export function AdminShell({
   actions?: React.ReactNode
   children: React.ReactNode
 }) {
-  const grupos = visiveis(acesso)
+  const abas = visiveis(acesso)
 
   return (
     <div className="mx-auto flex w-full max-w-[90rem]">
@@ -156,7 +135,7 @@ export function AdminShell({
         {/* `pl-5` + os 12px de dentro do link põem o texto do rail nos mesmos
             32px da esquerda em que a barra de cima assenta o logótipo. */}
         <div className="sticky top-0 py-9 pr-5 pl-5">
-          <Rail grupos={grupos} active={active} />
+          <Rail abas={abas} active={active} />
         </div>
       </nav>
 
@@ -165,7 +144,7 @@ export function AdminShell({
           aria-label="Secções da gestão"
           className="-mx-4 mb-7 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:hidden"
         >
-          <Fita grupos={grupos} active={active} />
+          <Fita abas={abas} active={active} />
         </nav>
 
         <Entrada>

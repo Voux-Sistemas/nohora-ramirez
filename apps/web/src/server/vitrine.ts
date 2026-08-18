@@ -41,8 +41,6 @@ export interface ItemPrecario {
   /** Em cêntimos. */
   preco: number
   duracaoMin: number
-  /** Serviço que só fecha preço depois de ver o cabelo. */
-  requerAvaliacao: boolean
 }
 
 export interface GrupoPrecario {
@@ -200,7 +198,6 @@ async function precarioDaLoja(unitId: string): Promise<GrupoPrecario[]> {
       descricao: servico.description,
       preco: price,
       duracaoMin: durationMin,
-      requerAvaliacao: servico.requiresAssessment,
     })
     porCategoria.set(chave, lista)
   }

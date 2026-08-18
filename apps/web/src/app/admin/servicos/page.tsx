@@ -9,12 +9,9 @@ import { listCategories, listServicesAdmin } from '@/server/admin/services'
 import { requireRede } from '@/server/auth/permissoes'
 import { criarCategoria } from './actions'
 
-/** As ressalvas de um serviço, em ordem de quem tropeça nelas primeiro. */
-function ressalvas(s: { onlineBookable: boolean; requiresAssessment: boolean }): string[] {
-  const lista: string[] = []
-  if (!s.onlineBookable) lista.push('só receção')
-  if (s.requiresAssessment) lista.push('avaliação')
-  return lista
+/** A única ressalva que sobrou de um serviço: existir sem estar à vista. */
+function ressalva(s: { onlineBookable: boolean }): string | null {
+  return s.onlineBookable ? null : 'só receção'
 }
 
 /**
@@ -126,8 +123,8 @@ export default async function ServicosPage() {
                           {!s.active ? (
                             <span className="text-muted ml-2 text-xs">inativo</span>
                           ) : null}
-                          {ressalvas(s).length > 0 ? (
-                            <p className="text-muted mt-0.5 text-xs">{ressalvas(s).join(' · ')}</p>
+                          {ressalva(s) ? (
+                            <p className="text-muted mt-0.5 text-xs">{ressalva(s)}</p>
                           ) : null}
                         </td>
                         <td className="text-muted tnum px-5 py-3.5 align-top whitespace-nowrap">

@@ -88,17 +88,16 @@ Quem nomeia gerente é a dona, em `/admin/equipe`. O formulário grava uma linha
 
 ### O que só o suporte faz
 
-Quatro coisas, escolhidas pelo mesmo critério: são decisões que o salão pede uma
+Três coisas, escolhidas pelo mesmo critério: são decisões que o salão pede uma
 vez e que ninguém desfaz por dentro depois.
 
 | O quê | Onde | Por que não é da dona |
 | --- | --- | --- |
 | Abrir uma unidade | `/admin/unidades/nova` | mexe em cobrança e tudo pendura em unidade |
 | Mudar o slug de uma unidade | ficha da unidade | é o link já impresso em cartão e no Instagram |
-| Criar um tipo de recurso | `/admin/recursos` | muda a rede inteira e não existe ecrã de apagar |
 | Dar (ou tirar) acesso de **dona** | `/admin/equipe` | entrega o cadastro da rede e não tem volta fácil |
 
-O quarto vale nas duas direções de propósito: sem isso, a dona que abrisse a
+O terceiro vale nas duas direções de propósito: sem isso, a dona que abrisse a
 ficha da sócia e guardasse qualquer outro campo a rebaixaria sem querer, porque o
 ecrã dela não mostra o botão "Dona" para ficar marcado.
 

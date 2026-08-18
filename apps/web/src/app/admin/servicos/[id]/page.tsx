@@ -23,14 +23,7 @@ const BLANK_SERVICE: ServiceRow = {
   setupMin: 30,
   processingMin: 0,
   finishMin: 0,
-  bufferBeforeMin: 0,
-  bufferAfterMin: 0,
   onlineBookable: true,
-  requiresDeposit: false,
-  depositType: null,
-  depositValue: null,
-  requiresAssessment: false,
-  requiresAnamnesis: false,
   active: true,
   imageUrl: null,
 }
@@ -50,7 +43,7 @@ export default async function ServicoFormPage({
   const acesso = await requireRede()
   const isNew = id === 'novo'
 
-  const [data, categories, assignables] = await Promise.all([
+  const [data, categories, equipa] = await Promise.all([
     isNew ? null : getServiceAdmin(id),
     listCategories(),
     listAssignables(),
@@ -58,7 +51,6 @@ export default async function ServicoFormPage({
   if (!isNew && !data) notFound()
 
   const service = data?.service ?? BLANK_SERVICE
-  const resourceTypeIds = new Set(data?.resourceTypeIds ?? [])
   const staffIds = new Set(data?.staffIds ?? [])
 
   return (
@@ -110,57 +102,52 @@ export default async function ServicoFormPage({
                   required
                 />
               </label>
-              <label className="mt-6 flex items-center gap-2 text-sm">
-                <input type="checkbox" name="active" defaultChecked={service.active} />
-                Serviço ativo
-              </label>
+              {/* Os dois interruptores que sobraram do que era a secção
+                  "Regras". Ficam aqui, ao lado do nome e do preço, porque é
+                  isso que são: o serviço existe, e o serviço está à vista da
+                  cliente. Tudo o resto que aquela secção pedia — avaliação
+                  prévia, ficha de anamnese, sinal — descrevia um salão que não
+                  é este, e nenhum dos 67 serviços tinha um só deles marcado. */}
+              <div className="mt-6 flex flex-col gap-2 sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="active" defaultChecked={service.active} />
+                  Serviço ativo
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="onlineBookable"
+                    defaultChecked={service.onlineBookable}
+                  />
+                  Aparece na marcação online da cliente (desmarque para “só receção”)
+                </label>
+              </div>
             </div>
           </Section>
 
           {/*
-          Um número só. O banco ainda guarda a duração em três partes, herança
-          de um encaixe que o produto não oferece mais; o formulário escreve
-          tudo na primeira e zera as outras, então a agenda enxerga um bloco
-          contínuo. Serviço antigo com as três partes preenchidas aparece aqui
-          somado, e salvar já o normaliza.
+          Um número só, e agora mesmo um só campo. O banco guarda a duração em
+          três partes e ainda tem os dois intervalos de folga à volta, herança de
+          um encaixe que o produto não oferece: o formulário escreve tudo na
+          primeira parte e zera o resto, então a agenda enxerga um bloco
+          contínuo. Serviço antigo com as partes preenchidas aparece aqui somado,
+          e guardar já o normaliza.
         */}
           <Section
             title="Duração"
             hint="Quanto tempo a profissional fica com a cliente, do começo ao fim."
           >
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Duração (min)
-                <input
-                  className="field"
-                  type="number"
-                  min={1}
-                  name="durationMin"
-                  defaultValue={service.setupMin + service.processingMin + service.finishMin}
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Intervalo antes (min)
-                <input
-                  className="field"
-                  type="number"
-                  min={0}
-                  name="bufferBeforeMin"
-                  defaultValue={service.bufferBeforeMin}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Intervalo depois (min)
-                <input
-                  className="field"
-                  type="number"
-                  min={0}
-                  name="bufferAfterMin"
-                  defaultValue={service.bufferAfterMin}
-                />
-              </label>
-            </div>
+            <label className="flex max-w-40 flex-col gap-1 text-sm">
+              Duração (min)
+              <input
+                className="field"
+                type="number"
+                min={1}
+                name="durationMin"
+                defaultValue={service.setupMin + service.processingMin + service.finishMin}
+                required
+              />
+            </label>
           </Section>
 
           {/*
@@ -185,73 +172,9 @@ export default async function ServicoFormPage({
             />
           </Section>
 
-          <Section title="Regras">
-            <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="onlineBookable"
-                  defaultChecked={service.onlineBookable}
-                />
-                Aparece na marcação online da cliente (desmarque para “só receção”)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="requiresAssessment"
-                  defaultChecked={service.requiresAssessment}
-                />
-                Exige avaliação presencial antes de marcar
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="requiresAnamnesis"
-                  defaultChecked={service.requiresAnamnesis}
-                />
-                Exige ficha de anamnese
-              </label>
-
-              <div className="mt-2 grid grid-cols-1 items-end gap-3 sm:grid-cols-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="requiresDeposit"
-                    defaultChecked={service.requiresDeposit}
-                  />
-                  Exige sinal
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  Tipo
-                  <select
-                    className="field"
-                    name="depositType"
-                    defaultValue={service.depositType ?? 'percent'}
-                  >
-                    <option value="percent">% do serviço</option>
-                    <option value="fixed">Valor fixo ({simboloMoeda()})</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  Valor (% ou {simboloMoeda()})
-                  <input
-                    className="field"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    name="depositValueInput"
-                    defaultValue={
-                      service.depositValue != null ? (service.depositValue / 100).toFixed(2) : ''
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-          </Section>
-
           <Section title="Quem executa" hint="Profissionais habilitados para este serviço.">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {assignables.staff.map((s) => (
+              {equipa.staff.map((s) => (
                 <label key={s.id} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -262,30 +185,8 @@ export default async function ServicoFormPage({
                   {s.name}
                 </label>
               ))}
-              {assignables.staff.length === 0 ? (
+              {equipa.staff.length === 0 ? (
                 <p className="text-muted text-sm">Nenhum profissional ativo registado ainda.</p>
-              ) : null}
-            </div>
-          </Section>
-
-          <Section
-            title="Recursos exigidos"
-            hint="Cabine, lavatório, equipamento — o que a agenda precisa reservar junto."
-          >
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {assignables.resourceTypes.map((r) => (
-                <label key={r.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="resourceTypeIds"
-                    value={r.id}
-                    defaultChecked={resourceTypeIds.has(r.id)}
-                  />
-                  {r.name}
-                </label>
-              ))}
-              {assignables.resourceTypes.length === 0 ? (
-                <p className="text-muted text-sm">Nenhum tipo de recurso registado ainda.</p>
               ) : null}
             </div>
           </Section>

@@ -1,16 +1,20 @@
 import 'server-only'
 
 /**
- * Cadastro de serviços: catálogo, categorias, habilidade da equipe e recurso
- * exigido. Preço aqui é sempre o de referência da rede — exceção por unidade
- * ou profissional é outra tela (`service_pricing`), fora deste primeiro corte.
+ * Cadastro de serviços: catálogo, categorias e habilidade da equipa. Preço aqui
+ * é sempre o de referência da rede — exceção por unidade ou profissional é outra
+ * tela (`service_pricing`), fora deste primeiro corte.
+ *
+ * O formulário escreve menos colunas do que a tabela tem. Folga antes e depois,
+ * avaliação prévia, ficha de anamnese, sinal e recurso exigido saíram do produto
+ * e não são escritos por ninguém: ficam no schema, no valor por omissão, porque
+ * o motor de agenda ainda sabe lê-los e derrubá-los seria reescrever o motor
+ * para apagar uma linha de formulário.
  */
 
 import {
   organizations,
-  resourceTypes,
   serviceCategories,
-  serviceResourceRequirements,
   services,
   staffProfiles,
   staffSkills,
@@ -35,14 +39,7 @@ export interface ServiceRow {
   setupMin: number
   processingMin: number
   finishMin: number
-  bufferBeforeMin: number
-  bufferAfterMin: number
   onlineBookable: boolean
-  requiresDeposit: boolean
-  depositType: 'percent' | 'fixed' | null
-  depositValue: number | null
-  requiresAssessment: boolean
-  requiresAnamnesis: boolean
   active: boolean
   imageUrl: string | null
 }
@@ -67,14 +64,7 @@ export async function listServicesAdmin(): Promise<ServiceRow[]> {
       setupMin: services.setupMin,
       processingMin: services.processingMin,
       finishMin: services.finishMin,
-      bufferBeforeMin: services.bufferBeforeMin,
-      bufferAfterMin: services.bufferAfterMin,
       onlineBookable: services.onlineBookable,
-      requiresDeposit: services.requiresDeposit,
-      depositType: services.depositType,
-      depositValue: services.depositValue,
-      requiresAssessment: services.requiresAssessment,
-      requiresAnamnesis: services.requiresAnamnesis,
       active: services.active,
       imageUrl: services.imageUrl,
     })
@@ -86,7 +76,6 @@ export async function listServicesAdmin(): Promise<ServiceRow[]> {
 
 export async function getServiceAdmin(id: string): Promise<{
   service: ServiceRow
-  resourceTypeIds: string[]
   staffIds: string[]
 } | null> {
   const rows = await db
@@ -100,14 +89,7 @@ export async function getServiceAdmin(id: string): Promise<{
       setupMin: services.setupMin,
       processingMin: services.processingMin,
       finishMin: services.finishMin,
-      bufferBeforeMin: services.bufferBeforeMin,
-      bufferAfterMin: services.bufferAfterMin,
       onlineBookable: services.onlineBookable,
-      requiresDeposit: services.requiresDeposit,
-      depositType: services.depositType,
-      depositValue: services.depositValue,
-      requiresAssessment: services.requiresAssessment,
-      requiresAnamnesis: services.requiresAnamnesis,
       active: services.active,
       imageUrl: services.imageUrl,
     })
@@ -118,22 +100,12 @@ export async function getServiceAdmin(id: string): Promise<{
   const service = rows[0]
   if (!service) return null
 
-  const [requirements, skills] = await Promise.all([
-    db
-      .select({ resourceTypeId: serviceResourceRequirements.resourceTypeId })
-      .from(serviceResourceRequirements)
-      .where(eq(serviceResourceRequirements.serviceId, id)),
-    db
-      .select({ staffId: staffSkills.staffId })
-      .from(staffSkills)
-      .where(eq(staffSkills.serviceId, id)),
-  ])
+  const skills = await db
+    .select({ staffId: staffSkills.staffId })
+    .from(staffSkills)
+    .where(eq(staffSkills.serviceId, id))
 
-  return {
-    service,
-    resourceTypeIds: requirements.map((r) => r.resourceTypeId),
-    staffIds: skills.map((s) => s.staffId),
-  }
+  return { service, staffIds: skills.map((s) => s.staffId) }
 }
 
 export interface ServiceInput {
@@ -144,16 +116,8 @@ export interface ServiceInput {
   setupMin: number
   processingMin: number
   finishMin: number
-  bufferBeforeMin: number
-  bufferAfterMin: number
   onlineBookable: boolean
-  requiresDeposit: boolean
-  depositType?: 'percent' | 'fixed'
-  depositValue?: number
-  requiresAssessment: boolean
-  requiresAnamnesis: boolean
   active: boolean
-  resourceTypeIds: string[]
   staffIds: string[]
 }
 
@@ -166,14 +130,7 @@ function serviceValues(input: ServiceInput) {
     setupMin: input.setupMin,
     processingMin: input.processingMin,
     finishMin: input.finishMin,
-    bufferBeforeMin: input.bufferBeforeMin,
-    bufferAfterMin: input.bufferAfterMin,
     onlineBookable: input.onlineBookable,
-    requiresDeposit: input.requiresDeposit,
-    depositType: input.requiresDeposit ? (input.depositType ?? null) : null,
-    depositValue: input.requiresDeposit ? (input.depositValue ?? null) : null,
-    requiresAssessment: input.requiresAssessment,
-    requiresAnamnesis: input.requiresAnamnesis,
     active: input.active,
   }
 }
@@ -188,7 +145,7 @@ export async function createService(input: ServiceInput): Promise<string> {
       .values({ organizationId: org.id, ...serviceValues(input) })
       .returning({ id: services.id })
     const id = row!.id
-    await writeRequirementsAndSkills(tx, id, input)
+    await writeSkills(tx, id, input)
     return id
   })
 }
@@ -196,7 +153,7 @@ export async function createService(input: ServiceInput): Promise<string> {
 export async function updateService(id: string, input: ServiceInput): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.update(services).set(serviceValues(input)).where(eq(services.id, id))
-    await writeRequirementsAndSkills(tx, id, input)
+    await writeSkills(tx, id, input)
   })
 }
 
@@ -214,18 +171,11 @@ export async function getServiceImage(id: string): Promise<string | null> {
   return row?.imageUrl ?? null
 }
 
-async function writeRequirementsAndSkills(
+async function writeSkills(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   serviceId: string,
   input: ServiceInput,
 ): Promise<void> {
-  await tx.delete(serviceResourceRequirements).where(eq(serviceResourceRequirements.serviceId, serviceId))
-  if (input.resourceTypeIds.length > 0) {
-    await tx.insert(serviceResourceRequirements).values(
-      input.resourceTypeIds.map((resourceTypeId) => ({ serviceId, resourceTypeId })),
-    )
-  }
-
   /* Apagar-e-reinserir só pode alcançar quem o formulário desenha. «Quem
      executa» lista apenas quem está ativo (`listAssignables`), portanto a linha
      de quem está desativado nunca voltava no `staffIds` — e o `delete` por
@@ -269,18 +219,12 @@ export async function createCategory(name: string): Promise<string> {
   return row!.id
 }
 
-/** Para montar o formulário: profissionais e tipos de recurso da rede. */
-export async function listAssignables(): Promise<{
-  staff: { id: string; name: string }[]
-  resourceTypes: { id: string; name: string }[]
-}> {
-  const [staff, types] = await Promise.all([
-    db
-      .select({ id: staffProfiles.id, name: staffProfiles.displayName })
-      .from(staffProfiles)
-      .where(eq(staffProfiles.active, true))
-      .orderBy(asc(staffProfiles.displayName)),
-    db.select({ id: resourceTypes.id, name: resourceTypes.name }).from(resourceTypes).orderBy(asc(resourceTypes.name)),
-  ])
-  return { staff, resourceTypes: types }
+/** Para montar o formulário: quem da rede pode executar o serviço. */
+export async function listAssignables(): Promise<{ staff: { id: string; name: string }[] }> {
+  const staff = await db
+    .select({ id: staffProfiles.id, name: staffProfiles.displayName })
+    .from(staffProfiles)
+    .where(eq(staffProfiles.active, true))
+    .orderBy(asc(staffProfiles.displayName))
+  return { staff }
 }

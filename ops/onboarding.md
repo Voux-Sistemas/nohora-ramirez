@@ -10,12 +10,11 @@ ecrã depende do anterior.
 | --- | --- | --- |
 | 1 | `/comecar` | cria a primeira conta; sem ela ninguém entra no `/admin` |
 | 2 | `/admin/unidades` | tudo pendura em unidade: equipa, agenda, caixa |
-| 3 | `/admin/recursos` | o serviço marca o tipo de recurso que exige |
-| 4 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
-| 5 | `/admin/equipe` | a ficha marca os serviços que a pessoa executa |
-| 6 | escala, dentro da ficha | sem escala a profissional não tem coluna na agenda |
+| 3 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
+| 4 | `/admin/equipe` | a ficha marca os serviços que a pessoa executa |
+| 5 | escala, dentro da ficha | sem escala a profissional não tem coluna na agenda |
 
-Dá para voltar e ajustar qualquer um depois. O que não dá é saltar o 2 e o 6: sem
+Dá para voltar e ajustar qualquer um depois. O que não dá é saltar o 2 e o 5: sem
 unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipa
 registada.
 

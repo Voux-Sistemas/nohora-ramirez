@@ -19,8 +19,6 @@ export interface PickableService {
   priceVaries: boolean
   durationMin: number
   categoryName: string
-  requiresAnamnesis: boolean
-  depositLabel: string | null
   imageUrl: string | null
 }
 
@@ -165,8 +163,6 @@ export function ServicePicker({
                         ) : null}
                         <span className="text-muted tnum mt-1.5 block text-xs">
                           {formatDuration(service.durationMin)}
-                          {service.depositLabel ? ` · sinal de ${service.depositLabel}` : ''}
-                          {service.requiresAnamnesis ? ' · exige ficha de anamnese' : ''}
                         </span>
                       </span>
                     </button>

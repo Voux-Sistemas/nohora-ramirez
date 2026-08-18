@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
 import { ServicePicker, type PickableService } from '@/components/booking/service-picker'
 import { UnitContextCard } from '@/components/booking/unit-context-card'
-import { formatMoney } from '@/lib/format'
 import { todayInUnit } from '@/server/scheduling/availability'
 import {
   deliverableServices,
@@ -61,8 +60,6 @@ export default async function EscolherServicosPage({
       priceVaries: range.varies,
       durationMin,
       categoryName: (service.categoryId && ctx.categories.get(service.categoryId)) || 'Outros',
-      requiresAnamnesis: service.requiresAnamnesis,
-      depositLabel: depositLabel(service.deposit, range.min),
       imageUrl: service.imageUrl,
     }
   })
@@ -87,11 +84,3 @@ export default async function EscolherServicosPage({
   )
 }
 
-function depositLabel(
-  deposit: { type: 'percent'; bps: number } | { type: 'fixed'; cents: number } | null,
-  price: number,
-): string | null {
-  if (!deposit) return null
-  if (deposit.type === 'fixed') return formatMoney(deposit.cents)
-  return `${deposit.bps / 100}% (${formatMoney(Math.round((price * deposit.bps) / 10_000))})`
-}

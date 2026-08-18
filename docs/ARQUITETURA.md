@@ -85,8 +85,8 @@ conta nenhuma), e `/conta` com `/conta/entrar` e `/conta/verificar` para ver e c
 
 **A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda/[unidade]` com `/comanda/[id]`,
 `/encaixe` e `/remarcar/[id]`; `/caixa/[unidade]`; `/clientes` com `/[id]` e `/importar`;
-`/avisos/[unidade]`; e a área da dona em `/admin` — painel, `/unidades`, `/servicos`, `/equipe`
-e `/recursos`. O acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
+`/avisos/[unidade]`; e a área da dona em `/admin` — `/unidades`, `/servicos` e `/equipe`. O
+acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
 a primeira conta de todas nasce em `/comecar` (ver `ops/README.md`).
 
 **As três rotas de API** são `/api/imagens/[...key]` (serve a fotografia a partir do bucket, e é
@@ -142,11 +142,14 @@ muito mais barato do que uma consulta por dia.
 
 ### Gap booking — capacidade do motor, desligada no produto
 
-O motor sabe libertar a profissional durante o `processing` e devolver esse pedaço à grade dela.
-**O produto não expõe isso:** a ficha de serviço tem um campo de duração só, gravado inteiro
-em `setup_min` com `processing_min` a zero, portanto todo o bloco é contínuo. O código continua
-no sítio porque é o mesmo caminho que reserva o recurso; ligar outra vez é repor o campo no
-formulário.
+O motor sabe libertar a profissional durante o `processing` e devolver esse pedaço à grade dela,
+sabe aplicar folga antes e depois, e sabe prender um recurso físico junto com a pessoa.
+**O produto não expõe nada disso.** A ficha de serviço tem um campo de duração só, gravado
+inteiro em `setup_min` com o resto a zero, portanto todo o bloco é contínuo; `buffer_before_min`
+e `buffer_after_min` ficam em zero; e `service_resource_requirements` deixou de ter quem lhe
+escreva quando `/admin/recursos` saiu (ADR-014). O código continua no sítio, testado, porque é
+o mesmo caminho que monta o bloco da agenda — ligar qualquer um deles outra vez é repor o campo
+no formulário, não reescrever o motor.
 
 ### Concorrência
 

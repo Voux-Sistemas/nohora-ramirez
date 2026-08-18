@@ -189,3 +189,21 @@ As tabelas `commission_rules` e `commission_entries`, o ecrã `/admin/comissoes`
 - **`packages/core` perdeu a única frente sem uso.** Ficam disponibilidade, preço, fuso, csv e segurança — todas com ecrã vivo por cima.
 - **O painel da dona ficou de uma coluna.** A métrica "Comissões" e o cartão "A pagar" saíram; o que resta é receita, marcações e ocupação.
 - **Voltar atrás é reconstruir.** Não fica nada dormente no schema à espera. Se um dia a regra de pagamento da equipa mudar, desenha-se de novo a partir do que o salão fizer nessa altura — que era, de resto, o que estava errado nesta: foi desenhada a partir do que os concorrentes fazem.
+
+---
+
+## ADR-014 · A ficha de serviço fica com o que o salão sabe responder
+**Data:** 2026-08-18 · **Status:** aceita
+
+O formulário de `/admin/servicos/[id]` perde a secção *Regras* (avaliação prévia, ficha de anamnese, sinal e o seu tipo e valor), perde o intervalo de processos (`processing_min`, `finish_min`) e as folgas antes e depois, e perde *Recursos exigidos*. O ecrã `/admin/recursos` sai por inteiro, com o `server/admin/resources.ts` e o `dados/07-recursos.csv`. Fica: nome, descrição, categoria, preço, uma duração, foto, activo e visível na marcação online.
+
+**O motivo é da reunião: "remover regras / remover intervalo de processos / retirar recursos exigidos".** A leitura por trás disso é que a ficha pedia à rececionista sete decisões de modelação para cadastrar um corte de cabelo. Cada campo era uma pergunta que o salão não sabe responder no momento de criar o serviço — e a resposta em branco era sempre a certa. Um formulário onde o valor por omissão é o único valor usado não é configuração, é ruído.
+
+**Duas coisas ficaram de propósito.** *Visível na marcação online* sobreviveu, mudada de secção para junto de *Serviço activo*: sem ela, um serviço só de recepção passaria calado para o ecrã da cliente, que é um erro que o salão paga. E o motor de disponibilidade em `packages/core` mantém intactos o `processing`, as folgas e a reserva de recurso — são o mesmo caminho testado que monta o bloco da agenda, e arrancá-lo era uma reescrita que ninguém pediu.
+
+**Consequências:**
+- **As colunas continuam no schema, agora sempre no valor por omissão.** `processing_min`, `finish_min`, `buffer_*_min` a zero; `requires_*` a falso; `deposit_*` nulo. Não há `DROP COLUMN` — o dia em que um destes voltar a fazer sentido é o dia de repor o campo no formulário, não de migrar dados.
+- **`service_resource_requirements` fica sem quem lhe escreva.** A tabela e a leitura no motor ficam; sem linhas, o motor nunca prende recurso nenhum. É código morto correcto, não código partido.
+- **O ecrã da cliente deixou de anunciar o que já não se liga.** Saíram as etiquetas "mediante avaliação", "exige ficha de anamnese" e o rótulo do sinal — um aviso sobre uma regra impossível de activar é pior do que aviso nenhum.
+- **A barra do admin encolheu para três separadores e perdeu os grupos.** *Unidades*, *Serviços*, *Equipa*. Dois grupos com um e dois itens eram cabeçalho a mais para navegação a menos.
+- **A importação passa a oito ficheiros.** `dados/07-recursos.csv` sai. A ordem de carregamento reenumera, os nomes dos ficheiros não — `08-precos-excecoes.csv` continua a chamar-se assim, que é como está escrito em quem o lê.

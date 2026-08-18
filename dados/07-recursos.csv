@@ -1,9 +1,0 @@
-unidade;codigo;nome;tipo;quantidade;servicos_que_usam;observacao
-centro;lavatorio;Lavatório;lavatorio;2;corte-senhora,brushing,coloracao,madeixas,alisamento,botox;
-centro;cadeira;Cadeira de corte;cadeira;4;corte-senhora,brushing,coloracao,madeixas,alisamento;
-centro;cabine;Cabine de estética;cabine;1;limpeza-facial,pestanas;
-gaia;lavatorio;Lavatório;lavatorio;2;corte-senhora,brushing,coloracao,madeixas,botox;
-gaia;cadeira;Cadeira de corte;cadeira;3;corte-senhora,brushing,coloracao,madeixas;
-gaia;mesa-manicure;Mesa de manicure;mesa;2;manicure,pedicure;
-shopping;lavatorio;Lavatório;lavatorio;1;corte-senhora,brushing,botox;
-shopping;cabine;Cabine de estética;cabine;2;limpeza-facial,pestanas,sobrancelha;

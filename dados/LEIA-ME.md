@@ -1,6 +1,6 @@
-# O formato de importação, em nove ficheiros
+# O formato de importação, em oito ficheiros
 
-Estes nove `.csv` são **material de referência**: mostram, coluna a coluna, o
+Estes oito `.csv` são **material de referência**: mostram, coluna a coluna, o
 formato em que o sistema espera receber os dados de um salão novo. Não são
 pré-requisito para arrancar nada — o sistema sobe com o seed e funciona sem eles
 (ADR-008 em `docs/DECISOES.md`). Servem para duas coisas:
@@ -15,11 +15,11 @@ com três lojas.
 > **Os ficheiros com dados a sério vão para `dados/real/`, não por cima destes.**
 > Essa pasta está no `.gitignore`: nome, telemóvel e e-mail de clientes de
 > verdade não entram no repositório. Copie o modelo para lá (`dados/real/
-> 10-clientes.csv`) e preencha a cópia. Os nove daqui ficam como estão, que é
+> 10-clientes.csv`) e preencha a cópia. Os oito daqui ficam como estão, que é
 > para isso que servem — mostrar o formato à próxima pessoa.
 
 Só o `10-clientes.csv` entra sozinho no sistema, pelo ecrã *Clientes →
-Importar*. Os outros oito são para preencher à mão nos formulários.
+Importar*. Os outros sete são para preencher à mão nos formulários.
 
 | Ordem | Ficheiro | O que carrega |
 |---|---|---|
@@ -29,9 +29,8 @@ Importar*. Os outros oito são para preencher à mão nos formulários.
 | 4 | `03-profissionais.csv` | quem são e em que lojas atendem |
 | 5 | `06-quem-faz-o-que.csv` | sem isto a cliente marca com quem não faz aquele serviço |
 | 6 | `04-escalas.csv` | quando cada uma trabalha. Sem escala a profissional não tem coluna na agenda |
-| 7 | `07-recursos.csv` | lavatórios, cadeiras e cabines — é o que impede duas clientes na mesma cabine |
-| 8 | `08-precos-excecoes.csv` | só se o preço variar por profissional ou por loja |
-| 9 | `10-clientes.csv` | a carteira de clientes — o único que o sistema importa sozinho |
+| 7 | `08-precos-excecoes.csv` | só se o preço variar por profissional ou por loja |
+| 8 | `10-clientes.csv` | a carteira de clientes — o único que o sistema importa sozinho |
 
 A ordem da tabela não é a ordem dos números no nome do ficheiro: é a ordem em
 que os dados fazem falta. Cada linha depende de a anterior já estar respondida —

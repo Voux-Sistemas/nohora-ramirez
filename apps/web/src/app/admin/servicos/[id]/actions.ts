@@ -15,12 +15,6 @@ import { mensagemDoErro } from '@/server/erros'
 import { recusaDaImagem, resolveImageField } from '@/server/storage/form'
 
 function parseService(formData: FormData): ServiceInput {
-  const requiresDeposit = formData.get('requiresDeposit') === 'on'
-  const depositType = String(formData.get('depositType') ?? 'percent') as 'percent' | 'fixed'
-  // 'percent' guarda pontos-base (input "50" → 5000); 'fixed' guarda cêntimos
-  // (input "50" → 5000 cêntimos = 50 na moeda do país) — mesma conta nos dois casos.
-  const depositValue = Math.round(Number(formData.get('depositValueInput') ?? 0) * 100)
-
   return {
     name: String(formData.get('name') ?? '').trim(),
     description: String(formData.get('description') ?? '').trim() || undefined,
@@ -32,16 +26,8 @@ function parseService(formData: FormData): ServiceInput {
     setupMin: Number(formData.get('durationMin') ?? 0),
     processingMin: 0,
     finishMin: 0,
-    bufferBeforeMin: Number(formData.get('bufferBeforeMin') ?? 0),
-    bufferAfterMin: Number(formData.get('bufferAfterMin') ?? 0),
     onlineBookable: formData.get('onlineBookable') === 'on',
-    requiresDeposit,
-    depositType: requiresDeposit ? depositType : undefined,
-    depositValue: requiresDeposit ? depositValue : undefined,
-    requiresAssessment: formData.get('requiresAssessment') === 'on',
-    requiresAnamnesis: formData.get('requiresAnamnesis') === 'on',
     active: formData.get('active') === 'on',
-    resourceTypeIds: formData.getAll('resourceTypeIds').map(String),
     staffIds: formData.getAll('staffIds').map(String),
   }
 }

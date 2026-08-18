@@ -37,8 +37,8 @@ link que abre a conversa no WhatsApp do salão. Cinco rotinas: confirmação, le
 lembrete de hoje, pedido de avaliação e resgate.
 
 **A área da dona.** `/admin` com painel de faturação e marcações por loja e comparativo de
-mês; e registo de unidades, serviços, equipa e recursos — incluindo horário de funcionamento, feriados, escalas, matriz de
-habilidades, exceções de preço e galeria de fotografias por loja.
+mês; e registo de unidades, serviços e equipa — incluindo horário de funcionamento, feriados,
+escalas, matriz de habilidades, exceções de preço e galeria de fotografias por loja.
 
 **A entrada.** Equipa por telefone e palavra-passe, com recuperação por e-mail; cliente por código de
 seis dígitos. A primeira conta do sistema nasce em `/comecar` e a porta fecha-se sozinha

@@ -21,12 +21,43 @@ import { useEffect } from 'react'
  * chave, a instância seria reaproveitada e a rolagem nunca voltaria a rodar —
  * inclusive nas atualizações automáticas da própria tela, que não devem
  * arrastar quem já rolou para outro lugar de volta para o "agora".
+ *
+ * **Menos o botão de trás.** Voltar é pedir a tela como ela estava, e o
+ * navegador devolve a posição de rolagem junto — para logo a seguir esta
+ * rolagem a arrastar para outro sítio, à frente de quem está a olhar. Quem
+ * carrega em voltar não pediu o "agora": pediu o que já tinha visto.
  */
+
+/*
+ * Módulo, não estado do componente: a instância morre e nasce a cada dia
+ * (`key={data}`), e a pergunta "como é que se chegou a este dia" é anterior a
+ * ela. `popstate` marca; qualquer toque na página desmarca, porque um gesto é
+ * sempre um destino escolhido — é o que faz as setas de dia voltarem a rolar
+ * logo a seguir a um passo atrás.
+ */
+let veioDoBotaoDeTras = false
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    veioDoBotaoDeTras = true
+  })
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      veioDoBotaoDeTras = false
+    },
+    true,
+  )
+}
 export function RolarParaAgora({ alvos }: { alvos: readonly string[] }) {
   /* Lista nova a cada render seria efeito a cada render; a chave é o conteúdo. */
   const chave = alvos.join('|')
 
   useEffect(() => {
+    if (veioDoBotaoDeTras) {
+      veioDoBotaoDeTras = false
+      return
+    }
+
     const elemento = chave
       .split('|')
       .filter(Boolean)

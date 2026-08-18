@@ -5,4 +5,4 @@
  *
  * Este ficheiro só continua a existir para o caminho `@/lib/csv` seguir válido.
  */
-export { detectSeparator, parseCsv, type CsvSeparator } from '@studio/core'
+export { decodeCsvBytes, detectSeparator, parseCsv, type CsvSeparator } from '@studio/core'

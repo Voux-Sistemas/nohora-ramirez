@@ -157,14 +157,17 @@ export default async function AgendaDoDiaPage({
       */}
       <header className={cn('mb-5', tetoQuadro)}>
         <div>
-          {/* Quem trabalha numa loja só não tem para onde voltar: `/agenda` a
-              devolveria para cá. Link que dá em si mesmo é ruído. */}
-          {acesso.unidadeIds !== null && acesso.unidadeIds.length <= 1 ? null : (
-            <Link href="/agenda" className="text-muted text-sm hover:underline">
-              ← unidades
-            </Link>
-          )}
-          <h1 className="display mt-1 text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
+          {/*
+            Aqui esteve um "← unidades", e ele mentia.
+
+            Não havia ecrã de unidades para onde voltar: `/agenda` sozinho
+            reencaminha para a PRIMEIRA loja da pessoa. Quem estava na Maia,
+            no dia 27, carregava numa seta de voltar e aterrava em Valongo,
+            hoje — outra loja e outro dia, sem ter pedido nenhum dos dois. É
+            esse o "voltar que buga a agenda". Trocar de loja é o seletor da
+            barra de cima, que troca sem sair do dia.
+          */}
+          <h1 className="display text-[1.75rem] leading-[1.15] font-normal sm:text-[2rem]">
             {unit.name}
           </h1>
 

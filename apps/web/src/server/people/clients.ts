@@ -143,6 +143,17 @@ export async function importClients(rows: ImportRow[]): Promise<ImportResult> {
       continue
     }
 
+    /* U+FFFD é o que sobra de um byte que a leitura não soube ler. Aqui já não
+       devia aparecer — `decodeCsvBytes` trata o Windows-1252, que é o caso
+       real —, mas se o ficheiro vier de outro sítio ainda pode. Recusar a linha
+       é a única saída honesta: gravar "M?rcia" não dá erro nenhum, e semanas
+       depois é esse nome que chega ao telemóvel da cliente dentro da mensagem
+       do salão. */
+    if (name.includes('\uFFFD')) {
+      result.skipped.push({ row: index + 1, name, reason: 'o nome veio ilegível — grave o ficheiro como "CSV UTF-8"' })
+      continue
+    }
+
     const client = await findOrCreateClient({ phone, name, ...(row.email ? { email: row.email } : {}) })
     if (client.returning) {
       result.updated++

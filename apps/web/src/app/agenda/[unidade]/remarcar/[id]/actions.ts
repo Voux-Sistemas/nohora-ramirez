@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, RedirectType } from 'next/navigation'
 import { assertUnidade } from '@/server/auth/permissoes'
 import { rescheduleAppointment } from '@/server/scheduling/book'
 import { getUnitBySlug } from '@/server/scheduling/context'
@@ -55,12 +55,16 @@ export async function remarcar(formData: FormData): Promise<void> {
     channel: 'reception',
   })
 
+  /* `replace`, nos dois destinos: o formulário de remarcar já foi enviado, e
+     deixá-lo no histórico é pôr o botão de voltar a apontar para um envio que
+     não se pode repetir. */
   if (!result.ok) {
     redirect(
       `/agenda/${unidade}/remarcar/${id}?d=${data}&erro=${encodeURIComponent(result.message)}`,
+      RedirectType.replace,
     )
   }
 
   revalidatePath('/agenda/[unidade]', 'page')
-  redirect(`/agenda/${unidade}?d=${data}&sel=${result.appointmentId}`)
+  redirect(`/agenda/${unidade}?d=${data}&sel=${result.appointmentId}`, RedirectType.replace)
 }

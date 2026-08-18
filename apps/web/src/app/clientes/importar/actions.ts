@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { parseCsv } from '@/lib/csv'
+import { decodeCsvBytes, parseCsv } from '@/lib/csv'
 import { assertGestao } from '@/server/auth/permissoes'
 import { importClients, type ImportResult } from '@/server/people/clients'
 
@@ -36,7 +36,9 @@ export async function importarCsv(_state: ImportState, formData: FormData): Prom
     return { error: 'Selecione um ficheiro CSV.' }
   }
 
-  const text = await file.text()
+  /* `file.text()` decide sozinho que o ficheiro é UTF-8, e a folha guardada
+     pelo Excel português quase nunca é — ver `decodeCsvBytes`. */
+  const text = decodeCsvBytes(new Uint8Array(await file.arrayBuffer()))
   const rows = parseCsv(text)
   if (rows.length < 2) {
     return { error: 'O ficheiro precisa de um cabeçalho e pelo menos uma linha de dados.' }

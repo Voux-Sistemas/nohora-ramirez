@@ -1,6 +1,6 @@
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect, RedirectType } from 'next/navigation'
 import { z } from 'zod'
 import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { findOrCreateClient } from '@/server/people/clients'
@@ -102,7 +102,10 @@ export async function confirmarAgendamento(
   // reconhece a cliente pelo telemóvel e devolve o nome que já estava gravado:
   // ler daí seria contar, a quem digitou um número, como se chama quem o tem.
   const primeiroNome = data.nome.split(/\s+/)[0] ?? ''
+  /* `replace`: a marcação está feita, e o ecrã de confirmar não pode voltar
+     com o botão de trás — voltar a ele é voltar a um formulário que já enviou. */
   redirect(
     `/agendar/${data.unidade}/pronto/${result.appointmentId}?para=${encodeURIComponent(primeiroNome)}`,
+    RedirectType.replace,
   )
 }

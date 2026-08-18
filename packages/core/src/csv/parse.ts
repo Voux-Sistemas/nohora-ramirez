@@ -127,3 +127,41 @@ function contarForaDeAspas(linha: string, separador: string): number {
   }
   return total
 }
+
+/**
+ * Bytes do ficheiro → texto, adivinhando a codificação.
+ *
+ * O `File.text()` do navegador e do servidor decide sozinho: é sempre UTF-8. E
+ * o Excel em português, no Windows, guarda "CSV (separado por vírgulas)" em
+ * Windows-1252 — a codificação de um byte por letra que a máquina usa desde
+ * antes de o UTF-8 existir. Os dois juntos dão o defeito que ninguém liga ao
+ * ficheiro: "Márcia" entra na base como "M?rcia", com o caractere de
+ * substituição no meio, e sai de lá semanas depois dentro da mensagem que o
+ * salão manda à cliente. O nome dela chega estragado ao telemóvel dela.
+ *
+ * A ordem da adivinha é a única que não erra:
+ *
+ * 1. **BOM é resposta, não pista.** O Excel só o escreve quando gravou em
+ *    UTF-8 ("CSV UTF-8"), e ninguém mais o escreve por engano.
+ * 2. **UTF-8 estrito.** Sem BOM, tenta-se UTF-8 a recusar byte inválido. Texto
+ *    só de ASCII passa (é UTF-8 válido, e em Windows-1252 daria o mesmo), e
+ *    UTF-8 verdadeiro passa.
+ * 3. **Windows-1252 no resto.** Um `á` gravado em Windows-1252 é o byte E1,
+ *    que não é sequência UTF-8 válida — o passo 2 recusa-o, e aqui ele volta a
+ *    ser `á`. Não existe ficheiro que engane os dois passos: as sequências
+ *    UTF-8 válidas com acento não são texto plausível em Windows-1252.
+ *
+ * O BOM não sobrevive a nenhum dos três caminhos: o `TextDecoder` come-o por
+ * omissão. `parseCsv` continua a tirá-lo à mesma, porque também é chamado com
+ * texto que não passou por aqui.
+ */
+export function decodeCsvBytes(bytes: Uint8Array): string {
+  const utf8 = new TextDecoder('utf-8')
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return utf8.decode(bytes)
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    return new TextDecoder('windows-1252').decode(bytes)
+  }
+}

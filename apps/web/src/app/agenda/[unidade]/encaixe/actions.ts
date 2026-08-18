@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, RedirectType } from 'next/navigation'
 import { z } from 'zod'
 import { telefoneInvalidoErro, toE164 } from '@/lib/format'
 import { assertUnidade } from '@/server/auth/permissoes'
@@ -76,5 +76,10 @@ export async function criarEncaixe(
   if (!result.ok) return { error: result.message }
 
   revalidatePath('/agenda/[unidade]', 'page')
-  redirect(`/agenda/${input.unidade}?d=${input.data}&sel=${result.appointmentId}`)
+  /* `replace`: o encaixe já foi lançado, e voltar para o formulário preenchido
+     convida a lançá-lo outra vez. */
+  redirect(
+    `/agenda/${input.unidade}?d=${input.data}&sel=${result.appointmentId}`,
+    RedirectType.replace,
+  )
 }

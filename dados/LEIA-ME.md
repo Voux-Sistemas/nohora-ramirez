@@ -109,6 +109,13 @@ O número pode vir como estiver na agenda do salão — `912 345 678`, `91234567
 falta de dígitos: com `PAIS=PT` só passam os nove dígitos nacionais, e a linha
 que não os tiver é saltada e devolvida na lista de ignoradas, com o motivo.
 
+**Os acentos.** Guarde como quiser. O Excel em português oferece dois "CSV" no
+menu de gravar — o normal, que é Windows-1252, e o "CSV UTF-8" — e o sistema
+reconhece os dois e lê "Márcia" como "Márcia" em qualquer deles. Se ainda assim
+um nome chegar com um losango no meio, a linha é saltada em vez de gravada, com
+o motivo na lista de ignoradas: um nome estragado na base é o nome que sai
+estragado na mensagem que o salão manda à cliente, semanas depois.
+
 **Quem já existe não vira cópia.** A conferência é pelo telemóvel: se a cliente
 já está registada, a linha não cria uma segunda — quando muito preenche o
 e-mail que faltava, e nunca por cima de um que já lá esteja. O nome também não é

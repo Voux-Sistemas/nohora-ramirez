@@ -67,6 +67,7 @@ export type BookingError =
   | 'slot_taken'
   | 'too_soon'
   | 'too_far'
+  | 'already_cancelled'
 
 export type CreateAppointmentResult =
   | { ok: true; appointmentId: string; slot: SlotOption; depositRequired: number }
@@ -82,6 +83,7 @@ const MESSAGES: Record<BookingError, string> = {
   slot_taken: 'Este horário acabou de ser ocupado. Escolha outro, por favor.',
   too_soon: 'Este horário já não está a tempo. Escolha um mais à frente, por favor.',
   too_far: 'A agenda ainda não está aberta para essa data.',
+  already_cancelled: 'Esta marcação já saiu da agenda. Para a retomar, marque de novo.',
 }
 
 function fail(error: BookingError): CreateAppointmentResult {
@@ -393,12 +395,16 @@ export async function cancelAppointment(
   await db.transaction((tx) => releaseAppointment(tx, appointmentId, to, options))
 }
 
+/**
+ * Devolve `false` quando não havia nada a libertar — a marcação já estava fora
+ * da agenda. Quem cancela ignora isso de propósito; quem remarca não pode.
+ */
 async function releaseAppointment(
   tx: Tx,
   appointmentId: string,
   to: CancelStatus,
   options: { reason?: string; actorId?: string },
-): Promise<void> {
+): Promise<boolean> {
   const [current] = await tx
     .select({ status: appointments.status, clientId: appointments.clientId })
     .from(appointments)
@@ -413,7 +419,7 @@ async function releaseAppointment(
     faltas a quem faltou uma vez. A ficha dela passa a dizer que é reincidente,
     e é por esse número que o salão decide pedir sinal.
   */
-  if (ESTADOS_TERMINAIS.has(current.status)) return
+  if (ESTADOS_TERMINAIS.has(current.status)) return false
 
   const items = await tx
     .select({ id: appointmentItems.id })
@@ -454,6 +460,8 @@ async function releaseAppointment(
       .set({ noShowCount: sql`${clientProfiles.noShowCount} + 1` })
       .where(eq(clientProfiles.id, current.clientId))
   }
+
+  return true
 }
 
 /**
@@ -461,6 +469,12 @@ async function releaseAppointment(
  * ele bloquearia a si mesmo ao mudar de 14h para 14h30. Liberar o horário antigo
  * e reservar o novo acontecem na MESMA transação: nunca existe um instante em
  * que a cliente ficou sem horário nenhum.
+ *
+ * Se não houve o que libertar, não há o que reservar. Libertar era silencioso
+ * quando a marcação já estava cancelada — e a reserva acontecia à mesma. Dois
+ * toques em "Remarcar", ou o botão de voltar sobre o formulário já enviado,
+ * davam à cliente duas horas na agenda em vez de uma: a segunda passagem não
+ * tinha o que cancelar e escrevia um atendimento novo por cima do primeiro.
  */
 export async function rescheduleAppointment(
   appointmentId: string,
@@ -471,12 +485,14 @@ export async function rescheduleAppointment(
 
   try {
     const newId = await db.transaction(async (tx) => {
-      await releaseAppointment(tx, appointmentId, 'cancelled_by_studio', {
+      const libertou = await releaseAppointment(tx, appointmentId, 'cancelled_by_studio', {
         reason: 'Remarcado',
         ...(input.actorId ? { actorId: input.actorId } : {}),
       })
+      if (!libertou) return null
       return writeAppointment(tx, input, plan, appointmentId)
     })
+    if (newId === null) return fail('already_cancelled')
 
     return {
       ok: true,

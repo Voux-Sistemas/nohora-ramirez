@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detectSeparator, parseCsv } from './parse.js'
+import { decodeCsvBytes, detectSeparator, parseCsv } from './parse.js'
 
 const BOM = '﻿'
 
@@ -105,5 +105,44 @@ describe('parseCsv', () => {
   it('arquivo vazio devolve nada em vez de quebrar', () => {
     expect(parseCsv('')).toEqual([])
     expect(parseCsv(BOM)).toEqual([])
+  })
+})
+
+/*
+ * Aqui o assunto são bytes, não texto: escrever a fixture como string faria o
+ * ficheiro de teste passar a ser UTF-8 antes de a função a ver, e o defeito
+ * que se quer apanhar desapareceria antes de começar.
+ */
+describe('decodeCsvBytes', () => {
+  const bytes = (...n: number[]) => new Uint8Array(n)
+
+  it('lê o CSV do Excel português, que é Windows-1252', () => {
+    // "M" "á" "r" "c" "i" "a" — o á é o byte E1, sozinho.
+    expect(decodeCsvBytes(bytes(0x4d, 0xe1, 0x72, 0x63, 0x69, 0x61))).toBe('Márcia')
+  })
+
+  it('lê o mesmo nome gravado em UTF-8', () => {
+    expect(decodeCsvBytes(bytes(0x4d, 0xc3, 0xa1, 0x72, 0x63, 0x69, 0x61))).toBe('Márcia')
+  })
+
+  it('lê o "CSV UTF-8" do Excel, e come o BOM pelo caminho', () => {
+    const comBom = bytes(0xef, 0xbb, 0xbf, 0x4d, 0xc3, 0xa1, 0x72, 0x63, 0x69, 0x61)
+    expect(decodeCsvBytes(comBom)).toBe('Márcia')
+    expect(decodeCsvBytes(comBom).startsWith(BOM)).toBe(false)
+  })
+
+  it('não inventa caractere de substituição em nenhum dos dois caminhos', () => {
+    // É este o sintoma que chegou da reunião: o nome sai da base estragado e
+    // vai estragado dentro da mensagem para a cliente.
+    expect(decodeCsvBytes(bytes(0x4a, 0x6f, 0xe3, 0x6f))).not.toContain('�')
+    expect(decodeCsvBytes(bytes(0x4a, 0x6f, 0xe3, 0x6f))).toBe('João')
+  })
+
+  it('ficheiro só de ASCII lê igual nos dois lados', () => {
+    expect(decodeCsvBytes(bytes(0x6e, 0x6f, 0x6d, 0x65, 0x3b, 0x74, 0x65, 0x6c))).toBe('nome;tel')
+  })
+
+  it('ficheiro vazio devolve texto vazio', () => {
+    expect(decodeCsvBytes(bytes())).toBe('')
   })
 })

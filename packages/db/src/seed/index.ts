@@ -250,7 +250,6 @@ async function main(): Promise<void> {
       .values({
         userId: user!.id,
         displayName: person.name.split(' ')[0]!,
-        bio: person.bio,
         color: person.color,
         acceptsOnlineBooking: person.acceptsOnlineBooking ?? true,
         hiredAt: person.hiredAt,

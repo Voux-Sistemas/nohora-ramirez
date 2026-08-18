@@ -1,12 +1,12 @@
-codigo;nome;categoria;preco;duracao_min;folga_depois_min;online;descricao
-corte-senhora;Corte senhora;Cabelo;15,00;30;10;sim;Corte com lavagem, sem brushing
-brushing;Brushing;Cabelo;20,00;45;10;sim;
-coloracao;Coloração raiz;Química;50,00;60;15;sim;Retoque de raiz
-madeixas;Madeixas + brushing;Química;100,00;150;15;sim;Confirmar a duração para cabelo comprido
-alisamento;Alisamento;Química;180,00;180;15;nao;Só com avaliação presencial
-botox;Botox capilar;Tratamento;80,00;90;10;sim;
-manicure;Manicure normal;Mãos e pés;15,00;45;5;sim;
-pedicure;Pedicure completa;Mãos e pés;25,00;45;5;sim;
-sobrancelha;Sobrancelha a linha;Rosto;15,00;20;5;sim;
-pestanas;Extensão de pestanas;Rosto;60,00;120;10;sim;
-limpeza-facial;Limpeza facial com peeling;Rosto;50,00;75;15;sim;
+codigo;nome;categoria;preco;duracao_min;online;descricao
+corte-senhora;Corte senhora;Cabelo;15,00;30;sim;Corte com lavagem, sem brushing
+brushing;Brushing;Cabelo;20,00;45;sim;
+coloracao;Coloração raiz;Química;50,00;60;sim;Retoque de raiz
+madeixas;Madeixas + brushing;Química;100,00;150;sim;Confirmar a duração para cabelo comprido
+alisamento;Alisamento;Química;180,00;180;nao;Só com avaliação presencial
+botox;Botox capilar;Tratamento;80,00;90;sim;
+manicure;Manicure normal;Mãos e pés;15,00;45;sim;
+pedicure;Pedicure completa;Mãos e pés;25,00;45;sim;
+sobrancelha;Sobrancelha a linha;Rosto;15,00;20;sim;
+pestanas;Extensão de pestanas;Rosto;60,00;120;sim;
+limpeza-facial;Limpeza facial com peeling;Rosto;50,00;75;sim;

@@ -53,8 +53,8 @@ ela executa.
 - **`duracao_min`** — o tempo total da cliente com a profissional, do princípio
   ao fim. Numa coloração conta tudo: aplicar, esperar que a tinta atue e
   finalizar. Se a coloração leva 1h40, escreva `100`.
-- **`folga_depois_min`** — o tempo de limpeza e troca entre uma cliente e a
-  seguinte. Se são sempre 10 minutos a arrumar a estação, escreva 10.
+  Se ainda são precisos 10 minutos a arrumar a estação entre uma cliente e a
+  seguinte, some-os: a agenda marca um bloco só, do princípio ao fim.
 
 Duração errada é o erro que mais dói: a agenda passa a prometer horário que não
 existe. Na dúvida, cronometre dois atendimentos e use o maior — errar para mais

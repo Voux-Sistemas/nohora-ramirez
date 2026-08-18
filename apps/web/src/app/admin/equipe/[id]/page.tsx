@@ -51,7 +51,6 @@ const BLANK_STAFF: StaffDetail = {
   name: '',
   phone: '',
   email: null,
-  bio: null,
   color: '#95663a',
   acceptsOnlineBooking: true,
   active: true,
@@ -150,10 +149,6 @@ export default async function ProfissionalFormPage({
               <label className="flex flex-col gap-1 text-sm">
                 Cor na agenda
                 <input className="field h-11" type="color" name="color" defaultValue={staff.color} />
-              </label>
-              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-                Bio
-                <textarea className="field" name="bio" rows={2} defaultValue={staff.bio ?? ''} />
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input

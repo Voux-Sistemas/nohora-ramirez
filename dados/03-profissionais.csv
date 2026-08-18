@@ -1,6 +1,6 @@
-codigo;nome;telemovel;email;especialidade;unidade_principal;outras_unidades;aceita_agendamento_online
-ana;Ana Sousa;912 345 601;ana@exemplo.pt;Coloração e madeixas;centro;gaia;sim
-bia;Beatriz Antunes;912 345 602;;Corte e brushing;centro;;sim
-carla;Carla Nogueira;912 345 603;;Manicure e pedicure;gaia;;sim
-duda;Eduarda Faria;912 345 604;;Sobrancelhas e pestanas;shopping;centro;sim
-elis;Elisa Pinto;912 345 605;;Estética facial;shopping;;nao
+codigo;nome;telemovel;email;unidade_principal;outras_unidades;aceita_agendamento_online
+ana;Ana Sousa;912 345 601;ana@exemplo.pt;centro;gaia;sim
+bia;Beatriz Antunes;912 345 602;;centro;;sim
+carla;Carla Nogueira;912 345 603;;gaia;;sim
+duda;Eduarda Faria;912 345 604;;shopping;centro;sim
+elis;Elisa Pinto;912 345 605;;shopping;;nao

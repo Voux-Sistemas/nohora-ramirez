@@ -176,7 +176,6 @@ export interface StaffDetail {
   name: string
   phone: string
   email: string | null
-  bio: string | null
   color: string
   acceptsOnlineBooking: boolean
   active: boolean
@@ -203,7 +202,6 @@ export async function getStaffAdmin(
       name: staffProfiles.displayName,
       phone: users.phone,
       email: users.email,
-      bio: staffProfiles.bio,
       color: staffProfiles.color,
       acceptsOnlineBooking: staffProfiles.acceptsOnlineBooking,
       active: staffProfiles.active,
@@ -246,7 +244,6 @@ export interface StaffInput {
   name: string
   phone: string
   email?: string
-  bio?: string
   color: string
   acceptsOnlineBooking: boolean
   active: boolean
@@ -344,7 +341,6 @@ export async function createStaff(
       .values({
         userId,
         displayName: input.name,
-        bio: input.bio || null,
         color: input.color,
         acceptsOnlineBooking: input.acceptsOnlineBooking,
         active: input.active,
@@ -401,7 +397,6 @@ export async function updateStaff(
       .update(staffProfiles)
       .set({
         displayName: input.name,
-        bio: input.bio || null,
         color: input.color,
         acceptsOnlineBooking: input.acceptsOnlineBooking,
         active: input.active,

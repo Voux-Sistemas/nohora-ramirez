@@ -36,7 +36,6 @@ function parseStaff(formData: FormData): StaffInput {
     name: String(formData.get('name') ?? '').trim(),
     phone: String(formData.get('phone') ?? '').trim(),
     email: String(formData.get('email') ?? '').trim() || undefined,
-    bio: String(formData.get('bio') ?? '').trim() || undefined,
     color: String(formData.get('color') ?? '#95663a'),
     acceptsOnlineBooking: formData.get('acceptsOnlineBooking') === 'on',
     active: formData.get('active') === 'on',

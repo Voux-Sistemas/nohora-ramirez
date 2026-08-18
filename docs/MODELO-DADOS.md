@@ -111,8 +111,9 @@ do login.
 
 **`sessions`** — `user_id`, `token_hash` (único), `expires_at`, `user_agent`, `ip`, `revoked_at`.
 
-**`staff_profiles`** — `user_id` (único), `display_name`, `bio`, `color` (a cor da coluna na
-agenda e do avatar), `accepts_online_booking`, `hired_at`, `active`.
+**`staff_profiles`** — `user_id` (único), `display_name`, `color` (a cor da coluna na
+agenda e do avatar), `accepts_online_booking`, `hired_at`, `active`. Há também um `bio`, que
+o formulário deixou de escrever (ADR-014) porque não havia ecrã nenhum a mostrá-lo.
 
 **`staff_units`** — n:n. `staff_id`, `unit_id`, `is_primary`. É esta tabela — e não
 `user_roles` — que decide onde a profissional atende, porque é a mesma que monta as colunas da

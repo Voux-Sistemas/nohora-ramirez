@@ -291,7 +291,6 @@ export interface StaffSeed {
   name: string
   phone: string
   email: string
-  bio: string
   /**
    * A cor da profissional na agenda e no avatar que a cliente vê.
    *
@@ -319,7 +318,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Ana Souza',
     phone: '+5511990000001',
     email: 'ana@nohoraramirez.com.br',
-    bio: 'Colorista sênior. Especialista em loiros e correção de cor.',
     color: '#95663a',
     hiredAt: '2019-03-11',
     units: ['centro', 'jardins'],
@@ -339,7 +337,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Beatriz Lima',
     phone: '+5511990000002',
     email: 'beatriz@nohoraramirez.com.br',
-    bio: 'Corte e finalização. Cachos e franjas.',
     color: '#4b769b',
     hiredAt: '2021-07-05',
     units: ['centro'],
@@ -360,7 +357,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Carla Dias',
     phone: '+5511990000003',
     email: 'carla@nohoraramirez.com.br',
-    bio: 'Manicure e pedicure. Esmaltação em gel.',
     color: '#a35b45',
     hiredAt: '2020-01-20',
     units: ['jardins'],
@@ -380,7 +376,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Eduarda Reis',
     phone: '+5511990000004',
     email: 'eduarda@nohoraramirez.com.br',
-    bio: 'Design de sobrancelha e extensão de cílios.',
     color: '#627b48',
     hiredAt: '2022-02-14',
     units: ['moema', 'centro'],
@@ -400,7 +395,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Elis Prado',
     phone: '+5511990000005',
     email: 'elis@nohoraramirez.com.br',
-    bio: 'Esteticista. Limpeza de pele e protocolos faciais.',
     color: '#935d81',
     // agenda dela é fechada: recepção encaixa depois de conversar
     acceptsOnlineBooking: false,
@@ -421,7 +415,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Fabiana Rocha',
     phone: '+5511990000006',
     email: 'fabiana@nohoraramirez.com.br',
-    bio: 'Cabelo em geral. Escova e tratamento.',
     color: '#3e7d81',
     hiredAt: '2022-09-19',
     units: ['moema'],
@@ -442,7 +435,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Giovana Mattos',
     phone: '+5511990000007',
     email: 'giovana@nohoraramirez.com.br',
-    bio: 'Química e coloração criativa.',
     color: '#997c3c',
     hiredAt: '2021-11-08',
     units: ['jardins'],
@@ -462,7 +454,6 @@ export const STAFF: readonly StaffSeed[] = [
     name: 'Heloísa Nunes',
     phone: '+5511990000008',
     email: 'heloisa@nohoraramirez.com.br',
-    bio: 'Manicure e pedicure.',
     color: '#944a4b',
     hiredAt: '2024-03-25',
     units: ['moema', 'centro'],

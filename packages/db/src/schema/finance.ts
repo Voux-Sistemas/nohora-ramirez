@@ -1,7 +1,7 @@
 import { index, integer, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { pk, timestamps, tz } from './_shared'
 import { appointments } from './scheduling'
-import { organizations, units } from './organization'
+import { units } from './organization'
 import { users } from './people'
 
 export const paymentMethodEnum = pgEnum('payment_method', [

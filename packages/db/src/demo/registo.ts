@@ -138,27 +138,32 @@ export async function agruparRegisto(db: Executor): Promise<GrupoDoRegisto[]> {
  * Apaga o que o registo diz, e só isso.
  *
  * O nome da tabela vem da base e entra numa instrução de DELETE, por isso é
- * conferido contra `pg_tables` antes de lá chegar. Não é desconfiança do próprio
- * registo — é que uma tabela que já não existe (ou que nunca existiu) tem de dar
- * erro claro em vez de SQL inválido, e a demonstração pode ter sido escrita por
- * uma versão anterior deste script.
+ * conferido contra `pg_tables` antes de lá chegar: um nome que não é de tabela
+ * real nunca chega ao SQL.
+ *
+ * Uma tabela do registo que já não existe **não é erro**, é trabalho já feito.
+ * Largar a tabela levou as linhas com ela, e é exactamente o que vai acontecer:
+ * a demonstração escreveu 736 linhas em `commission_rules` e
+ * `commission_entries`, e a migração que retira as comissões larga as duas.
+ * Isto já rebentou em cima do que interessa — a limpeza inteira corre numa
+ * transacção só, portanto um `throw` aqui fazia rollback e as OUTRAS 2054
+ * linhas falsas ficavam de pé na base do salão, sem forma de as apagar por este
+ * caminho outra vez. Saltar, dizer que se saltou, e continuar.
  */
 export async function apagarPeloRegisto(
   db: Executor,
   grupos: readonly GrupoDoRegisto[],
-): Promise<{ tabela: string; apagadas: number }[]> {
+): Promise<{ tabela: string; apagadas: number; desaparecida?: boolean }[]> {
   const existentes = await db.execute<{ tablename: string }>(
     sql`select tablename from pg_tables where schemaname = 'public'`,
   )
   const reais = new Set([...existentes].map((r) => r.tablename))
 
-  const resultado: { tabela: string; apagadas: number }[] = []
+  const resultado: { tabela: string; apagadas: number; desaparecida?: boolean }[] = []
   for (const grupo of grupos) {
     if (!reais.has(grupo.tabela)) {
-      throw new Error(
-        `o registo fala da tabela "${grupo.tabela}", que não existe nesta base — ` +
-          'não apago nada até isto estar explicado',
-      )
+      resultado.push({ tabela: grupo.tabela, apagadas: 0, desaparecida: true })
+      continue
     }
     const apagadas = await db.execute(sql`
       delete from ${sql.identifier(grupo.tabela)}

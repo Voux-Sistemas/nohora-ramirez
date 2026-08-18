@@ -178,8 +178,9 @@ async function limparDemonstracao(db: Db): Promise<void> {
   /* Tudo numa transacção: uma limpeza que morre a meio deixaria a base num
      estado que nem é a demonstração nem o salão limpo. */
   await db.transaction(async (tx) => {
-    for (const { tabela, apagadas } of await apagarPeloRegisto(tx, grupos)) {
-      console.log(`  − ${String(apagadas).padStart(5)} ${tabela}`)
+    for (const { tabela, apagadas, desaparecida } of await apagarPeloRegisto(tx, grupos)) {
+      const nota = desaparecida ? ' (tabela já não existe — foi com ela)' : ''
+      console.log(`  − ${String(apagadas).padStart(5)} ${tabela}${nota}`)
     }
     await largarTabelaDeRegisto(tx)
   })

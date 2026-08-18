@@ -30,7 +30,8 @@ dinheiro do dia é `/caixa/[unidade]`, com abertura, reforço, sangria e fecho c
 esperado.
 
 **A ficha da cliente.** `/clientes` com pesquisa, ficha em `/clientes/[id]` com histórico e
-notas internas, e importação de carteira por CSV em `/clientes/importar`.
+notas internas, cadastro à mão em `/clientes/novo` e importação de carteira por CSV em
+`/clientes/importar`.
 
 **Os avisos.** `/avisos/[unidade]` é a fila de quem falta contactar hoje, com o texto pronto e o
 link que abre a conversa no WhatsApp do salão. Cinco rotinas: confirmação, lembrete da véspera,

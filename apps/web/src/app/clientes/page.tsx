@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Avatar } from '@/components/ui/avatar'
+import { buttonVariants } from '@/components/ui/button'
 import { formatPhone } from '@/lib/format'
 import { href } from '@/lib/utils'
 import { listClientsDirectory, type ClientDirectoryRow } from '@/server/people/clients'
@@ -113,12 +114,22 @@ export default async function ClientesPage({
           </h1>
           <p className="text-muted mt-1 text-sm">Ficha, preferências e histórico de visitas.</p>
         </div>
-        <Link
-          href={href('/clientes/importar')}
-          className="rounded-plate text-muted hover:text-(--text-strong) py-1 text-sm whitespace-nowrap transition-colors"
-        >
-          importar CSV →
-        </Link>
+        {/* Duas portas para a mesma carteira, e a ordem diz qual é a comum:
+            uma cliente ao telefone é todos os dias, um CSV é uma vez na vida. */}
+        <div className="flex items-center gap-3">
+          <Link
+            href={href('/clientes/novo')}
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          >
+            + nova cliente
+          </Link>
+          <Link
+            href={href('/clientes/importar')}
+            className="rounded-plate text-muted hover:text-(--text-strong) py-1 text-sm whitespace-nowrap transition-colors"
+          >
+            importar CSV →
+          </Link>
+        </div>
       </header>
 
       <form className="mt-6" role="search">
@@ -139,11 +150,12 @@ export default async function ClientesPage({
         <p className="text-muted mt-8 border-t border-(--border-strong) pt-8 text-sm">
           {q ? (
             <>
-              Nenhuma cliente com <strong className="text-(--text-strong)">{q}</strong>. O registo
-              novo nasce na primeira reserva, ou pela importação de CSV.
+              Nenhuma cliente com <strong className="text-(--text-strong)">{q}</strong>. Dá para a
+              cadastrar em <strong className="text-(--text-strong)">+ nova cliente</strong>, ou
+              esperar que ela entre sozinha na primeira reserva.
             </>
           ) : (
-            'Nenhuma cliente registada ainda. A primeira entra sozinha na primeira reserva.'
+            'Nenhuma cliente registada ainda. A primeira entra sozinha na primeira reserva — ou cadastre-a agora em «+ nova cliente».'
           )}
         </p>
       ) : (

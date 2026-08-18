@@ -17,8 +17,19 @@ import { alternarFixarNota, adicionarNota, removerNota } from './actions'
 
 const CANCELLED = new Set(['cancelled_by_client', 'cancelled_by_studio', 'no_show'])
 
-export default async function ClienteFichaPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClienteFichaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ ja?: string }>
+}) {
   const { id } = await params
+  /* Chega assim de «Nova cliente», quando o telefone escrito já era de alguém.
+     A ficha é a que já existia, com o nome que já lá estava — e é isso que o
+     aviso diz, senão a recepção fica a olhar para um nome que não escreveu.
+     Ver `clientes/novo/actions.ts`. */
+  const jaExistia = (await searchParams).ja === '1'
 
   const [profile, notes, history, units, assignables] = await Promise.all([
     getClientProfile(id),
@@ -37,6 +48,16 @@ export default async function ClienteFichaPage({ params }: { params: Promise<{ i
       <Link href={href('/clientes')} className="text-muted text-sm hover:underline">
         ← clientes
       </Link>
+
+      {jaExistia ? (
+        <p
+          className="mt-4 rounded-lg border border-(--border-strong) bg-(--surface-sunken) px-3 py-2 text-sm"
+          role="status"
+        >
+          Este número já estava registado — esta é a ficha que já havia. O nome não foi trocado;
+          corrija-o abaixo se estiver errado.
+        </p>
+      ) : null}
 
       <header className="mt-4 mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>

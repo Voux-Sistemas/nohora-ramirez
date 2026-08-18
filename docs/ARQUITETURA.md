@@ -84,7 +84,7 @@ Duas áreas, e a divisão importa porque as cenas de uso não se parecem.
 conta nenhuma), e `/conta` com `/conta/entrar` e `/conta/verificar` para ver e cancelar.
 
 **A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda/[unidade]` com `/comanda/[id]`,
-`/encaixe` e `/remarcar/[id]`; `/caixa/[unidade]`; `/clientes` com `/[id]` e `/importar`;
+`/encaixe` e `/remarcar/[id]`; `/caixa/[unidade]`; `/clientes` com `/[id]`, `/novo` e `/importar`;
 `/avisos/[unidade]`; e a área da dona em `/admin` — `/unidades`, `/servicos` e `/equipe`. O
 acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
 a primeira conta de todas nasce em `/comecar` (ver `ops/README.md`).

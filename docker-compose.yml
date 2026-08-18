@@ -1,0 +1,44 @@
+# O Postgres de quem desenvolve, e nada mais.
+#
+# O README sempre pediu "um PostgreSQL 17 acessível" sem dizer onde arranjar um,
+# e essa frase era meia hora de trabalho para quem clonava o repositório pela
+# primeira vez. Passa a ser um comando.
+#
+# A senha é "senha" de propósito: é exactamente a que está no `.env.example`,
+# para o passo seguinte ser copiar o ficheiro e mais nada. Este banco só existe
+# na máquina de quem programa e nunca vê a internet — a senha fraca aqui não é
+# descuido, é o mesmo que a porta de casa estar aberta enquanto se está lá dentro.
+# O banco do salão vive na Supabase e as credenciais dele não moram em ficheiro
+# nenhum do repositório.
+#
+#   docker compose up -d     levanta
+#   docker compose down      desliga, e guarda os dados
+#   docker compose down -v   desliga e deita fora o banco todo, para recomeçar
+services:
+  banco:
+    # 17 porque é a versão em produção, e a distância entre versões de Postgres
+    # aparece sempre no sítio mais caro: aqui, nas travas de exclusão da agenda.
+    image: postgres:17-alpine
+    container_name: studio-banco
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: senha
+      POSTGRES_DB: studio
+    ports:
+      - '5432:5432'
+    volumes:
+      # Nomeado, e não uma pasta do projecto: os dados do Postgres não têm nada
+      # que fazer dentro da árvore de código, e o `down -v` é a maneira limpa de
+      # voltar ao banco vazio quando o seed sai torto.
+      - banco:/var/lib/postgresql/data
+    healthcheck:
+      # `npm run db:migrate` logo a seguir ao `up -d` falha se o Postgres ainda
+      # estiver a arrancar. Com isto, `docker compose up -d --wait` só devolve o
+      # comando quando o banco responde de facto.
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d studio']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  banco:

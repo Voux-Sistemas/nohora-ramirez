@@ -18,6 +18,11 @@ coverage/
 # fotos enviadas pelo admin nesta máquina: são dados locais, não código
 .uploads/
 
+# o Postgres de quem desenvolve. O builder está preso a NIXPACKS no
+# railway.json e não olha para isto, mas mandá-lo na mesma seria dizer à
+# hospedagem que existe um banco no upload — e não existe.
+docker-compose.yml
+
 *.log
 *.tsbuildinfo
 .turbo/

@@ -12,15 +12,20 @@ cliente, não a nossa.
 
 ## Como correr
 
-Precisa de Node ≥ 20 e um PostgreSQL 17 acessível.
+Precisa de **Node 22** (está em `.nvmrc`) e de **Docker**.
 
 ```sh
 npm install
-cp .env.example .env          # e preencher DATABASE_URL
+docker compose up -d --wait   # Postgres 17 local, na porta 5432
+cp .env.example .env          # já vem apontado para esse banco
 npm run db:migrate            # schema + travas anti-overbooking
 npm run db:seed               # estúdio fictício completo, para ver telas
 npm run dev                   # http://localhost:3000
 ```
+
+Copiar e correr, sem editar nada: a `DATABASE_URL` do `.env.example` é a do
+contentor do `docker-compose.yml`. Quem prefira um PostgreSQL 17 próprio troca
+essa linha e ignora o Docker.
 
 O seed monta um estúdio de demonstração inteiro — catálogo, equipa, escalas e marcações. É
 esse ambiente que se mostra numa venda, e é sobre ele que se desenvolve. Não é preciso dado
@@ -33,7 +38,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 |---|---|
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção dos três workspaces |
-| `npm test` | 135 testes (disponibilidade, preço, fuso, janela do mês, CSV, assinatura S3) |
+| `npm test` | 165 testes — 135 da regra de negócio (disponibilidade, preço, fuso, janela do mês, CSV, assinatura S3) e 30 da aplicação |
 | `npm run typecheck` | `tsc --noEmit` nos três workspaces |
 | `npm run db:migrate` | aplica migrations **e** as travas de exclusão |
 | `npm run db:seed` | popula o estúdio de demonstração |
@@ -59,7 +64,8 @@ subir servidor nem banco.
 
 | Documento | Para quê |
 |---|---|
-| [PRODUCT.md](PRODUCT.md) | **Comece aqui.** A verdade durável do produto: quem usa, o que é, o que não pode ser inventado |
+| [CONTRIBUIR.md](CONTRIBUIR.md) | **Quem chega agora ao código começa aqui.** Do zero ao site a correr, o que publica e o que não publica, e as armadilhas que já custaram caro |
+| [PRODUCT.md](PRODUCT.md) | A verdade durável do produto: quem usa, o que é, o que não pode ser inventado |
 | [DESIGN.md](DESIGN.md) | O sistema visual: tokens, tipografia, tema claro/escuro, componentes |
 | [docs/DECISOES.md](docs/DECISOES.md) | Toda decisão técnica, com data e motivo. Nunca se apaga uma — revoga-se |
 | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) | Stack, motor de disponibilidade, autenticação |

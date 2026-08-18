@@ -56,7 +56,14 @@ export async function RodapePublico({
           </Coluna>
 
           <Coluna titulo="Marcação">
-            <Link href={href('/agendar')} className="transition-colors hover:text-(--text-strong)">
+            {/* Dentro da montra de uma casa, marcar é marcar NELA — mandar para o
+                selector de loja é fazer a pergunta que a pessoa já respondeu ao
+                entrar aqui. Sem casa aberta (a montra da rede), o selector é a
+                resposta certa. */}
+            <Link
+              href={href(atual ? `/agendar/${atual}` : '/agendar')}
+              className="transition-colors hover:text-(--text-strong)"
+            >
               Marcar online
             </Link>
             {/* A mesma regra de `/conta/entrar`: sem por onde mandar o código,

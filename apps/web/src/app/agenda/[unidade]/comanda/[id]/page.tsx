@@ -11,7 +11,7 @@ import { getUnitBySlug } from '@/server/scheduling/context'
 export const dynamic = 'force-dynamic'
 
 /**
- * Comanda é caixa: recebe dinheiro e dá desconto. Tela de
+ * Comanda é caixa: recebe dinheiro, dá desconto e credita comissão. Tela de
  * gestão, e presa à unidade do atendimento — o slug do endereço é só o caminho
  * de volta para a agenda, não a fonte da permissão.
  */
@@ -97,7 +97,7 @@ export default async function ComandaPage({
               </li>
             ))}
           </ul>
-          <p className="text-muted mt-3 text-sm">Comanda fechada — não aceita novos lançamentos.</p>
+          <p className="text-muted mt-3 text-sm">Comanda fechada — comissão gerada por item.</p>
         </section>
       ) : comanda.status !== 'completed' ? (
         <p className="surface rounded-card text-muted p-5 text-sm">

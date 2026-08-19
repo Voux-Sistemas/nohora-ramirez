@@ -198,7 +198,8 @@ export default async function AgendaDoDiaPage({
                 <Num>{counters.cancelled}</Num> cancelado{counters.cancelled === 1 ? '' : 's'}
               </>
             ) : null}
-            {/* O caixa do dia é da loja, não da cadeira: some para quem atende. */}
+            {/* O caixa do dia é da loja, não da cadeira: some para quem atende.
+                O que ela ganha é comissão, e comissão tem tela própria. */}
             {gerir ? (
               <>
                 {' · '}

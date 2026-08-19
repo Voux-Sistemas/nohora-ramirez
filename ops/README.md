@@ -61,7 +61,7 @@ São quatro degraus, e quem decide o que é
 | Papel | De onde vem | Vê | Decide |
 | --- | --- | --- | --- |
 | Suporte | `TELEFONES_SUPORTE` (variável) | a rede | tudo, mais o que define a instalação |
-| Dona | `owner` (sem unidade) | a rede | tudo: unidades, catálogo, equipa |
+| Dona | `owner` (sem unidade) | a rede | tudo: unidades, catálogo, comissões, equipa |
 | Gerente | `unit_manager`, uma linha por unidade | as lojas dela | operação e equipa dessas lojas |
 | Profissional | `professional` | a própria agenda | o próprio atendimento |
 
@@ -102,11 +102,11 @@ ficha da sócia e guardasse qualquer outro campo a rebaixaria sem querer, porque
 ecrã dela não mostra o botão "Dona" para ficar marcado.
 
 O que **continua a ser da dona**, e é a maior parte: catálogo e preço, equipa e
-escala, horário de funcionamento, feriado, foto, morada, telefone e
+escala, comissão, horário de funcionamento, feriado, foto, morada, telefone e
 as regras de agendamento de cada loja. Adicionar mais uma cabine do tipo que já
 existe também é dela — o que passa por nós é inventar um tipo novo.
 
-Os ecrãs de rede (`/admin/unidades`, `/admin/servicos`) desaparecem
+Os ecrãs de rede (`/admin/unidades`, `/admin/servicos`, `/admin/comissoes`) desaparecem
 da navegação do gerente e recusam a ação no servidor. As ações de operação
 (caixa, comanda, encaixe, remarcar, avisos) descobrem a unidade **lendo a linha
 do banco**, nunca o campo escondido do formulário — é o que impede um id trocado

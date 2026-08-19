@@ -29,6 +29,10 @@ agenda multicoluna, com encaixe (`/encaixe`) e remarcação (`/remarcar/[id]`). 
 dinheiro do dia é `/caixa/[unidade]`, com abertura, reforço, sangria e fecho conferido contra o
 esperado.
 
+**A comissão fecha sozinha.** As regras têm precedência por profissional e serviço; a entrada é
+gerada por item no fecho da comanda, com percentagem e base congeladas, e `/admin/comissoes`
+mostra o apuramento. Recalcular sobre o histórico é impossível de propósito.
+
 **A ficha da cliente.** `/clientes` com pesquisa, ficha em `/clientes/[id]` com histórico e
 notas internas, cadastro à mão em `/clientes/novo` e importação de carteira por CSV em
 `/clientes/importar`.
@@ -37,9 +41,10 @@ notas internas, cadastro à mão em `/clientes/novo` e importação de carteira 
 link que abre a conversa no WhatsApp do salão. Cinco rotinas: confirmação, lembrete da véspera,
 lembrete de hoje, pedido de avaliação e resgate.
 
-**A área da dona.** `/admin` com painel de faturação e marcações por loja e comparativo de
-mês; e registo de unidades, serviços e equipa — incluindo horário de funcionamento, feriados,
-escalas, matriz de habilidades, exceções de preço e galeria de fotografias por loja.
+**A área da dona.** `/` com painel de faturação e marcações por loja e comparativo de mês; e
+`/admin` com o registo de unidades, serviços, comissões e equipa — incluindo horário de
+funcionamento, feriados, escalas, matriz de habilidades, exceções de preço e galeria de
+fotografias por loja.
 
 **A entrada.** Equipa por telefone e palavra-passe, com recuperação por e-mail; cliente por código de
 seis dígitos. A primeira conta do sistema nasce em `/comecar` e a porta fecha-se sozinha
@@ -106,9 +111,9 @@ informação para a receção decidir, não cobrança automática.
 ### Auditoria escreve num sítio só
 
 `audit_logs` está de pé e nada grava nela. O rasto que existe de facto é
-`appointment_status_events`, e cobre mudança de estado da marcação e mais nada: preço e comanda
-mudam sem deixar rasto de quem mudou. Para um sistema onde o dinheiro do dia se confere ao
-balcão, é a lacuna mais desconfortável.
+`appointment_status_events`, e cobre mudança de estado da marcação e mais nada: preço, comissão
+e comanda mudam sem deixar rasto de quem mudou. Para um sistema onde o atrito com a equipa nasce
+de números, é a lacuna mais desconfortável.
 
 ### Direitos do titular sem ecrã (RGPD)
 
@@ -170,6 +175,7 @@ duas — fica para depois do arranque da cliente, e é decisão dela, não dívi
 |---|---|---|
 | Motor de disponibilidade errado | Cliente marca e não tem vaga: perda de confiança irreversível | 35 testes escritos antes do código, em função pura |
 | Marcação dupla por concorrência | Duas clientes na mesma cadeira, descoberto ao balcão | Constraint `EXCLUDE` no banco, conferida pelo nome a cada deploy |
+| Comissão divergente | Atrito directo com a equipa | Percentagem e base congeladas na entrada; nunca se recomputa o histórico |
 | Seed apontado ao banco do salão | Apaga agenda e registos, sem confirmação e sem volta | `deployment_env` dentro do banco, que viaja com ele |
 | Backup que não presta no dia do resgate | No plano Free do Supabase, é a única rede | Restauro provado todas as noites em `ops/backup`, num Postgres virgem, com as 41 tabelas e as 2 travas conferidas. Primeira prova contra o Supabase a 14/08/2026 |
 | Volume perdido | Banco íntegro a apontar para fotografias que já não existem | As imagens vivem no bucket, não em disco |

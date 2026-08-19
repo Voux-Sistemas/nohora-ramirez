@@ -18,7 +18,7 @@ completo é [DECISOES.md](DECISOES.md); aqui ficam só o suficiente para percebe
 | Autenticação | equipa: telefone + palavra-passe (`scrypt`) · cliente: telefone + código de 6 dígitos por e-mail | Escrita à mão em `server/auth/`. Sessão em cookie, `sessions.token_hash` no banco |
 | E-mail | **Resend**, por `fetch` directo | Sem SDK e sem dependência nova: é um POST. Ver §5 |
 | Imagens | **Bucket da Railway** (S3-compatível), bucket `imagens` | Assinatura SigV4 escrita em `packages/core/src/s3/`. O driver é trocável por `IMAGE_STORE` |
-| Testes | **Vitest** | 127 testes, quase todos em `packages/core` |
+| Testes | **Vitest** | 178 testes, quase todos em `packages/core` |
 | Deploy | **Railway** (Amesterdão), push na branch `producao` | ADR-009 |
 
 **O que não está instalado, e é bom não presumir:** não há biblioteca de componentes de
@@ -56,8 +56,8 @@ apps/
         └── server/             admin, auth, finance, notifications, people,
                                 scheduling, security, storage
 packages/
-├── core/                       domínio puro: availability, pricing, time, csv,
-│                               security, s3. Sem Next, sem ORM
+├── core/                       domínio puro: availability, pricing, commission,
+│                               time, csv, security, s3. Sem Next, sem ORM
 └── db/                         schema Drizzle, migrations, sql/, seed, cadastro
 ops/                            backup diário e prova de restauro, onboarding
 dados/                          os CSV que definem o formato de importação
@@ -72,7 +72,7 @@ segundo consumidor para justificar a fronteira.
 
 **Regra de ouro (ADR-007):** `packages/core` não importa Next, não importa Drizzle e não sabe o
 que é HTTP. Regra de negócio pura, com teste unitário. É o que garante que o cálculo de
-preço e o motor de disponibilidade sejam de confiança — e é por isso que a esmagadora maioria
+comissão e o motor de disponibilidade sejam de confiança — e é por isso que a esmagadora maioria
 dos testes vive lá.
 
 ### As rotas
@@ -89,7 +89,8 @@ com `/marcar` como atalho para o princípio disso; e `/conta` com `/conta/entrar
 **A operação**, tudo atrás de sessão — `/` é a pauta do dia das lojas; `/agenda` e
 `/agenda/[unidade]` com `/comanda/[id]`, `/encaixe` e `/remarcar/[id]`; `/caixa` e
 `/caixa/[unidade]`; `/avisos` e `/avisos/[unidade]`; `/clientes` com `/[id]`, `/novo` e
-`/importar`; e a área da dona em `/admin` — `/unidades`, `/servicos` e `/equipe`. As três
+`/importar`; e a área da dona em `/admin` — `/unidades`, `/servicos`, `/comissoes` e
+`/equipe`. As três
 secções por loja existem duas vezes de propósito: sem loja no endereço são a vista das lojas
 todas, e é para lá que aponta o "Todas" do seletor da barra (ADR-016). O
 acesso é por palavra-passe em `/entrar`, com `/esqueci` e `/nova-senha`, e
@@ -265,7 +266,7 @@ autoridade de controlo é a CNPD. O que isso obriga, em termos de sistema:
 
 **Auditoria é a lacuna maior.** `audit_logs` existe no schema e nada escreve nela. O rasto que
 há de facto é `appointment_status_events`, que cobre mudança de estado da marcação e mais nada —
-preço e comanda mudam sem deixar rasto de quem mudou.
+preço, comissão e comanda mudam sem deixar rasto de quem mudou.
 
 ---
 

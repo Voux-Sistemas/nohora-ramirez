@@ -176,7 +176,7 @@ A verificação semanal do backup (`ops/backup/verificar.sh`) deixa de se ligar 
 ---
 
 ## ADR-013 · Comissão sai do produto
-**Data:** 2026-08-18 · **Status:** aceita
+**Data:** 2026-08-18 · **Status:** supersedida pelo ADR-018
 
 As tabelas `commission_rules` e `commission_entries`, o ecrã `/admin/comissoes`, o cálculo em `packages/core/src/commission/` e o crédito no fecho da comanda são removidos. Não escondidos do menu: removidos, código, testes e schema.
 
@@ -264,3 +264,20 @@ O lado público passa a ter cabeçalho e rodapé próprios, partilhados por toda
 - **Para o Instagram são dois links, e não um.** Na bio, `/loja` — quem chega de um perfil quer ver a casa antes de escolher hora. Na chamada directa (o botão do story, o cartaz), `/marcar`.
 - **O painel só existe com mais de uma casa.** Com uma, `/loja` reencaminha para ela: escolher entre um é ler o nome dele duas vezes. Mesma régua do "Todas" da operação (ADR-016).
 - **O rodapé só mostra a conta da cliente quando há por onde mandar o código.** Mesma regra de `/conta/entrar`: um link que não abre é pior do que nenhum.
+
+---
+
+## ADR-018 · A comissão volta ao produto
+**Data:** 2026-08-19 · **Status:** aceita · **Supersede:** ADR-013
+
+As tabelas `commission_rules` e `commission_entries`, o enum `commission_status`, o cálculo em `packages/core/src/commission/`, o ecrã `/admin/comissoes` e o crédito no fecho da comanda voltam, no desenho que tinham em `f78af55` — o commit anterior à remoção.
+
+**O motivo é o mesmo do ADR-013, ao contrário: é do dono do produto, não técnico.** No dia seguinte ao de a mandar sair, e depois de mostrar o sistema à dona do salão, ele pediu-a de volta. O ADR-013 dizia "voltar atrás é reconstruir", e era verdade: nada ficou dormente no schema. Reconstruir, aqui, foi recuperar a versão do git — o desenho não mudou porque não havia queixa nenhuma sobre ele, só sobre o facto de ninguém o usar.
+
+**Não se recupera o que não existe.** As entradas antigas foram dropadas em produção e não há backfill: a comissão conta a partir da migração `0008`, e o histórico anterior fica sem apuramento. Produção tinha zero regras — a dona recadastra as percentagens em `/admin/comissoes`, com `dados/09-comissoes.csv` a servir de folha de recolha.
+
+**Consequências:**
+- **O fecho da comanda volta a escrever duas tabelas na mesma transação.** Confere o total, aplica o desconto, regista o pagamento, tranca — e gera uma entrada por item, com percentagem e base congeladas. Comissão gerada nunca se recalcula sobre o histórico: mudar a regra hoje não reescreve o que já foi pago.
+- **Só percentagem entra.** O `09-comissoes.csv` descreve um modelo mais rico — valor fixo por aplicação, dedução do custo do produto, regra por categoria — que nunca teve coluna onde pousar. Continua a não ter. Quem preencher a coluna `valor_fixo` está a responder a uma pergunta que o sistema não faz.
+- **O ecrã é da dona, e só dela.** `/admin/comissoes` é `requireRede`, como as unidades e o catálogo: mexer numa percentagem muda o que a rede inteira paga. A profissional não vê o extrato dela — é o passo seguinte, e ainda não foi pedido.
+- **O painel da dona ganha a coluna de volta, noutro sítio.** O apuramento por pessoa vive em `/`, junto da faturação de cada uma, e não numa tela à parte que ninguém abre por si. Foi essa a queixa original.

@@ -210,7 +210,7 @@ salão. Barra de tinta no topo, colunas estreitas, números tabulares.
 **Área de gestão** (`/admin`) — a mesma sobriedade, mas sentada e mensal em vez
 de em pé e diária: mais ar, tipografia maior, cartão de métrica em faixa,
 listas de resumo em vez de formulário justo. É onde a dona lê o mês e decide
-o que é estrutural — unidade, catálogo, equipa.
+o que é estrutural — unidade, catálogo, equipa, comissão.
 
 `lang="pt-PT"` na raiz e Bodoni só em títulos ≥28px continuam a valer nas três
 áreas por igual, nos dois temas.

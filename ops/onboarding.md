@@ -13,6 +13,7 @@ ecrã depende do anterior.
 | 3 | `/admin/servicos` | o preço e a duração vêm daqui para a agenda |
 | 4 | `/admin/equipe` | a ficha marca os serviços que a pessoa executa |
 | 5 | escala, dentro da ficha | sem escala a profissional não tem coluna na agenda |
+| 6 | `/admin/comissoes` | precisa da equipa e do catálogo já registados |
 
 Dá para voltar e ajustar qualquer um depois. O que não dá é saltar o 2 e o 5: sem
 unidade não existe agenda, e sem escala a agenda abre vazia mesmo com equipa
@@ -71,6 +72,11 @@ inclusive o seu próprio, que só sai depois de outra pessoa já ser dona.
   da loja) ou **profissional** (só a agenda dela). Dona é o único que a própria
   dona não consegue conceder — esse pedido vem para o suporte. Ver
   [README.md](README.md#papéis)
+
+### Comissão
+
+- a percentagem padrão da casa
+- as exceções: por pessoa, por serviço, ou os dois juntos
 
 ## O que não precisa perguntar
 

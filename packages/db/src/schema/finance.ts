@@ -1,8 +1,9 @@
-import { index, integer, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core'
+import { index, integer, pgEnum, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { pk, timestamps, tz } from './_shared'
-import { appointments } from './scheduling'
-import { units } from './organization'
-import { users } from './people'
+import { appointmentItems, appointments } from './scheduling'
+import { organizations, units } from './organization'
+import { services } from './catalog'
+import { staffProfiles, users } from './people'
 
 export const paymentMethodEnum = pgEnum('payment_method', [
   'cash',
@@ -19,6 +20,32 @@ export const cashMovementTypeEnum = pgEnum('cash_movement_type', [
   'reinforcement',
   'withdrawal',
 ])
+
+export const commissionStatusEnum = pgEnum('commission_status', ['pending', 'paid'])
+
+/**
+ * Percentual de comissão. Precedência, do mais específico ao mais genérico:
+ *   profissional + serviço  →  profissional  →  serviço  →  padrão da rede
+ * Mesmo desenho de `service_pricing` — ver `resolveCommission` em @studio/core.
+ */
+export const commissionRules = pgTable(
+  'commission_rules',
+  {
+    id: pk(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    staffId: uuid('staff_id').references(() => staffProfiles.id, { onDelete: 'cascade' }),
+    serviceId: uuid('service_id').references(() => services.id, { onDelete: 'cascade' }),
+    /** Pontos-base: 3000 = 30%. */
+    percentBps: integer('percent_bps').notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    uniqueIndex('commission_rules_scope_uq').on(t.organizationId, t.staffId, t.serviceId),
+    index('commission_rules_org_idx').on(t.organizationId),
+  ],
+)
 
 /**
  * Sessão de caixa: abertura e fechamento por unidade. Todo pagamento em
@@ -97,6 +124,38 @@ export const payments = pgTable(
   ],
 )
 
+/**
+ * Comissão gerada por item de serviço ao fechar a comanda. `baseAmount` é o
+ * preço efetivamente cobrado (após desconto rateado); congelado junto com o
+ * percentual — mudar a regra depois nunca reescreve comissão já gerada.
+ */
+export const commissionEntries = pgTable(
+  'commission_entries',
+  {
+    id: pk(),
+    appointmentItemId: uuid('appointment_item_id')
+      .notNull()
+      .unique()
+      .references(() => appointmentItems.id, { onDelete: 'cascade' }),
+    staffId: uuid('staff_id')
+      .notNull()
+      .references(() => staffProfiles.id, { onDelete: 'restrict' }),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id, { onDelete: 'restrict' }),
+    baseAmount: integer('base_amount').notNull(),
+    percentBps: integer('percent_bps').notNull(),
+    amount: integer('amount').notNull(),
+    status: commissionStatusEnum('status').notNull().default('pending'),
+    paidAt: tz('paid_at'),
+    ...timestamps(),
+  },
+  (t) => [
+    index('commission_entries_staff_status_idx').on(t.staffId, t.status),
+    index('commission_entries_staff_created_idx').on(t.staffId, t.createdAt),
+  ],
+)
+
 /** Desconto aplicado no fechamento da comanda — não mexe no preço congelado do item. */
 export const appointmentDiscounts = pgTable('appointment_discounts', {
   id: pk(),
@@ -110,7 +169,7 @@ export const appointmentDiscounts = pgTable('appointment_discounts', {
   ...timestamps(),
 })
 
-/** Comanda fechada: trava novos pagamentos e descontos. */
+/** Comanda fechada: trava novos pagamentos/descontos, dispara a comissão. */
 export const comandaClosures = pgTable('comanda_closures', {
   id: pk(),
   appointmentId: uuid('appointment_id')

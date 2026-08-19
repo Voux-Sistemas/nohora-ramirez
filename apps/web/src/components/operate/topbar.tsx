@@ -40,7 +40,7 @@ export type SecaoOperacao = 'hoje' | 'agenda' | 'avisos' | 'caixa' | 'clientes' 
  *
  * "Gestão" saiu daqui. Não porque estorve, mas porque não é da mesma família:
  * Hoje, Agenda, Avisos, Caixa e Clientes são o turno — a dona toca-lhes dezenas
- * de vezes por dia —, e cadastrar um serviço ou mudar um horário é coisa que
+ * de vezes por dia —, e cadastrar um serviço ou mudar uma comissão é coisa que
  * se faz uma vez por mês, sentada. Lado a lado, os seis pareciam seis escolhas
  * do mesmo peso, e era metade da queixa de "opção a mais". Gestão mudou-se para
  * o lado direito, junto do nome e do sair, que é onde todo o produto guarda o

@@ -35,6 +35,7 @@ import { podeRede, type Acesso } from '@/server/auth/permissoes'
 const ABAS = [
   { path: '/admin/unidades', label: 'Unidades', rede: true },
   { path: '/admin/servicos', label: 'Serviços', rede: true },
+  { path: '/admin/comissoes', label: 'Comissões', rede: true },
   { path: '/admin/equipe', label: 'Equipa', rede: false },
 ] as const
 

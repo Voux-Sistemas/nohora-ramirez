@@ -2,7 +2,7 @@
 
 Plataforma própria de agendamento e gestão. A cliente marca sozinha pelo telemóvel, o balcão
 opera comanda e caixa no mesmo ecrã, a profissional vê a agenda dela no telemóvel e a dona
-vê as unidades num painel só.
+vê as unidades, e o que há a pagar a cada uma, num painel só.
 
 White-label, sem marketplace, sem taxa por agendamento: o sistema veste a marca do estúdio
 cliente, não a nossa.
@@ -38,7 +38,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 |---|---|
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção dos três workspaces |
-| `npm test` | 165 testes — 135 da regra de negócio (disponibilidade, preço, fuso, janela do mês, CSV, assinatura S3) e 30 da aplicação |
+| `npm test` | 178 testes — 148 da regra de negócio (disponibilidade, preço, comissão, fuso, janela do mês, CSV, assinatura S3) e 30 da aplicação |
 | `npm run typecheck` | `tsc --noEmit` nos três workspaces |
 | `npm run db:migrate` | aplica migrations **e** as travas de exclusão |
 | `npm run db:seed` | popula o estúdio de demonstração |
@@ -48,7 +48,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 
 ```
 apps/web/          Next.js 15 (App Router, RSC, server actions) — a aplicação inteira
-packages/core/     regra de negócio pura: disponibilidade, preço, fuso. Sem Next, sem ORM
+packages/core/     regra de negócio pura: disponibilidade, preço, fuso, comissão. Sem Next, sem ORM
 packages/db/       schema Drizzle, migrations, travas SQL, seed e cadastro do cliente real
 ops/               o que corre em produção fora da aplicação: backup diário, onboarding
 dados/             CSVs que definem o formato de importação do onboarding

@@ -57,6 +57,13 @@
       "when": 1787067957567,
       "tag": "0007_brave_punisher",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787151206640,
+      "tag": "0008_wooden_black_knight",
+      "breakpoints": true
     }
   ]
 }

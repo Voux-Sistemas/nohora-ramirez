@@ -194,7 +194,7 @@ export function podeGerir(acesso: Acesso): boolean {
   return acesso.papel !== 'profissional'
 }
 
-/** Mexe no que é da rede: unidades e catálogo de serviços. */
+/** Mexe no que é da rede: unidades, catálogo de serviços, regras de comissão. */
 export function podeRede(acesso: Acesso): boolean {
   return acesso.papel === 'dona' || acesso.papel === 'suporte'
 }

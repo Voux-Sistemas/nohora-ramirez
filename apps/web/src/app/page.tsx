@@ -1,6 +1,12 @@
 import { addDaysInZone, agruparPorFuso, isoDateInZone, janelaDoMes, zonedDateTime } from '@studio/core'
-import { LIVE_APPOINTMENT_STATUSES, appointmentDiscounts, appointments, units } from '@studio/db'
-import { and, asc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
+import {
+  LIVE_APPOINTMENT_STATUSES,
+  appointmentDiscounts,
+  appointments,
+  clientProfiles,
+  units,
+} from '@studio/db'
+import { and, asc, count, eq, gte, inArray, lt, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { OperateTopbar } from '@/components/operate/topbar'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
@@ -9,8 +15,22 @@ import { Section } from '@/components/ui/section'
 import { db } from '@/lib/db'
 import { formatDateLong, formatMoney, formatMoneyShort, formatMonthLong } from '@/lib/format'
 import { pais } from '@/lib/pais'
+import {
+  agruparProducao,
+  type LinhaDeProducao,
+  type Producao,
+  type ProducaoDeServico,
+  type ProducaoDeStaff,
+} from '@/lib/producao'
 import { cn, href } from '@/lib/utils'
-import { requireGestaoOuMontra, unidadesVisiveis, type Acesso } from '@/server/auth/permissoes'
+import {
+  podeRede,
+  requireGestaoOuMontra,
+  unidadesVisiveis,
+  type Acesso,
+} from '@/server/auth/permissoes'
+import { commissionSummaryByStaff } from '@/server/finance/commissions'
+import { linhasDeProducao } from '@/server/finance/equipa'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +53,7 @@ interface UnidadePainel {
   concluidosAnterior: number
   marcadosCount: number
   marcadosFaturamento: number
+  naoVieram: number
 }
 
 interface Painel {
@@ -41,6 +62,27 @@ interface Painel {
   serie: number[]
   diaAtual: number
   mesLabel: string
+  /** `AAAA-MM` do mês desenhado — é por ele que a navegação anda para trás. */
+  mesIso: string
+  producao: Producao
+  /** Quem marcou e não apareceu, no mês. Vive ao lado da taxa que dele sai. */
+  naoVieram: number
+  /**
+   * Fichas abertas no mês, e o que a casa deve à equipa.
+   *
+   * `null` para quem não é a dona, e não zero: o gerente de uma loja não lê
+   * comissão de ninguém (o ecrã de regras é `requireRede`) e "clientes novas"
+   * é uma contagem de rede inteira, que ele veria recortada e errada. `null`
+   * apaga a linha; zero escrevia um número falso.
+   */
+  rede: DadosDaRede | null
+}
+
+interface DadosDaRede {
+  clientesNovas: number
+  comissoesPendentes: number
+  /** O pendente de cada profissional, para a coluna "a pagar" da equipa. */
+  porStaff: Map<string, number>
 }
 
 interface Comparativo {
@@ -93,9 +135,22 @@ const LIQUIDO = sql<number>`(${appointments.totalPrice} - coalesce(${appointment
  * Sobram duas por fuso: os números por loja, e o mês partido por dia. Na prática
  * duas ao todo, porque as lojas estão todas em Portugal.
  */
-async function loadPainel(acesso: Acesso): Promise<Painel> {
+async function loadPainel(acesso: Acesso, mesRef: Date): Promise<Painel> {
+  /* Duas âncoras no tempo, de propósito. O dia é sempre o dia que está a
+     correr — a pauta da recepção não navega. `mesRef` é a que a placa segue, e
+     só ela anda para trás. */
   const agora = new Date()
-  const vazio: Painel = { unidades: [], serie: [], diaAtual: 0, mesLabel: '' }
+  const rede = podeRede(acesso)
+  const vazio: Painel = {
+    unidades: [],
+    serie: [],
+    diaAtual: 0,
+    mesLabel: '',
+    mesIso: '',
+    producao: { porStaff: [], porServico: [] },
+    naoVieram: 0,
+    rede: null,
+  }
 
   const todas = await db.select().from(units).where(eq(units.active, true)).orderBy(asc(units.name))
   /* O recorte vem antes das contagens, não depois: somar o dia de uma loja para
@@ -122,6 +177,7 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
         concluidosAnterior: 0,
         marcadosCount: 0,
         marcadosFaturamento: 0,
+        naoVieram: 0,
       },
     ]),
   )
@@ -132,9 +188,15 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
   let serie: number[] = []
   let diaAtual = 0
   let mesLabel = ''
+  let mesIso = ''
+  /* As linhas de produção juntam-se cruas de todos os fusos e só depois se
+     somam: fundir agregados de dois fusos seria refazer a soma à mão. */
+  const producao: LinhaDeProducao[] = []
+  /* A janela do mês que está no ecrã — o corrente ou o que o endereço pediu. */
+  let janelaVisivel: { inicio: Date; fim: Date } | null = null
 
   for (const [timezone, doFuso] of agruparPorFuso(rows)) {
-    const mes = janelaDoMes(agora, timezone)
+    const mes = janelaDoMes(mesRef, timezone)
     const hoje = isoDateInZone(agora, timezone)
 
     /*
@@ -159,11 +221,13 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
       serie = new Array<number>(mes.dias).fill(0)
       diaAtual = mes.diaDoMes
       mesLabel = formatMonthLong(mes.inicioIso)
+      mesIso = mes.inicioIso.slice(0, 7)
+      janelaVisivel = { inicio: mes.inicio, fim: mes.fim }
     }
 
     const diaExpr = sql<number>`extract(day from (${appointments.startsAt} at time zone ${timezone}))::int`
 
-    const [linhas, diarias] = await Promise.all([
+    const [linhas, diarias, itens] = await Promise.all([
       db
         .select({
           unitId: appointments.unitId,
@@ -185,6 +249,10 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
           faturamentoAnterior: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} = 'completed' and ${appointments.startsAt} >= ${mes.anteriorInicioTs} and ${appointments.startsAt} < ${mes.anteriorFimTs}), 0)::int`,
           marcadosCount: sql<number>`count(*) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs})::int`,
           marcadosFaturamento: sql<number>`coalesce(sum(${LIQUIDO}) filter (where ${appointments.status} in (${STATUSES_AINDA_VALEM}) and ${appointments.startsAt} >= ${agoraTs} and ${appointments.startsAt} < ${em7DiasTs}), 0)::int`,
+          /* A falta é a única perda que o painel consegue medir: cadeira
+             reservada, ninguém sentado, e ninguém a pagar. Vem da consulta que
+             já estava aqui — é mais um `filter`, não outra ida ao banco. */
+          naoVieram: sql<number>`count(*) filter (where ${appointments.status} = 'no_show' and ${appointments.startsAt} >= ${mes.inicioTs} and ${appointments.startsAt} < ${mes.fimTs})::int`,
         })
         .from(appointments)
         .leftJoin(appointmentDiscounts, eq(appointmentDiscounts.appointmentId, appointments.id))
@@ -220,6 +288,8 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
           Confirmado contra o banco antes de trocar.
         */
         .groupBy(sql`1`),
+
+      linhasDeProducao(ids, { inicio: mes.inicio, fim: mes.fim }),
     ])
 
     for (const linha of linhas) {
@@ -235,20 +305,97 @@ async function loadPainel(acesso: Acesso): Promise<Painel> {
       atual.faturamentoAnterior = linha.faturamentoAnterior
       atual.marcadosCount = linha.marcadosCount
       atual.marcadosFaturamento = linha.marcadosFaturamento
+      atual.naoVieram = linha.naoVieram
     }
 
     for (const { dia, valor } of diarias) {
       const i = dia - 1
       if (i >= 0 && i < serie.length) serie[i] = (serie[i] ?? 0) + valor
     }
+
+    producao.push(...itens)
   }
 
+  const unidades = rows.map((unit) => porUnidade.get(unit.id) as UnidadePainel)
+
   return {
-    unidades: rows.map((unit) => porUnidade.get(unit.id) as UnidadePainel),
+    unidades,
     serie,
     diaAtual,
     mesLabel,
+    mesIso,
+    producao: agruparProducao(producao),
+    naoVieram: unidades.reduce((soma, unit) => soma + unit.naoVieram, 0),
+    rede: rede && janelaVisivel ? await lerRede(janelaVisivel) : null,
   }
+}
+
+/**
+ * Os dois números que são da dona e de mais ninguém.
+ *
+ * "Clientes novas" conta fichas com primeira visita no mês — a tabela não tem
+ * unidade, portanto o número é da rede inteira e recortá-lo por loja daria uma
+ * contagem errada em vez de uma contagem parcial. As comissões pendentes são o
+ * assunto do ecrã de regras, que já é `requireRede`.
+ *
+ * Fica fora do laço dos fusos: são duas consultas por carregamento, não duas
+ * por fuso, e o tecto de ligações do pooler é de contar.
+ */
+async function lerRede(janela: { inicio: Date; fim: Date }): Promise<DadosDaRede> {
+  const [novas, comissoes] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(clientProfiles)
+      .where(
+        and(
+          gte(clientProfiles.firstVisitAt, janela.inicio),
+          lt(clientProfiles.firstVisitAt, janela.fim),
+        ),
+      ),
+    commissionSummaryByStaff(),
+  ])
+
+  return {
+    clientesNovas: novas[0]?.n ?? 0,
+    comissoesPendentes: comissoes.reduce((soma, linha) => soma + linha.pendingAmount, 0),
+    /* Por pessoa, para a lista da equipa — a mesma leitura, sem repetir a
+       consulta. É o pendente de todos os meses, não o deste: é o que a casa
+       deve hoje, e é assim que a secção o rotula. */
+    porStaff: new Map(comissoes.map((linha) => [linha.staffId, linha.pendingAmount])),
+  }
+}
+
+/** `2026-08`. Ano de quatro dígitos e mês de 01 a 12 — nada mais entra. */
+const MES_ISO = /^\d{4}-(0[1-9]|1[0-2])$/
+
+/**
+ * O instante que representa o mês pedido no endereço.
+ *
+ * Para o mês corrente é o agora — a placa compara-o com o mesmo trecho do mês
+ * passado, que é a única comparação honesta a meio do mês. Para um mês fechado
+ * é o meio-dia do último dia dele: `janelaDoMes` lê o dia do mês daquele
+ * instante para saber até onde comparar, e o último dia dá mês-cheio contra
+ * mês-cheio. Meio-dia e não meia-noite porque o fuso da loja pode empurrar a
+ * hora para o dia anterior, e aí seria o penúltimo dia a mandar.
+ *
+ * O futuro cai no mês corrente sem se queixar: `?mes=2030-01` é um endereço que
+ * alguém escreveu à mão ou um link envelhecido, e mostrar zero num ecrã de
+ * faturação parece avaria. Endereço estragado idem.
+ */
+function instanteDoMes(pedido: string | undefined, agora: Date, timeZone: string): Date {
+  if (!pedido || !MES_ISO.test(pedido)) return agora
+  if (pedido >= isoDateInZone(agora, timeZone).slice(0, 7)) return agora
+
+  const [ano, mes] = pedido.split('-').map(Number) as [number, number]
+  // Dia 0 do mês seguinte é o último deste — a mesma conta de `janelaDoMes`.
+  return new Date(Date.UTC(ano, mes, 0, 12))
+}
+
+/** O mês vizinho, `-1` para trás e `+1` para a frente. */
+function mesVizinho(mesIso: string, passo: number): string {
+  const [ano, mes] = mesIso.split('-').map(Number) as [number, number]
+  const alvo = new Date(Date.UTC(ano, mes - 1 + passo, 1))
+  return `${alvo.getUTCFullYear()}-${String(alvo.getUTCMonth() + 1).padStart(2, '0')}`
 }
 
 function variacaoPct({ atual, anterior }: Comparativo): number | null {
@@ -277,12 +424,26 @@ function variacaoPct({ atual, anterior }: Comparativo): number | null {
  * `max-w-6xl` com a placa do mês encostada — sobravam duas margens vazias num
  * ecrã de trabalho, que era a queixa do espaço em branco.
  */
-export default async function PainelPage() {
+export default async function PainelPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>
+}) {
   /* A página mostra faturação das lojas. Antes era pública: qualquer um com o
      endereço lia o caixa da rede. Hoje ela é da dona e do gerente — quem atende
      é levado para a própria agenda, que é o "hoje" dela. */
   const acesso = await requireGestaoOuMontra()
-  const { unidades, serie, diaAtual, mesLabel } = await loadPainel(acesso)
+  const { mes } = await searchParams
+  const fuso = pais().fusoPadrao
+  const agoraReal = new Date()
+  const mesRef = instanteDoMes(mes, agoraReal, fuso)
+  /* O mês fechado compara-se com o anterior inteiro; o corrente, com o mesmo
+     trecho do passado. É a diferença entre "vendi mais em julho do que em
+     junho" e "vou melhor do que ia no dia 12". */
+  const mesCorrente = mesRef === agoraReal
+
+  const { unidades, serie, diaAtual, mesLabel, mesIso, producao, naoVieram, rede } =
+    await loadPainel(acesso, mesRef)
 
   const hoje = unidades.reduce(
     (acc, unit) => ({
@@ -305,12 +466,19 @@ export default async function PainelPage() {
     concluidosAnterior > 0 ? Math.round(faturamentoAnterior / concluidosAnterior) : 0
 
   const maxMes = Math.max(1, ...unidades.map((u) => u.faturamento))
+  const maxEquipa = Math.max(1, ...producao.porStaff.map((p) => p.liquido))
+  /* Cinco linhas e não a lista inteira: a pergunta é "o que é que esta casa
+     faz", e trinta serviços em fila respondem-na pior do que cinco. */
+  const topServicos = producao.porServico.slice(0, 5)
+  const maxServico = Math.max(1, ...topServicos.map((s) => s.liquido))
+  /* Só há split por loja para quem vê mais do que uma. */
+  const nomesDasLojas = new Map(unidades.map((unit) => [unit.id, unit.name]))
   /* A data do cabeçalho no fuso da loja, e não no do servidor. O servidor corre
      em UTC; no horário de verão Portugal está uma hora à frente, e entre as 23h
      e a meia-noite esta linha escrevia a data de ontem por cima dos números de
      hoje — que já vêm de `isoDateInZone`. A pauta fica aberta na recepção o dia
      inteiro, incluindo à hora de fechar. */
-  const data = formatDateLong(isoDateInZone(new Date(), pais().fusoPadrao))
+  const data = formatDateLong(isoDateInZone(agoraReal, fuso))
 
   return (
     <>
@@ -384,15 +552,23 @@ export default async function PainelPage() {
             */}
             <div className="plate mb-9 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_17rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
               <div className="p-6 lg:p-8">
-                <p className="label-caps text-muted">Faturação · {mesLabel}</p>
+                <div className="flex items-center justify-between gap-4">
+                  <p className="label-caps text-muted">Faturação · {mesLabel}</p>
+                  <NavegadorDeMes mesIso={mesIso} corrente={mesCorrente} />
+                </div>
                 <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
                   <p className="display tnum text-[2.75rem] leading-none xl:text-[3.25rem]">
                     {formatMoneyShort(faturamento)}
                   </p>
-                  <Variacao comparativo={{ atual: faturamento, anterior: faturamentoAnterior }} />
+                  <Variacao
+                    comparativo={{ atual: faturamento, anterior: faturamentoAnterior }}
+                    legenda={mesCorrente ? 'vs. mês passado até hoje' : 'vs. mês anterior'}
+                  />
                 </div>
 
                 <MesDiaADia serie={serie} diaAtual={diaAtual} mesLabel={mesLabel} />
+
+                <Insights concluidos={concluidos} naoVieram={naoVieram} rede={rede} />
               </div>
 
               {/* Coluna em flex e não só `divide-y`: com três métricas em vez de
@@ -414,10 +590,57 @@ export default async function PainelPage() {
                   value={formatMoneyShort(marcados)}
                   nota={`${marcadosCount} marcaç${marcadosCount === 1 ? 'ão' : 'ões'} de pé`}
                 />
+                {/* A quarta linha é da dona. A coluna foi desenhada para quatro
+                    e com três parava a meio do gráfico ao lado. */}
+                {rede ? (
+                  <MetricaLinha
+                    label="Comissões"
+                    value={formatMoneyShort(rede.comissoesPendentes)}
+                    nota="a pagar à equipa"
+                  />
+                ) : null}
               </dl>
             </div>
 
             <div className="grid grid-cols-1 gap-8">
+              <Section
+                title="A equipa"
+                className="mb-0"
+                hint={
+                  rede
+                    ? '«A pagar» é o total pendente de comissão, de todos os meses — não só deste.'
+                    : undefined
+                }
+              >
+                <div className="plate">
+                  {producao.porStaff.length === 0 ? (
+                    <p className="text-muted px-5 py-8 text-center text-sm">
+                      Sem atendimentos concluídos neste mês.
+                    </p>
+                  ) : (
+                    producao.porStaff.map((pessoa) => (
+                      <EquipaLinha
+                        key={pessoa.staffId}
+                        pessoa={pessoa}
+                        max={maxEquipa}
+                        aPagar={rede ? (rede.porStaff.get(pessoa.staffId) ?? 0) : null}
+                        lojas={unidades.length > 1 ? nomesDasLojas : null}
+                      />
+                    ))
+                  )}
+                </div>
+              </Section>
+
+              {topServicos.length > 0 ? (
+                <Section title="Serviços do mês" className="mb-0">
+                  <div className="plate">
+                    {topServicos.map((servico) => (
+                      <ServicoLinha key={servico.serviceId} servico={servico} max={maxServico} />
+                    ))}
+                  </div>
+                </Section>
+              ) : null}
+
               <Section title="As lojas" className="mb-0">
                 <div className="plate">
                   {unidades.map((unit) => (
@@ -433,8 +656,47 @@ export default async function PainelPage() {
   )
 }
 
-/** A seta e a percentagem, sempre contra o mesmo trecho do mês anterior. */
-function Variacao({ comparativo }: { comparativo: Comparativo }) {
+/**
+ * Duas setas ao lado do rótulo do mês, e mais nada.
+ *
+ * Sem selector de datas: a pergunta que se faz a este ecrã é "e no mês
+ * passado?", uma ou duas vezes, e uma grelha de calendário para andar um passo
+ * é mobiliário. Para a frente só se anda depois de se ter andado para trás — o
+ * mês corrente é o fim da linha, e uma seta acesa que não leva a lado nenhum é
+ * pior do que uma seta apagada.
+ */
+function NavegadorDeMes({ mesIso, corrente }: { mesIso: string; corrente: boolean }) {
+  if (mesIso === '') return null
+
+  return (
+    <nav className="flex shrink-0 items-center gap-0.5" aria-label="Mês">
+      <SetaDeMes mes={mesVizinho(mesIso, -1)} rotulo="Mês anterior" seta="←" />
+      {corrente ? (
+        <span aria-hidden className="text-muted/40 flex size-8 items-center justify-center text-sm">
+          →
+        </span>
+      ) : (
+        <SetaDeMes mes={mesVizinho(mesIso, 1)} rotulo="Mês seguinte" seta="→" />
+      )}
+    </nav>
+  )
+}
+
+function SetaDeMes({ mes, rotulo, seta }: { mes: string; rotulo: string; seta: string }) {
+  return (
+    <Link
+      href={{ pathname: '/', query: { mes } }}
+      aria-label={rotulo}
+      title={rotulo}
+      className="text-muted hover:text-(--text-strong) flex size-8 items-center justify-center rounded-lg text-sm transition-colors hover:bg-(--surface-sunken)"
+    >
+      {seta}
+    </Link>
+  )
+}
+
+/** A seta e a percentagem, contra o trecho comparável do mês anterior. */
+function Variacao({ comparativo, legenda }: { comparativo: Comparativo; legenda: string }) {
   const pct = variacaoPct(comparativo)
   if (pct === null) {
     return <span className="text-muted text-sm">primeiro mês com movimento</span>
@@ -446,7 +708,155 @@ function Variacao({ comparativo }: { comparativo: Comparativo }) {
       >
         {pct >= 0 ? '↑' : '↓'} {Math.abs(pct).toFixed(0)}%
       </span>{' '}
-      <span className="text-muted">vs. mês passado até hoje</span>
+      <span className="text-muted">{legenda}</span>
+    </span>
+  )
+}
+
+/**
+ * O que o mês diz e os números não mostram, numa linha.
+ *
+ * A falta é a única perda que este sistema consegue medir — cadeira reservada,
+ * ninguém sentado — e a percentagem é o que a torna comparável entre meses: seis
+ * faltas em cem visitas e seis em vinte são duas casas diferentes. As clientes
+ * novas são o outro lado da mesma pergunta: quem entrou pela porta pela
+ * primeira vez.
+ *
+ * Uma frase, e não dois cartões. O painel fala por frases — mais um mostrador
+ * de métrica é o que faz um ecrã de trabalho parecer uma apresentação
+ * (DESIGN §11).
+ */
+function Insights({
+  concluidos,
+  naoVieram,
+  rede,
+}: {
+  concluidos: number
+  naoVieram: number
+  rede: DadosDaRede | null
+}) {
+  const marcadas = concluidos + naoVieram
+  const frases: string[] = []
+
+  if (marcadas > 0) {
+    const pct = Math.round((naoVieram / marcadas) * 100)
+    frases.push(
+      naoVieram === 0
+        ? 'ninguém faltou'
+        : naoVieram + (naoVieram === 1 ? ' falta' : ' faltas') + ' (' + pct + '%)',
+    )
+  }
+  if (rede && rede.clientesNovas > 0) {
+    frases.push(
+      rede.clientesNovas + (rede.clientesNovas === 1 ? ' cliente nova' : ' clientes novas'),
+    )
+  }
+
+  if (frases.length === 0) return null
+  return <p className="text-muted mt-4 text-sm first-letter:uppercase">{frases.join(' · ')}</p>
+}
+
+/**
+ * Uma profissional: o que fez, e o que a casa lhe deve.
+ *
+ * A ordem da lista é o ranking — quem fez mais está em cima, e é só isso. Sem
+ * medalhas nem lugares numerados: isto é um ecrã que a dona abre ao pé da
+ * equipa, e transformar o mês de cada uma numa classificação com pódio muda a
+ * conversa que se tem a seguir. A barra dá a proporção sem dar uma nota.
+ *
+ * O split por loja só aparece a quem vê mais do que uma, e só nas linhas de
+ * quem atendeu em mais do que uma — nas outras seria a repetição do número que
+ * está ao lado.
+ */
+function EquipaLinha({
+  pessoa,
+  max,
+  aPagar,
+  lojas,
+}: {
+  pessoa: ProducaoDeStaff
+  max: number
+  /** `null` para quem não é a dona: comissão não é assunto do gerente. */
+  aPagar: number | null
+  /** Nomes das lojas, ou `null` quando só há uma à vista. */
+  lojas: Map<string, string> | null
+}) {
+  const split =
+    lojas && pessoa.porUnidade.length > 1
+      ? pessoa.porUnidade
+          .map((linha) => (lojas.get(linha.unitId) ?? '—') + ' ' + formatMoney(linha.liquido))
+          .join(' · ')
+      : null
+
+  return (
+    <div className="flex items-center gap-4 border-b border-(--border-subtle) px-5 py-4 last:border-0 sm:gap-5">
+      {/* A mesma pastilha da coluna da agenda: é assim que a dona já reconhece
+          cada pessoa, e um segundo código de cor seria um a mais. */}
+      <span
+        aria-hidden
+        className="size-2.5 shrink-0 rounded-full"
+        style={{ backgroundColor: pessoa.cor }}
+      />
+
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-medium">{pessoa.nome}</h3>
+        <p className="text-muted truncate text-sm">
+          <span className="tnum">{pessoa.atendimentos}</span>{' '}
+          {pessoa.atendimentos === 1 ? 'atendimento' : 'atendimentos'}
+          {split ? <span className="hidden sm:inline"> · {split}</span> : null}
+        </p>
+      </div>
+
+      <BarraDeProporcao parte={pessoa.liquido} total={max} />
+
+      <dl className="flex shrink-0 items-baseline gap-5 sm:gap-7">
+        <Numero label="no mês" value={formatMoney(pessoa.liquido)} wide />
+        {aPagar === null ? null : (
+          <Numero label="a pagar" value={aPagar === 0 ? '—' : formatMoney(aPagar)} wide />
+        )}
+      </dl>
+    </div>
+  )
+}
+
+/** O que sai mais desta casa. A contagem à esquerda, o dinheiro à direita. */
+function ServicoLinha({ servico, max }: { servico: ProducaoDeServico; max: number }) {
+  return (
+    <div className="flex items-center gap-4 border-b border-(--border-subtle) px-5 py-4 last:border-0 sm:gap-5">
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate font-medium">{servico.nome}</h3>
+        <p className="text-muted text-sm">
+          <span className="tnum">{servico.vezes}</span>x no mês
+        </p>
+      </div>
+
+      <BarraDeProporcao parte={servico.liquido} total={max} />
+
+      <dl className="flex shrink-0 items-baseline">
+        <Numero label="líquido" value={formatMoney(servico.liquido)} wide />
+      </dl>
+    </div>
+  )
+}
+
+/**
+ * A proporção contra o maior da lista.
+ *
+ * Não é gráfico: é a comparação a acontecer na própria linha, do mesmo feitio
+ * que a das lojas. `aria-hidden` porque o número que ela ilustra está a dois
+ * centímetros e escrito por extenso — repeti-la em voz alta seria dizer o mesmo
+ * duas vezes a quem ouve o ecrã.
+ */
+function BarraDeProporcao({ parte, total }: { parte: number; total: number }) {
+  return (
+    <span
+      aria-hidden
+      className="hidden h-1 w-16 shrink-0 overflow-hidden rounded-full bg-(--border-subtle) sm:block xl:w-24"
+    >
+      <span
+        className="block h-full rounded-full bg-(--accent)"
+        style={{ width: Math.round((parte / total) * 100) + '%' }}
+      />
     </span>
   )
 }

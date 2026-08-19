@@ -241,6 +241,13 @@ Vocabulário partilhado entre as três — mudou num sítio, muda em todos:
   ir para a outra ponta do ecrã.
 - **A linha do agora** só aparece no dia que está a correr. Em qualquer outra
   data seria mentira.
+- **A confirmação enviada é um ponto, não um sexto estado.** Se a cliente já
+  recebeu recado é outra pergunta sobre o mesmo bloco, e a escala de tinta está
+  cheia — um sexto tom obrigava a decorar aquilo que a escala existe para evitar.
+  É um ponto de 6px em `--estado-bom` à cabeça da linha, na grade e na lista
+  ([`marca-confirmacao.tsx`](apps/web/src/components/agenda/marca-confirmacao.tsx)),
+  que se conta de relance sem disputar a leitura do estado. Some de `checked_in`
+  em diante: a partir daí a cliente está na loja e a pergunta deixou de existir.
 
 ## 9. Imagem
 

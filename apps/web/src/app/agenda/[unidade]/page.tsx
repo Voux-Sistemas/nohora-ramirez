@@ -1,4 +1,4 @@
-import { isIsoDate, zonedDateTime, type TimeRange } from '@studio/core'
+import { isIsoDate, isoDateInZone, zonedDateTime, type TimeRange } from '@studio/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
@@ -14,10 +14,11 @@ import { NavegadorDeDia } from '@/components/agenda/navegador-de-dia'
 import { RolarParaAgora } from '@/components/agenda/rolar-para-agora'
 import { AtualizaSozinho } from '@/components/ui/atualiza-sozinho'
 import { buttonVariants } from '@/components/ui/button'
-import { formatMoney, formatTime } from '@/lib/format'
+import { formatDateShort, formatMoney, formatTime } from '@/lib/format'
 import { pais } from '@/lib/pais'
 import { cn, href } from '@/lib/utils'
 import { podeGerir, requireAcesso, requireUnidade } from '@/server/auth/permissoes'
+import { dadosDeConfirmacao } from '@/server/notifications/confirmacao'
 import { todayInUnit } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext } from '@/server/scheduling/context'
 import {
@@ -76,6 +77,20 @@ export default async function AgendaDoDiaPage({
 
   const baseHref = `/agenda/${unit.slug}?d=${date}`
   const selected = sel ? (appointments.find((item) => item.id === sel) ?? null) : null
+  /*
+    A conversa de WhatsApp montada aqui, e não dentro do painel: a mensagem sai
+    na língua da cliente e a data dela pede o fuso da loja — duas coisas que o
+    servidor tem à mão e que o browser teria de ir buscar. O painel recebe texto
+    pronto e uma ligação.
+  */
+  const confirmacao = selected
+    ? {
+        link: dadosDeConfirmacao(selected, unit).link,
+        enviadaEm: selected.confirmacaoEnviadaEm
+          ? `${formatDateShort(isoDateInZone(selected.confirmacaoEnviadaEm, unit.timezone))} às ${formatTime(selected.confirmacaoEnviadaEm, unit.timezone)}`
+          : null,
+      }
+    : undefined
 
   /*
     A grade de colunas começa a existir na segunda coluna.
@@ -342,6 +357,7 @@ export default async function AgendaDoDiaPage({
             closeHref={baseHref}
             unitSlug={unit.slug}
             gerir={gerir}
+            confirmacao={confirmacao}
           />
         ) : null}
       </div>

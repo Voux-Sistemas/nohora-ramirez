@@ -24,3 +24,20 @@ export async function lerIdioma(): Promise<Idioma> {
   const valor = store.get(COOKIE_IDIOMA)?.value
   return ehIdioma(valor) ? valor : 'pt'
 }
+
+/**
+ * A língua gravada na ficha da cliente — a outra fonte da mesma pergunta.
+ *
+ * O cookie diz em que língua alguém está a ler AGORA, neste browser. Isto diz
+ * em que língua ela marcou, e é o que decide a mensagem de WhatsApp que parte
+ * dias depois, do telemóvel de outra pessoa.
+ *
+ * `preferences` é jsonb — o guarda existe porque é texto vindo da base de
+ * dados, e uma preferência estragada não pode deixar a fila de avisos sem
+ * mensagem. Português por omissão é o caso comum e não a excepção: só quem
+ * marcou pelo site passou por um selector de idioma.
+ */
+export function idiomaDaFicha(preferences: Record<string, unknown>): Idioma {
+  const guardado = preferences['idioma']
+  return ehIdioma(guardado) ? guardado : 'pt'
+}

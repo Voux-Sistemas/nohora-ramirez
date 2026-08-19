@@ -25,12 +25,19 @@ import {
   users,
 } from '@studio/db'
 import { and, asc, count, eq, gt, gte, inArray, lt, notExists, notInArray, sql } from 'drizzle-orm'
-import { ehIdioma, localeDe, type Idioma } from '@/i18n/tipos'
+import { localeDe, type Idioma } from '@/i18n/tipos'
 import { db } from '@/lib/db'
 import { formatDateLongEm, formatTime } from '@/lib/format'
+import { idiomaDaFicha } from '@/lib/idioma'
 import type { UnitInfo } from '../scheduling/context'
 import { todayInUnit } from '../scheduling/availability'
-import { ROUTINES, renderMessage, whatsappLink, type RoutineKey } from './templates'
+import {
+  ROUTINES,
+  primeiroNome,
+  renderMessage,
+  whatsappLink,
+  type RoutineKey,
+} from './templates'
 
 /** Agendamento que não conta mais como compromisso vivo. */
 const CANCELLED = ['cancelled_by_client', 'cancelled_by_studio', 'no_show'] as const
@@ -64,22 +71,6 @@ interface Row {
   start: Date
   /** Ficha da cliente. Daqui só se lê `idioma`; o resto é de outros donos. */
   preferences: Record<string, unknown>
-}
-
-/**
- * A língua em que esta cliente vai ler a mensagem.
- *
- * `preferences` é jsonb — texto que veio da base de dados, e portanto texto em
- * que não se confia. `ehIdioma` é o guarda: uma preferência estragada não deixa
- * a fila de avisos sem mensagem, cai em português.
- *
- * Português por omissão é o caso comum, não a excepção: só quem marcou pelo
- * site passou por um selector de idioma. Quem marcou ao balcão não tem
- * preferência nenhuma gravada.
- */
-function idiomaDa(preferences: Record<string, unknown>): Idioma {
-  const guardado = preferences['idioma']
-  return ehIdioma(guardado) ? guardado : 'pt'
 }
 
 /**
@@ -140,12 +131,20 @@ function conditionsFor(unit: UnitInfo, routine: RoutineKey, now: Date) {
     // Avaliação só faz sentido para quem de fato foi atendida.
     ...(routine === 'avaliacao' ? [eq(appointments.status, 'completed')] : []),
     /*
-      Confirmação é só para quem marcou sozinha pelo site. Quem marcou pelo
-      balcão, pelo telefone ou pelo WhatsApp já falou com uma pessoa e já ouviu
-      "tá marcado" — mandar de novo é o sistema não sabendo o que a recepção
-      acabou de fazer, e é assim que a fila perde a confiança de quem usa.
+      A confirmação já foi só para quem marcava pelo site: quem vinha do balcão
+      já tinha ouvido "está marcado" de viva voz, e repetir por escrito era o
+      sistema a não saber o que a recepção acabara de fazer.
+
+      Deixou de ser verdade quando a confirmação passou a ser DEVER de cada
+      profissional (ver `enviarConfirmacao`, em `scheduling/actions.ts`). O que
+      a dona quer ver agora é uma lista só: quem ainda não recebeu nada escrito,
+      tenha marcado por onde tiver marcado — porque o que evita a falta é a
+      mensagem no telemóvel na véspera, não a frase dita ao balcão há três
+      semanas. A fila cresce por causa disto, e é para crescer.
+
+      O anti-duplicado é o mesmo `notExists` aqui abaixo: quem a profissional
+      confirmar pela agenda sai desta fila no mesmo instante.
     */
-    ...(routine === 'confirmacao' ? [eq(appointments.source, 'client_app')] : []),
     janela.cancelled
       ? inArray(appointments.status, [...CANCELLED])
       : notInArray(appointments.status, [...CANCELLED]),
@@ -198,7 +197,7 @@ export async function listNotices(
     /* A data acompanha a mensagem: "sexta-feira, 22 de agosto" no meio de um
        texto em inglês é a costura a aparecer. O fuso continua a ser o da
        unidade — a hora é a do salão, não a de quem lê. */
-    const idioma = idiomaDa(preferences)
+    const idioma = idiomaDaFicha(preferences)
     const vars = {
       cliente: primeiroNome(row.clientName),
       servicos: detalhe?.services ?? SEM_DETALHE[idioma].servicos,
@@ -293,11 +292,6 @@ export async function countNotices(
     RoutineKey,
     number
   >
-}
-
-/** "Marina Souza Prado" → "Marina". Mensagem de salão trata pelo primeiro nome. */
-function primeiroNome(nome: string): string {
-  return nome.trim().split(/\s+/)[0] ?? nome
 }
 
 // ─── suprimir avisos vencidos ───────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { MarcaDeConfirmacao } from '@/components/agenda/marca-confirmacao'
 import { formatMoney, formatTime } from '@/lib/format'
 import { cn, href as toRoute } from '@/lib/utils'
 import type { AppointmentView } from '@/server/scheduling/queries'
@@ -161,6 +162,7 @@ export function DayList({
 
               <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
                 <span className="flex items-baseline gap-2">
+                  <MarcaDeConfirmacao appointment={atendimento} />
                   <span className="truncate font-medium">{atendimento.clientName}</span>
                   {/*
                     "marcado" é o estado de quase toda a lista: escrevê-lo em

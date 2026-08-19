@@ -35,7 +35,7 @@ export const ROUTINES: readonly RoutineMeta[] = [
   {
     key: 'confirmacao',
     label: 'Confirmar marcação',
-    hint: 'Marcou pelo site e ainda não recebeu confirmação nenhuma.',
+    hint: 'Ainda não recebeu nada escrito — pelo site, pelo balcão ou por telefone.',
   },
   {
     key: 'lembrete_vespera',
@@ -231,6 +231,11 @@ export function renderMessage(
   return BODIES[idioma][key].replace(/\{(\w+)\}/g, (_match, name: string) =>
     name in vars ? vars[name as keyof MessageVars] : '',
   )
+}
+
+/** "Marina Souza Prado" → "Marina". Mensagem de salão trata pelo primeiro nome. */
+export function primeiroNome(nome: string): string {
+  return nome.trim().split(/\s+/)[0] ?? nome
 }
 
 /**

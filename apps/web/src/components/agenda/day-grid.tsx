@@ -2,6 +2,7 @@ import type { TimeRange } from '@studio/core'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
+import { MarcaDeConfirmacao } from '@/components/agenda/marca-confirmacao'
 import type { StaffInfo } from '@/server/scheduling/context'
 import type { AppointmentView } from '@/server/scheduling/queries'
 import { formatTime } from '@/lib/format'
@@ -170,6 +171,12 @@ export function DayGrid({
             <span className="text-muted">{STATUS_LABEL[status]}</span>
           </li>
         ))}
+        {/* A confirmação não é um sexto estado — é outra pergunta sobre o mesmo
+            bloco. Fica no fim da chave, depois da escala, e não no meio dela. */}
+        <li className="flex items-center gap-1.5">
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-(--estado-bom)" />
+          <span className="text-muted">confirmação enviada</span>
+        </li>
       </ul>
 
       <div className="overflow-x-auto">
@@ -336,6 +343,8 @@ function ItemBlock({
       style={{ top, height: Math.max(height - 2, 22) }}
     >
       <span className="relative block truncate font-medium">
+        <MarcaDeConfirmacao appointment={appointment} />
+        {appointment.confirmacaoEnviadaEm === null ? null : ' '}
         <span className="tnum">{formatTime(item.start, timezone)}</span> {firstName(appointment.clientName)}
       </span>
       {compact ? null : (

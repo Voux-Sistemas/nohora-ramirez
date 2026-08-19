@@ -11,13 +11,16 @@ import {
   appointmentStaffBlocks,
   appointments,
   clientProfiles,
+  notificationLogs,
   services,
   staffProfiles,
   units,
   users,
 } from '@studio/db'
 import { and, asc, eq, gte, inArray, lt, sql } from 'drizzle-orm'
+import type { Idioma } from '@/i18n/tipos'
 import { db } from '@/lib/db'
+import { idiomaDaFicha } from '@/lib/idioma'
 import type { UnitInfo } from './context'
 
 export type AppointmentStatus = (typeof appointments.$inferSelect)['status']
@@ -46,6 +49,8 @@ export interface AppointmentView {
   clientId: string
   clientName: string
   clientPhone: string
+  /** A língua em que ela marcou — é nela que a confirmação de WhatsApp sai. */
+  clientIdioma: Idioma
   status: AppointmentStatus
   source: (typeof appointments.$inferSelect)['source']
   start: Date
@@ -56,6 +61,15 @@ export interface AppointmentView {
   clientNote: string | null
   internalNote: string | null
   cancellationReason: string | null
+  /**
+   * Quando a confirmação de WhatsApp foi dada como enviada, ou `null`.
+   *
+   * Não é o mesmo que o estado `confirmed`, e a distinção é o ponto: aquele diz
+   * que a CLIENTE confirmou que vem; este diz que alguém da casa lhe escreveu.
+   * São dois factos, e confundi-los era prometer à dona uma coisa e mostrar-lhe
+   * outra.
+   */
+  confirmacaoEnviadaEm: Date | null
   items: AppointmentItemView[]
 }
 
@@ -68,6 +82,7 @@ const BASE_COLUMNS = {
   clientId: appointments.clientId,
   clientName: users.name,
   clientPhone: users.phone,
+  clientPreferences: clientProfiles.preferences,
   status: appointments.status,
   source: appointments.source,
   start: appointments.startsAt,
@@ -128,7 +143,57 @@ async function attachItems(
     byAppointment.set(appointmentId, list)
   }
 
-  return rows.map((row) => ({ ...row, items: byAppointment.get(row.id) ?? [] }))
+  const confirmadas = await confirmacoesEnviadas(rows.map((row) => row.id))
+
+  /* `clientPreferences` fica de fora do que sai daqui: é jsonb de outros donos e
+     esta vista atravessa para o browser. O que dela interessa já foi lido. */
+  return rows.map(({ clientPreferences, ...row }) => ({
+    ...row,
+    clientIdioma: idiomaDaFicha(clientPreferences),
+    confirmacaoEnviadaEm: confirmadas.get(row.id) ?? null,
+    items: byAppointment.get(row.id) ?? [],
+  }))
+}
+
+/**
+ * Quando cada atendimento recebeu a confirmação escrita.
+ *
+ * Consulta à parte, e não um `leftJoin` no `baseQuery`: um atendimento pode ter
+ * mais do que um registo (enviar, desfazer, enviar de novo) e o join
+ * multiplicaria a linha do atendimento por cada um deles — a agenda passava a
+ * mostrar a mesma cliente duas vezes por causa de um envio repetido.
+ *
+ * `max` porque o que interessa é a última: quem desfez e voltou a enviar quer
+ * ver a hora do segundo envio. O `groupBy` é por coluna real, não por ordinal —
+ * agrupar por posição rebenta com 42803 assim que a expressão de cima deixa de
+ * ser uma coluna simples.
+ */
+async function confirmacoesEnviadas(ids: readonly string[]): Promise<Map<string, Date>> {
+  if (ids.length === 0) return new Map()
+
+  const linhas = await db
+    .select({
+      refId: notificationLogs.refId,
+      enviadaEm: sql<Date>`max(${notificationLogs.sentAt})`,
+    })
+    .from(notificationLogs)
+    .where(
+      and(
+        eq(notificationLogs.refType, 'appointment'),
+        inArray(notificationLogs.refId, [...ids]),
+        eq(notificationLogs.templateKey, 'confirmacao'),
+        eq(notificationLogs.status, 'sent'),
+      ),
+    )
+    .groupBy(notificationLogs.refId)
+
+  /* `refId` é nulável no schema — há registos que não apontam a nada (avisos
+     de sistema). O `inArray` já os exclui; o filtro é só para o tipo. */
+  const mapa = new Map<string, Date>()
+  for (const linha of linhas) {
+    if (linha.refId !== null) mapa.set(linha.refId, linha.enviadaEm)
+  }
+  return mapa
 }
 
 export async function getAppointment(id: string): Promise<AppointmentView | null> {

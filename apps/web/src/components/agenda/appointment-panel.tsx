@@ -3,6 +3,8 @@ import type { AppointmentView } from '@/server/scheduling/queries'
 import { cancelarAgendamento, mudarStatus } from '@/server/scheduling/actions'
 import { formatMoney, formatPhone, formatTime } from '@/lib/format'
 import { buttonVariants } from '@/components/ui/button'
+import { EnviarConfirmacao } from '@/components/agenda/enviar-confirmacao'
+import { A_CONFIRMAR } from '@/components/agenda/marca-confirmacao'
 import { cn, href } from '@/lib/utils'
 
 /**
@@ -54,6 +56,7 @@ export function AppointmentPanel({
   closeHref,
   unitSlug,
   gerir = true,
+  confirmacao,
 }: {
   appointment: AppointmentView
   timezone: string
@@ -61,9 +64,21 @@ export function AppointmentPanel({
   unitSlug: string
   /** Falso para quem só cuida do próprio atendimento. */
   gerir?: boolean
+  /**
+   * O que é preciso para escrever à cliente: a conversa já com a mensagem
+   * dentro, e o registo de quando alguém a mandou. Opcional porque o painel
+   * também abre em sítios onde este gesto não cabe.
+   */
+  confirmacao?: { link: string; enviadaEm: string | null }
 }) {
   const steps = NEXT_STEP[appointment.status] ?? []
   const open = !CLOSED.has(appointment.status)
+  /* Passada a hora, confirmar não confirma nada — ou a cliente veio, ou não
+     veio, e num caso e no outro a mensagem chega tarde. */
+  const podeConfirmar =
+    confirmacao !== undefined &&
+    A_CONFIRMAR.has(appointment.status) &&
+    appointment.start.getTime() > Date.now()
 
   return (
     /*
@@ -184,6 +199,14 @@ export function AppointmentPanel({
               </Link>
             ) : null}
           </div>
+
+          {podeConfirmar ? (
+            <EnviarConfirmacao
+              appointmentId={appointment.id}
+              link={confirmacao.link}
+              enviadaEm={confirmacao.enviadaEm}
+            />
+          ) : null}
 
           {/*
             A regra é uma frase: quem atende empurra o próprio atendimento para

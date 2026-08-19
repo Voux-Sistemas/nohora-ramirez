@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Archivo, Bodoni_Moda } from 'next/font/google'
 import { CoroaDefinicao } from '@/components/brand/mark'
+import { localeDe, ogLocaleDe } from '@/i18n'
+import { lerIdioma } from '@/lib/idioma'
 import { siteUrl } from '@/lib/site'
 import { lerTema } from '@/lib/tema'
 import './globals.css'
@@ -33,29 +35,40 @@ const archivo = Archivo({
 
 const STUDIO = 'Nohora Ramirez'
 
-export const metadata: Metadata = {
-  /*
-    Sem isto, o cartão que o WhatsApp e o Instagram desenham ao partilhar o link
-    da loja saía com a fotografia em `http://localhost:8080` — o Next resolve
-    imagens relativas contra um `metadataBase` que ele inventa a partir da porta
-    quando ninguém lho diz, e ninguém lho dizia. A montra da loja é a única
-    imagem desse cartão; partida, o cartão fica com um retângulo cinzento ao
-    lado do nome do salão, que é exatamente a partilha que a cliente faz para as
-    amigas. Confirmado no HTML de produção antes de arranjar.
-  */
-  metadataBase: siteUrl(),
-  title: {
-    default: `${STUDIO} · Beauty Studio`,
-    template: `%s · ${STUDIO}`,
-  },
-  description: 'Marcações e gestão do Nohora Ramirez Beauty Studio.',
-  /* As páginas de loja escrevem por cima o título, a descrição e a fotografia
-     delas; o que fica aqui é o que não muda de página para página. */
-  openGraph: {
-    siteName: `${STUDIO} · Beauty Studio`,
-    locale: 'pt_PT',
-    type: 'website',
-  },
+/*
+  Função e não constante, pela mesma razão do `generateViewport` aqui ao lado: o
+  que depende de quem está a ler é o `locale` do cartão de partilha. Um cartão
+  que se anuncia `pt_PT` por cima de um título em inglês manda o leitor de ecrã
+  buscar a voz errada.
+*/
+export async function generateMetadata(): Promise<Metadata> {
+  const idioma = await lerIdioma()
+
+  return {
+    /*
+      Sem isto, o cartão que o WhatsApp e o Instagram desenham ao partilhar o
+      link da loja saía com a fotografia em `http://localhost:8080` — o Next
+      resolve imagens relativas contra um `metadataBase` que ele inventa a
+      partir da porta quando ninguém lho diz, e ninguém lho dizia. A montra da
+      loja é a única imagem desse cartão; partida, o cartão fica com um
+      retângulo cinzento ao lado do nome do salão, que é exatamente a partilha
+      que a cliente faz para as amigas. Confirmado no HTML de produção antes de
+      arranjar.
+    */
+    metadataBase: siteUrl(),
+    title: {
+      default: `${STUDIO} · Beauty Studio`,
+      template: `%s · ${STUDIO}`,
+    },
+    description: 'Marcações e gestão do Nohora Ramirez Beauty Studio.',
+    /* As páginas de loja escrevem por cima o título, a descrição e a fotografia
+       delas; o que fica aqui é o que não muda de página para página. */
+    openGraph: {
+      siteName: `${STUDIO} · Beauty Studio`,
+      locale: ogLocaleDe(idioma),
+      type: 'website',
+    },
+  }
 }
 
 /*
@@ -75,9 +88,25 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const tema = await lerTema()
+  /*
+    O `lang` sai do mesmo cookie que a montra: sem ele, o leitor de ecrã lê a
+    página inglesa com voz e regras de partição portuguesas, que é a diferença
+    entre entender e não entender.
+
+    O efeito colateral é assumido: quem trocar a montra para inglês e depois
+    entrar na área da equipa leva `lang="en"` num ecrã que continua em
+    português, até voltar a trocar. Corrigi-lo obrigava o layout de raiz a saber
+    a rota — que é precisamente o que ele não sabe — e o caso é raro: a equipa e
+    a cliente não são a mesma pessoa no mesmo browser.
+  */
+  const [tema, idioma] = await Promise.all([lerTema(), lerIdioma()])
+
   return (
-    <html lang="pt-PT" data-theme={tema.resolvido} className={`${bodoni.variable} ${archivo.variable}`}>
+    <html
+      lang={localeDe(idioma)}
+      data-theme={tema.resolvido}
+      className={`${bodoni.variable} ${archivo.variable}`}
+    >
       <body>
         {/*
           ── CONTRATO DE DIREÇÃO ───────────────────────────────────────────────

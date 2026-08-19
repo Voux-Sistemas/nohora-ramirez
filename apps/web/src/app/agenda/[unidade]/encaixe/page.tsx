@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { EncaixeForm } from '@/components/agenda/encaixe-form'
 import { ServicePicker, type PickableService } from '@/components/booking/service-picker'
 import { buttonVariants } from '@/components/ui/button'
+import { dicionario } from '@/i18n'
 import { formatMoney, formatDateLong, formatDuration, formatPhone, formatTime } from '@/lib/format'
 import { cn, href } from '@/lib/utils'
 import { requireGestao, requireUnidade } from '@/server/auth/permissoes'
@@ -122,7 +123,15 @@ export default async function EncaixePage({
 
     return (
       <Shell unit={unit.name} date={date} slug={unit.slug} title="O que ela vai fazer?">
-        <ServicePicker nextHref={base} services={services} ctaLabel="Ver horários" />
+        {/* `'pt'` à mão, e não `lerIdioma()`: isto é a agenda da equipa, e a
+            gestão não se traduz — o cardápio aqui fala a língua da casa mesmo
+            que a recepcionista tenha deixado a montra em inglês. */}
+        <ServicePicker
+          nextHref={base}
+          services={services}
+          textos={dicionario('pt').agendar.servicos}
+          comum={dicionario('pt').comum}
+        />
       </Shell>
     )
   }

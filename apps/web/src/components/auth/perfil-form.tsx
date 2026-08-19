@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom'
 import { atualizarPerfil, type PerfilState } from '@/app/conta/actions'
 import { Button } from '@/components/ui/button'
 import { Erro } from '@/components/ui/erro'
+import type { Dicionario } from '@/i18n'
 import { formatPhone } from '@/lib/format'
 
 /**
@@ -14,15 +15,20 @@ import { formatPhone } from '@/lib/format'
  * de o reconhecer — é o que ela escreve para entrar — mas é texto, não caixa:
  * trocá-lo é trocar de identidade no sistema, e isso é conversa com a receção,
  * não um campo num formulário.
+ *
+ * As palavras entram por propriedade: isto é ecrã da cliente, e a cliente pode
+ * estar a ler em inglês ou em espanhol.
  */
 export function PerfilForm({
   nome,
   telefone,
   email,
+  textos,
 }: {
   nome: string
   telefone: string
   email: string | null
+  textos: Dicionario['conta']['perfil']
 }) {
   const [state, action] = useActionState<PerfilState, FormData>(atualizarPerfil, {})
 
@@ -30,7 +36,7 @@ export function PerfilForm({
     <form action={action} className="flex flex-col gap-4">
       <div>
         <label htmlFor="perfil-nome" className="mb-2 block text-sm font-medium">
-          Nome
+          {textos.nome}
         </label>
         <input
           id="perfil-nome"
@@ -43,16 +49,14 @@ export function PerfilForm({
       </div>
 
       <div>
-        <span className="mb-2 block text-sm font-medium">Telefone</span>
+        <span className="mb-2 block text-sm font-medium">{textos.telefone}</span>
         <p className="tnum text-body text-[0.9375rem]">{formatPhone(telefone)}</p>
-        <p className="text-muted mt-1.5 text-xs">
-          É por aqui que entra e que a reconhecemos. Para mudar, fale com o salão.
-        </p>
+        <p className="text-muted mt-1.5 text-xs">{textos.telefoneAjuda}</p>
       </div>
 
       <div>
         <label htmlFor="perfil-email" className="mb-2 block text-sm font-medium">
-          E-mail
+          {textos.email}
         </label>
         <input
           id="perfil-email"
@@ -62,33 +66,32 @@ export function PerfilForm({
           autoCapitalize="off"
           spellCheck={false}
           defaultValue={email ?? ''}
-          placeholder="nome@exemplo.com"
+          placeholder={textos.emailExemplo}
           aria-describedby="perfil-email-ajuda"
           className="field"
         />
         <p id="perfil-email-ajuda" className="text-muted mt-1.5 text-xs">
-          É para aqui que vai o código quando entrar. Use um e-mail a que tenha acesso — se ficar
-          sem, a receção volta a abrir-lhe a porta.
+          {textos.emailAjuda}
         </p>
       </div>
 
       <Erro>{state.error}</Erro>
       {state.ok && !state.error ? (
         <p role="status" className="text-sm text-(--estado-bom)">
-          Guardado.
+          {textos.guardado}
         </p>
       ) : null}
 
-      <BotaoGuardar />
+      <BotaoGuardar textos={textos} />
     </form>
   )
 }
 
-function BotaoGuardar() {
+function BotaoGuardar({ textos }: { textos: Dicionario['conta']['perfil'] }) {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" variant="outline" disabled={pending} className="self-start">
-      {pending ? 'A guardar…' : 'Guardar'}
+      {pending ? textos.aGuardar : textos.guardar}
     </Button>
   )
 }

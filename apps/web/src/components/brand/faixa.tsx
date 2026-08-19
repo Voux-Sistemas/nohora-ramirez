@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/mark'
+import { SeletorIdioma } from '@/components/idioma/seletor-idioma'
+import { dicionario } from '@/i18n'
+import type { Idioma } from '@/i18n/tipos'
 import { cn } from '@/lib/utils'
 
 /**
@@ -13,12 +16,18 @@ import { cn } from '@/lib/utils'
  *
  * A largura vem de fora porque a faixa acompanha a coluna que está por baixo: o
  * logótipo alinhado com o conteúdo, e não com a beira do ecrã.
+ *
+ * O selector de língua é opcional de propósito. Esta faixa serve as telas da
+ * cliente E a porta da equipa (`components/auth/porta.tsx` monta as duas), e a
+ * gestão não se traduz — passar `idioma` é a forma de dizer "esta tela é da
+ * cliente". Quem não passa, não mostra.
  */
 export function FaixaDaMarca({
   largura,
   fim,
   abaixo,
   home = '/loja',
+  idioma,
 }: {
   /** Classe de largura da coluna sob a faixa, para alinhar o logótipo com ela. */
   largura: string
@@ -32,6 +41,8 @@ export function FaixaDaMarca({
    * cair num pedido de senha a meio de uma marcação.
    */
   home?: string
+  /** A língua em vigor. Presente só nas telas da cliente — ver acima. */
+  idioma?: Idioma
 }) {
   return (
     <header className="bg-(--surface-ink) text-(--on-ink)">
@@ -39,7 +50,12 @@ export function FaixaDaMarca({
         <Link href={home as never} className="shrink-0 rounded-plate">
           <Wordmark size="sm" align="left" />
         </Link>
-        {fim ? <div className="ml-auto min-w-0">{fim}</div> : null}
+        {idioma ? (
+          <div className="ml-auto">
+            <SeletorIdioma atual={idioma} rotulo={dicionario(idioma).chrome.idioma} />
+          </div>
+        ) : null}
+        {fim ? <div className={cn('min-w-0', idioma ? 'ml-4' : 'ml-auto')}>{fim}</div> : null}
       </div>
       {abaixo}
     </header>

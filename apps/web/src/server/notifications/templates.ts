@@ -1,5 +1,7 @@
 import 'server-only'
 
+import type { Idioma } from '@/i18n/tipos'
+
 /**
  * Os textos que a recepção manda pela mão dela.
  *
@@ -79,8 +81,26 @@ export interface MessageVars {
  * com um dia de antecedência é horário que se revende — falta no dia é cadeira
  * parada com custo correndo. A frase final não é gentileza, é a feature.
  */
-const BODIES: Record<RoutineKey, string> = {
-  confirmacao: `Olá, {cliente}! A sua marcação está confirmada 💛
+/**
+ * Os corpos, por língua e depois por rotina.
+ *
+ * A língua é o eixo de fora porque é a primeira pergunta que se faz — quem
+ * escreve não escolhe entre cinco rotinas em três línguas, escolhe a língua da
+ * cliente e só depois a rotina — e porque assim uma língua nova é um bloco
+ * novo em vez de cinco remendos espalhados.
+ *
+ * `Record<Idioma, Record<RoutineKey, string>>` é o que garante que nenhuma
+ * rotina fica por traduzir: falta uma chave, falha o typecheck. O que o tipo
+ * não confere são os `{buracos}` — as três versões de cada rotina citam
+ * exactamente as mesmas variáveis, e é assim que se mantêm.
+ *
+ * As traduções seguem o mesmo tom da versão portuguesa: primeira pessoa, sem
+ * "dear customer", e a véspera continua a CONVIDAR a remarcar nas três — a
+ * frase final é a feature, não uma cortesia que se possa perder na tradução.
+ */
+const BODIES: Record<Idioma, Record<RoutineKey, string>> = {
+  pt: {
+    confirmacao: `Olá, {cliente}! A sua marcação está confirmada 💛
 
 {servicos}
 {data} às {hora}
@@ -91,7 +111,7 @@ com {profissional}
 
 Qualquer coisa, é só falar comigo por aqui.`,
 
-  lembrete_vespera: `Olá, {cliente}! É só para lembrar da sua marcação de amanhã 💛
+    lembrete_vespera: `Olá, {cliente}! É só para lembrar da sua marcação de amanhã 💛
 
 {servicos}
 {data} às {hora}
@@ -102,23 +122,113 @@ com {profissional}
 
 Consegue vir? Se precisar de remarcar, avise-me que eu trato disso.`,
 
-  bom_dia: `Bom dia, {cliente}! Espero por si hoje às {hora} 💛
+    bom_dia: `Bom dia, {cliente}! Espero por si hoje às {hora} 💛
 
 {servicos} com {profissional}
 {unidade}`,
 
-  avaliacao: `Olá, {cliente}! Que bom tê-la recebido ontem 💛
+    avaliacao: `Olá, {cliente}! Que bom tê-la recebido ontem 💛
 
 Ficou contente com o resultado? A sua opinião ajuda-nos muito a melhorar.`,
 
-  resgate: `Olá, {cliente}! Senti a sua falta na marcação de {data}.
+    resgate: `Olá, {cliente}! Senti a sua falta na marcação de {data}.
 
 Quer que eu procure um novo dia para si? Diga-me o que lhe fica melhor e eu encaixo 💛`,
+  },
+
+  en: {
+    confirmacao: `Hello, {cliente}! Your appointment is confirmed 💛
+
+{servicos}
+{data} at {hora}
+with {profissional}
+
+{unidade}
+{endereco}
+
+If you need anything, just message me here.`,
+
+    lembrete_vespera: `Hello, {cliente}! Just a reminder about your appointment tomorrow 💛
+
+{servicos}
+{data} at {hora}
+with {profissional}
+
+{unidade}
+{endereco}
+
+Can you still make it? If you need to reschedule, let me know and I will take care of it.`,
+
+    bom_dia: `Good morning, {cliente}! I will be expecting you today at {hora} 💛
+
+{servicos} with {profissional}
+{unidade}`,
+
+    avaliacao: `Hello, {cliente}! It was lovely to have you here yesterday 💛
+
+Are you happy with the result? Your opinion helps us a great deal.`,
+
+    resgate: `Hello, {cliente}! I missed you at your appointment on {data}.
+
+Would you like me to find you another day? Tell me what suits you best and I will fit you in 💛`,
+  },
+
+  es: {
+    confirmacao: `¡Hola, {cliente}! Su cita está confirmada 💛
+
+{servicos}
+{data} a las {hora}
+con {profissional}
+
+{unidade}
+{endereco}
+
+Para cualquier cosa, escríbame por aquí.`,
+
+    lembrete_vespera: `¡Hola, {cliente}! Solo para recordarle su cita de mañana 💛
+
+{servicos}
+{data} a las {hora}
+con {profissional}
+
+{unidade}
+{endereco}
+
+¿Puede venir? Si necesita cambiarla, avíseme y yo me encargo.`,
+
+    bom_dia: `¡Buenos días, {cliente}! La espero hoy a las {hora} 💛
+
+{servicos} con {profissional}
+{unidade}`,
+
+    avaliacao: `¡Hola, {cliente}! Qué alegría haberla recibido ayer 💛
+
+¿Quedó contenta con el resultado? Su opinión nos ayuda muchísimo a mejorar.`,
+
+    resgate: `¡Hola, {cliente}! Eché de menos su cita del {data}.
+
+¿Quiere que le busque otro día? Dígame qué le viene mejor y se lo encajo 💛`,
+  },
 }
 
-/** Troca `{variavel}` pelo valor. Variável desconhecida some em vez de vazar chave. */
-export function renderMessage(key: RoutineKey, vars: MessageVars): string {
-  return BODIES[key].replace(/\{(\w+)\}/g, (_match, name: string) =>
+/**
+ * Troca `{variavel}` pelo valor. Variável desconhecida some em vez de vazar chave.
+ *
+ * O idioma é o da CLIENTE — o que ficou gravado em
+ * `client_profiles.preferences.idioma` quando ela marcou — e não o de quem
+ * carrega no botão: quem marcou num ecrã em inglês não reconhece um português
+ * que lhe chega dias depois, do telemóvel da profissional.
+ *
+ * Português por omissão, e não por preferência da casa: quem marcou ao balcão
+ * ou por telefone nunca passou por um selector de idioma, e não tem preferência
+ * nenhuma gravada.
+ */
+export function renderMessage(
+  key: RoutineKey,
+  vars: MessageVars,
+  idioma: Idioma = 'pt',
+): string {
+  return BODIES[idioma][key].replace(/\{(\w+)\}/g, (_match, name: string) =>
     name in vars ? vars[name as keyof MessageVars] : '',
   )
 }

@@ -16,6 +16,7 @@ import 'server-only'
 import { addDaysInZone, isoDateInZone, weekdayInZone, zonedDateTime } from '@studio/core'
 import { unitExceptions, unitHours } from '@studio/db'
 import { and, eq, inArray } from 'drizzle-orm'
+import { interpola, type Dicionario } from '@/i18n'
 import { db } from '@/lib/db'
 import type { UnitInfo } from './context'
 
@@ -219,20 +220,28 @@ function proximaAbertura(
   return null
 }
 
-/** Os dias como se dizem numa frase, não como se escrevem numa tabela. */
-const DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'] as const
-
-/** O que a vitrine escreve. `null` quando não há o que dizer com honestidade. */
-export function frasePorta(estado: EstadoDaPorta): string | null {
+/**
+ * O que a vitrine escreve. `null` quando não há o que dizer com honestidade.
+ *
+ * A copy entra por parâmetro em vez de morar aqui porque a montra fala três
+ * línguas e este módulo é `server-only`: manter as frases cá dentro obrigaria
+ * a repetir o `switch` por idioma. A união `EstadoDaPorta` fica — o estado é
+ * facto de horário, não é texto — e o dicionário só empresta as palavras.
+ */
+export function frasePorta(
+  estado: EstadoDaPorta,
+  textos: Dicionario['porta'],
+  naFrase: Dicionario['dias']['naFrase'],
+): string | null {
   switch (estado.tipo) {
     case 'aberta':
-      return `Aberto até às ${estado.ate}`
+      return interpola(textos.aberta, { hora: estado.ate })
     case 'abre-hoje':
-      return `Abre hoje às ${estado.as}`
+      return interpola(textos.abreHoje, { hora: estado.as })
     case 'ja-fechou':
-      return `Fechou às ${estado.desde}${volta(estado.regresso)}`
+      return interpola(textos.jaFechou, { hora: estado.desde }) + volta(estado.regresso, textos, naFrase)
     case 'fechada-hoje':
-      return `Hoje não abre${volta(estado.regresso)}`
+      return textos.fechadaHoje + volta(estado.regresso, textos, naFrase)
     case 'sem-horario':
       return null
   }
@@ -240,8 +249,12 @@ export function frasePorta(estado: EstadoDaPorta): string | null {
 
 /* Sem regresso conhecido a frase acaba onde está: "Hoje não abre" sozinho é
    verdade, e "abre daqui a algumas semanas" não é informação. */
-function volta(regresso: Regresso | null): string {
+function volta(
+  regresso: Regresso | null,
+  textos: Dicionario['porta'],
+  naFrase: Dicionario['dias']['naFrase'],
+): string {
   if (!regresso) return ''
-  const quando = regresso.dias === 1 ? 'amanhã' : DIA[regresso.weekday]!
-  return ` · abre ${quando} às ${regresso.as}`
+  const quando = regresso.dias === 1 ? textos.amanha : naFrase[regresso.weekday]!
+  return interpola(textos.volta, { quando, hora: regresso.as })
 }

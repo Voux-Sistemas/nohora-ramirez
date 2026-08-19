@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { EmTransito } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
+import { interpola, type Dicionario } from '@/i18n'
 import { cn, href } from '@/lib/utils'
 import type { UnitInfo } from '@/server/scheduling/context'
 import { frasePorta, type HojeNaLoja } from '@/server/scheduling/hoje'
@@ -27,15 +28,17 @@ import { frasePorta, type HojeNaLoja } from '@/server/scheduling/hoje'
 export function PortaDaCasa({
   unidade,
   hoje,
+  dic,
   priority = false,
   sizes,
 }: {
   unidade: UnitInfo
   hoje?: HojeNaLoja
+  dic: Dicionario
   priority?: boolean
   sizes: string
 }) {
-  const frase = hoje ? frasePorta(hoje.estado) : null
+  const frase = hoje ? frasePorta(hoje.estado, dic.porta, dic.dias.naFrase) : null
   const aberta = hoje?.estado.tipo === 'aberta'
 
   return (
@@ -47,7 +50,7 @@ export function PortaDaCasa({
 
       <Photo
         src={unidade.imageUrl}
-        alt={`Salão Nohora Ramirez em ${unidade.name}`}
+        alt={interpola(dic.loja.altSalao, { loja: unidade.name })}
         name={unidade.name}
         interactive
         priority={priority}
@@ -97,7 +100,7 @@ export function PortaDaCasa({
         {/* Uma fotografia inteira clicável não anuncia que é clicável. Esta
             linha di-lo por extenso, e a seta anda um pouco à frente da mão. */}
         <p className="mt-6 flex items-center gap-2 text-[0.875rem] text-(--on-ink)">
-          Ver a casa
+          {dic.loja.verACasa}
           <span
             aria-hidden
             className="transition-transform duration-500 ease-(--ease-out-quint) group-hover:translate-x-1.5"

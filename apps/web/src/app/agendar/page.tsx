@@ -1,13 +1,18 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { BookingShell } from '@/components/booking/shell'
 import { UnitPanel } from '@/components/booking/unit-panel'
+import { dicionario } from '@/i18n'
+import { lerIdioma } from '@/lib/idioma'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 import { listUnits } from '@/server/scheduling/context'
 import { portaDasUnidades } from '@/server/scheduling/hoje'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Marcar' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: dicionario(await lerIdioma()).meta.marcar }
+}
 
 /**
  * Primeiro passo: onde.
@@ -19,15 +24,17 @@ export const metadata = { title: 'Marcar' }
  * salão não declarou.
  */
 export default async function EscolherUnidadePage() {
-  const units = await listUnits()
+  const [units, idioma] = await Promise.all([listUnits(), lerIdioma()])
   const portas = await portaDasUnidades(units)
+  const dic = dicionario(idioma)
 
   return (
     <BookingShell
       step={1}
+      idioma={idioma}
       width="wide"
-      title="Em que casa a recebemos?"
-      subtitle="Cada casa tem a sua equipa e a sua agenda. Escolha a que lhe fica mais à mão."
+      title={dic.agendar.unidade.titulo}
+      subtitle={dic.agendar.unidade.subtitulo}
     >
       <ul className={colunas(units.length)}>
         {units.map((unit, index) => (
@@ -35,6 +42,7 @@ export default async function EscolherUnidadePage() {
             <UnitPanel
               unit={unit}
               hoje={portas.get(unit.id)}
+              dic={dic}
               href={`/agendar/${unit.slug}`}
               priority={index === 0}
               sizes={sizesPara(units.length)}
@@ -55,9 +63,9 @@ export default async function EscolherUnidadePage() {
       */}
       {loginClienteDisponivel() ? (
         <p className="text-muted mt-12 border-t border-(--border-subtle) pt-6 text-sm">
-          Já é nossa cliente?{' '}
+          {dic.agendar.unidade.jaCliente}{' '}
           <Link href={'/conta' as never} className="underline underline-offset-4 hover:text-(--text-strong)">
-            Veja as suas marcações
+            {dic.agendar.unidade.vejaAsSuas}
           </Link>
           .
         </p>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { EmTransito } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
+import { interpola, type Dicionario } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { frasePorta, type HojeNaLoja } from '@/server/scheduling/hoje'
 import type { UnitInfo } from '@/server/scheduling/context'
@@ -24,6 +25,7 @@ import type { UnitInfo } from '@/server/scheduling/context'
 export function UnitPanel({
   unit,
   hoje,
+  dic,
   href,
   priority = false,
   sizes,
@@ -31,12 +33,13 @@ export function UnitPanel({
 }: {
   unit: UnitInfo
   hoje?: HojeNaLoja
+  dic: Dicionario
   href: string
   priority?: boolean
   sizes: string
   className?: string
 }) {
-  const frase = hoje ? frasePorta(hoje.estado) : null
+  const frase = hoje ? frasePorta(hoje.estado, dic.porta, dic.dias.naFrase) : null
   const aberta = hoje?.estado.tipo === 'aberta'
 
   return (
@@ -54,7 +57,7 @@ export function UnitPanel({
 
       <Photo
         src={unit.imageUrl}
-        alt={`Salão ${unit.name}`}
+        alt={interpola(dic.loja.altSalao, { loja: unit.name })}
         name={unit.name}
         interactive
         priority={priority}

@@ -25,8 +25,9 @@ import {
   users,
 } from '@studio/db'
 import { and, asc, count, eq, gt, gte, inArray, lt, notExists, notInArray, sql } from 'drizzle-orm'
+import { ehIdioma, localeDe, type Idioma } from '@/i18n/tipos'
 import { db } from '@/lib/db'
-import { formatDateLong, formatTime } from '@/lib/format'
+import { formatDateLongEm, formatTime } from '@/lib/format'
 import type { UnitInfo } from '../scheduling/context'
 import { todayInUnit } from '../scheduling/availability'
 import { ROUTINES, renderMessage, whatsappLink, type RoutineKey } from './templates'
@@ -61,6 +62,24 @@ interface Row {
   clientName: string
   clientPhone: string
   start: Date
+  /** Ficha da cliente. Daqui só se lê `idioma`; o resto é de outros donos. */
+  preferences: Record<string, unknown>
+}
+
+/**
+ * A língua em que esta cliente vai ler a mensagem.
+ *
+ * `preferences` é jsonb — texto que veio da base de dados, e portanto texto em
+ * que não se confia. `ehIdioma` é o guarda: uma preferência estragada não deixa
+ * a fila de avisos sem mensagem, cai em português.
+ *
+ * Português por omissão é o caso comum, não a excepção: só quem marcou pelo
+ * site passou por um selector de idioma. Quem marcou ao balcão não tem
+ * preferência nenhuma gravada.
+ */
+function idiomaDa(preferences: Record<string, unknown>): Idioma {
+  const guardado = preferences['idioma']
+  return ehIdioma(guardado) ? guardado : 'pt'
 }
 
 /**
@@ -158,6 +177,7 @@ export async function listNotices(
       clientName: users.name,
       clientPhone: users.phone,
       start: appointments.startsAt,
+      preferences: clientProfiles.preferences,
     })
     .from(appointments)
     .innerJoin(clientProfiles, eq(clientProfiles.id, appointments.clientId))
@@ -170,18 +190,25 @@ export async function listNotices(
 
   const detalhes = await servicesByAppointment(rows.map((row) => row.appointmentId))
 
-  return rows.map((row) => {
+  /* `preferences` sai do espalhamento de propósito: a fila atravessa para o
+     browser e a ficha da cliente é jsonb de outros donos — o que interessa
+     dela já foi lido aqui. */
+  return rows.map(({ preferences, ...row }) => {
     const detalhe = detalhes.get(row.appointmentId)
+    /* A data acompanha a mensagem: "sexta-feira, 22 de agosto" no meio de um
+       texto em inglês é a costura a aparecer. O fuso continua a ser o da
+       unidade — a hora é a do salão, não a de quem lê. */
+    const idioma = idiomaDa(preferences)
     const vars = {
       cliente: primeiroNome(row.clientName),
-      servicos: detalhe?.services ?? 'o seu atendimento',
-      profissional: detalhe?.staffName ?? 'a equipa',
-      data: formatDateLong(isoDateInZone(row.start, unit.timezone)),
+      servicos: detalhe?.services ?? SEM_DETALHE[idioma].servicos,
+      profissional: detalhe?.staffName ?? SEM_DETALHE[idioma].profissional,
+      data: formatDateLongEm(isoDateInZone(row.start, unit.timezone), localeDe(idioma)),
       hora: formatTime(row.start, unit.timezone),
       unidade: unit.name,
       endereco: [unit.addressLine, unit.district].filter(Boolean).join(' — '),
     }
-    const message = renderMessage(routine, vars)
+    const message = renderMessage(routine, vars, idioma)
 
     return {
       ...row,
@@ -192,6 +219,20 @@ export async function listNotices(
       link: whatsappLink(row.clientPhone, message),
     }
   })
+}
+
+/**
+ * O que se escreve quando o agendamento perdeu os itens.
+ *
+ * Não vem do dicionário da montra: estas duas palavras entram no MEIO de uma
+ * frase de WhatsApp ("está confirmada a sua marcação de {servicos}"), e o
+ * dicionário é de interface. Trazer a secção inteira para cá por causa de duas
+ * palavras era acoplar a fila de avisos à montra sem ganhar nada.
+ */
+const SEM_DETALHE: Record<Idioma, { servicos: string; profissional: string }> = {
+  pt: { servicos: 'o seu atendimento', profissional: 'a equipa' },
+  en: { servicos: 'your appointment', profissional: 'the team' },
+  es: { servicos: 'su cita', profissional: 'el equipo' },
 }
 
 /** Serviços e profissional de cada agendamento, numa consulta só. */

@@ -20,10 +20,19 @@ import 'server-only'
 
 import { clientProfiles, userRoles, users } from '@studio/db'
 import { eq } from 'drizzle-orm'
+import { dicionario, interpola } from '@/i18n'
+import type { Idioma } from '@/i18n/tipos'
 import { ehTeste } from '@/lib/ambiente'
 import { db } from '@/lib/db'
 import { canalEmailAtivo, enviarEmail, mascararEmail } from '@/server/notifications/email'
-import { VALIDADE_MIN, consumirCodigo, criarCodigo, emEspera, queimarCodigos } from './codigo'
+import {
+  VALIDADE_MIN,
+  type MotivoCodigo,
+  consumirCodigo,
+  criarCodigo,
+  emEspera,
+  queimarCodigos,
+} from './codigo'
 import { temPapelDeEquipe } from './permissoes'
 import { createSession } from './session'
 
@@ -37,30 +46,11 @@ export function loginClienteDisponivel(): boolean {
   return canalEmailAtivo() || ehTeste()
 }
 
-/**
- * A única resposta que a tela dá quando não houve envio — conta que não
- * existe, ficha sem e-mail, pedido repetido dentro do minuto.
- *
- * Antes cada um desses becos tinha a sua frase, e "Não encontramos conta com
- * esse telefone" respondia, a quem escrevesse números no formulário público,
- * quais deles são de clientes deste salão. Isso é dado pessoal por dedução: a
- * lista de quem frequenta uma casa de beleza não é do público, mesmo que cada
- * número, isolado, não seja segredo. A frase agora é a mesma em todos os
- * casos, e quem é da casa e não recebeu nada tem o caminho de sempre — ligar
- * para o salão.
- *
- * Fica de fora um sinal fraco, e de propósito: quando o envio corre bem a tela
- * seguinte mostra o e-mail mascarado, e quando não corre não mostra. É o mesmo
- * compromisso que `recuperacao.ts` já fazia, pela mesma razão — a cliente
- * precisa de saber que caixa abrir.
- */
-const RESPOSTA_UNICA =
-  'Se houver conta com este número, o código já foi para o e-mail registado na ficha. ' +
-  'Não chegou nada? Fale com o salão — pode não haver e-mail na sua ficha ainda.'
-const FALHOU =
-  'Não conseguimos enviar o código agora. Tente de novo em alguns minutos ou fale com o salão.'
-
-async function entregarCodigo(destino: string | null, code: string): Promise<boolean> {
+async function entregarCodigo(
+  destino: string | null,
+  code: string,
+  idioma: Idioma,
+): Promise<boolean> {
   /*
     Sem canal configurado o código vai para o log do servidor — mas **só fora
     de produção**. O log do Railway fica legível a quem tiver o painel, e um
@@ -76,16 +66,14 @@ async function entregarCodigo(destino: string | null, code: string): Promise<boo
     return true
   }
 
+  /* O e-mail sai na língua em que ela pediu o código, e não na da casa: quem
+     escreveu o telemóvel num ecrã em inglês não reconhece um assunto em
+     português no meio da caixa de entrada. */
+  const emails = dicionario(idioma).emails
   const resultado = await enviarEmail({
     para: destino,
-    assunto: `${code} é o seu código de acesso`,
-    texto: [
-      `O seu código de acesso é ${code}.`,
-      '',
-      `Ele vale por ${VALIDADE_MIN} minutos e só pode ser usado uma vez.`,
-      '',
-      'Se o pedido não partiu de si, ignore este e-mail — ninguém entra na sua conta sem este código.',
-    ].join('\n'),
+    assunto: interpola(emails.otpAssunto, { codigo: code }),
+    texto: interpola(emails.otpCorpo, { codigo: code, minutos: VALIDADE_MIN }),
   })
 
   if (!resultado.ok) {
@@ -135,27 +123,47 @@ async function contaDeCliente(phone: string): Promise<{ id: string; email: strin
 
 export interface RequestOtpResult {
   ok: boolean
-  message?: string
   /** Para onde o código foi, já mascarado — a tela seguinte diz qual caixa abrir. */
   destino?: string
   /** Só preenchido fora de produção, para testar sem canal de envio. */
   devCode?: string
 }
 
-export async function requestOtp(phone: string): Promise<RequestOtpResult> {
+/**
+ * Pedir o código. `ok: true` sem `destino` é a resposta única — ver abaixo.
+ *
+ * O idioma entra por parâmetro e não é lido aqui do cookie porque quem chama
+ * já o leu para escolher as suas próprias palavras: dois cookies lidos no
+ * mesmo pedido dariam a mesma resposta e uma delas seria trabalho a dobrar.
+ */
+export async function requestOtp(phone: string, idioma: Idioma = 'pt'): Promise<RequestOtpResult> {
   const user = await contaDeCliente(phone)
-  /* Antes de gravar código nenhum: sem conta e sem envelope não há envio, e
-     uma linha em `auth_otps` que ninguém vai poder usar é lixo com data de
-     validade. Os três becos respondem igual — ver `RESPOSTA_UNICA`. */
-  if (!user) return { ok: true, message: RESPOSTA_UNICA }
-  if (canalEmailAtivo() && !user.email) return { ok: true, message: RESPOSTA_UNICA }
-  if (await emEspera(phone, 'login')) return { ok: true, message: RESPOSTA_UNICA }
+  /*
+   * Antes de gravar código nenhum: sem conta e sem envelope não há envio, e
+   * uma linha em `auth_otps` que ninguém vai poder usar é lixo com data de
+   * validade.
+   *
+   * Os três becos respondem igual, e é a parte que importa: "Não encontramos
+   * conta com esse telefone" respondia, a quem escrevesse números no
+   * formulário público, quais deles são de clientes deste salão. Isso é dado
+   * pessoal por dedução — a lista de quem frequenta uma casa de beleza não é
+   * do público, mesmo que cada número, isolado, não seja segredo. Quem é da
+   * casa e não recebeu nada tem o caminho de sempre: ligar para o salão.
+   *
+   * Fica de fora um sinal fraco, e de propósito: quando o envio corre bem, a
+   * tela seguinte mostra o e-mail mascarado (`destino`), e quando não corre
+   * não mostra. É o mesmo compromisso que `recuperacao.ts` já fazia, pela
+   * mesma razão — a cliente precisa de saber que caixa abrir.
+   */
+  if (!user) return { ok: true }
+  if (canalEmailAtivo() && !user.email) return { ok: true }
+  if (await emEspera(phone, 'login')) return { ok: true }
 
   const code = await criarCodigo(phone, 'login')
 
-  if (!(await entregarCodigo(user.email, code))) {
+  if (!(await entregarCodigo(user.email, code, idioma))) {
     await queimarCodigos(phone, 'login')
-    return { ok: false, message: FALHOU }
+    return { ok: false }
   }
 
   return {
@@ -165,20 +173,23 @@ export async function requestOtp(phone: string): Promise<RequestOtpResult> {
   }
 }
 
-export interface VerifyOtpResult {
-  ok: boolean
-  message?: string
-}
+/**
+ * Por que a porta não abriu. Chave e não frase: a conta da cliente fala três
+ * línguas, e as palavras vivem em `conta.erros.codigo` — as chaves são estas.
+ */
+export type MotivoLogin = MotivoCodigo | 'contaNaoEncontrada'
+
+export type VerifyOtpResult = { ok: true } | { ok: false; motivo: MotivoLogin }
 
 export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpResult> {
   const conferido = await consumirCodigo(phone, 'login', code)
-  if (!conferido.ok) return conferido
+  if (!conferido.ok) return { ok: false, motivo: conferido.motivo }
 
   /* A mesma pergunta do pedido, e não uma leitura crua de `users`: entre pedir
      o código e gastá-lo a conta pode ter mudado de mão — e um código emitido
      antes de a pessoa entrar para a equipa não pode abrir a porta depois. */
   const user = await contaDeCliente(phone)
-  if (!user) return { ok: false, message: 'Conta não encontrada.' }
+  if (!user) return { ok: false, motivo: 'contaNaoEncontrada' }
 
   await createSession(user.id)
   return { ok: true }
@@ -187,7 +198,7 @@ export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpR
 /** Atalho de teste: pula o OTP e entra direto, para quando o alias "cliente" é usado. */
 export async function loginTestClient(phone: string): Promise<VerifyOtpResult> {
   const user = await contaDeCliente(phone)
-  if (!user) return { ok: false, message: 'Conta não encontrada.' }
+  if (!user) return { ok: false, motivo: 'contaNaoEncontrada' }
 
   await createSession(user.id)
   return { ok: true }

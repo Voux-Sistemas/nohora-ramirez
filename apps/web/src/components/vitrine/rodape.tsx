@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { dicionario, interpola } from '@/i18n'
+import type { Idioma } from '@/i18n/tipos'
 import { cn, href } from '@/lib/utils'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 import { listUnits } from '@/server/scheduling/context'
@@ -19,21 +21,25 @@ import { rede } from '@/server/vitrine'
  * foi exactamente a queixa da reunião — o sistema tem de ser navegável por si.
  */
 export async function RodapePublico({
+  idioma,
   atual,
   className,
 }: {
+  /** A língua em vigor. Não leva selector: o do cabeçalho chega e sobra. */
+  idioma: Idioma
   /** Slug da casa aberta, para não a oferecer como se fosse outro sítio. */
   atual?: string
   className?: string
 }) {
   const [lojas, marca] = await Promise.all([listUnits(), rede()])
+  const dic = dicionario(idioma)
   const ano = new Date().getFullYear()
 
   return (
     <footer className={cn('border-t border-(--border-subtle)', className)}>
       <div className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-12">
         <div className="grid gap-8 sm:grid-cols-3">
-          <Coluna titulo="As casas">
+          <Coluna titulo={dic.chrome.asCasas}>
             {lojas.map((loja) => (
               <Link
                 key={loja.id}
@@ -55,7 +61,7 @@ export async function RodapePublico({
             ))}
           </Coluna>
 
-          <Coluna titulo="Marcação">
+          <Coluna titulo={dic.chrome.marcacao}>
             {/* Dentro da montra de uma casa, marcar é marcar NELA — mandar para o
                 selector de loja é fazer a pergunta que a pessoa já respondeu ao
                 entrar aqui. Sem casa aberta (a montra da rede), o selector é a
@@ -64,19 +70,19 @@ export async function RodapePublico({
               href={href(atual ? `/agendar/${atual}` : '/agendar')}
               className="transition-colors hover:text-(--text-strong)"
             >
-              Marcar online
+              {dic.chrome.marcarOnline}
             </Link>
             {/* A mesma regra de `/conta/entrar`: sem por onde mandar o código,
                 a porta não abre, e um link que não abre é pior do que nenhum. */}
             {loginClienteDisponivel() ? (
               <Link href={href('/conta')} className="transition-colors hover:text-(--text-strong)">
-                As suas marcações
+                {dic.chrome.asSuasMarcacoes}
               </Link>
             ) : null}
           </Coluna>
 
           {marca?.instagram ? (
-            <Coluna titulo="Instagram">
+            <Coluna titulo={dic.chrome.instagram}>
               <a
                 href={`https://instagram.com/${marca.instagram}`}
                 target="_blank"
@@ -90,11 +96,9 @@ export async function RodapePublico({
         </div>
 
         <div className="text-muted mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-(--border-subtle) pt-6 text-xs">
-          <p>
-            © {ano} {marca?.nome ?? 'Nohora Ramirez'}
-          </p>
+          <p>{interpola(dic.chrome.direitos, { ano, marca: marca?.nome ?? 'Nohora Ramirez' })}</p>
           <Link href={href('/entrar')} className="transition-colors hover:text-(--text-strong)">
-            Área da equipa
+            {dic.chrome.areaDaEquipa}
           </Link>
         </div>
       </div>

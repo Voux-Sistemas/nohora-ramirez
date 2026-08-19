@@ -25,10 +25,17 @@ const POR_HORA = 5
 /** Quantos compromissos futuros o mesmo telefone pode manter em aberto. */
 const FUTUROS_EM_ABERTO = 12
 
-export interface GuardVerdict {
-  ok: boolean
-  message?: string
-}
+/**
+ * Por que o freio recusou.
+ *
+ * Chave, e não frase: o funil da cliente fala três línguas e este módulo não
+ * sabe qual delas está a ser lida. As palavras vivem em `agendar.erros.cota`,
+ * e as chaves são estas — os três dicionários têm de as ter, e é o typecheck
+ * que o confere.
+ */
+export type CotaMotivo = 'muitas_recentes' | 'muitas_abertas'
+
+export type GuardVerdict = { ok: true } | { ok: false; motivo: CotaMotivo }
 
 const LIBERADO: GuardVerdict = { ok: true }
 
@@ -60,25 +67,13 @@ export async function checkBookingQuota(clientId: string): Promise<GuardVerdict>
   ])
 
   /*
-   * As duas mensagens dizem o que fazer e mandam falar com o salão. Recusa sem
-   * saída manda cliente de verdade embora, e cliente de verdade é quem lê isto
-   * — o script não lê nada.
+   * As duas mensagens (no dicionário) dizem o que fazer e mandam falar com o
+   * salão. Recusa sem saída manda cliente de verdade embora, e cliente de
+   * verdade é quem lê isto — o script não lê nada.
    */
-  if ((recentes[0]?.n ?? 0) >= POR_HORA) {
-    return {
-      ok: false,
-      message:
-        'Marcou vários horários agora há pouco. Espere um pouco ou fale com a receção pelo WhatsApp.',
-    }
-  }
+  if ((recentes[0]?.n ?? 0) >= POR_HORA) return { ok: false, motivo: 'muitas_recentes' }
 
-  if ((emAberto[0]?.n ?? 0) >= FUTUROS_EM_ABERTO) {
-    return {
-      ok: false,
-      message:
-        'Já tem muitas marcações. Fale com a receção para organizar a sua agenda.',
-    }
-  }
+  if ((emAberto[0]?.n ?? 0) >= FUTUROS_EM_ABERTO) return { ok: false, motivo: 'muitas_abertas' }
 
   return LIBERADO
 }

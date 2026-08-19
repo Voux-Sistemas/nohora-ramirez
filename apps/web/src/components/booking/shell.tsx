@@ -2,9 +2,8 @@ import Link from 'next/link'
 import { FaixaDaMarca } from '@/components/brand/faixa'
 import { BarraDeAcao } from '@/components/ui/barra-de-acao'
 import { EmTransito, Entrada } from '@/components/ui/espera'
+import { dicionario, interpola, pedacos, type Idioma } from '@/i18n'
 import { cn } from '@/lib/utils'
-
-const STEPS = ['Unidade', 'Serviços', 'Horário', 'Confirmar'] as const
 
 /**
  * Casca das telas de agendamento.
@@ -24,13 +23,18 @@ const STEPS = ['Unidade', 'Serviços', 'Horário', 'Confirmar'] as const
  * para computador", é a tela do celular esticada. O rail é onde mora o que
  * ancora a decisão em telas grandes — a casa em fotografia, o que já foi
  * escolhido — fixo enquanto a coluna principal rola.
+ *
+ * `title` e `subtitle` entram por texto já feito: cada passo lê o seu do
+ * dicionário e passa-o para cá. O que a casca traduz sozinha é o que só ela
+ * conhece — os nomes dos quatro passos, o contador e o rótulo de voltar.
  */
 export function BookingShell({
   step,
+  idioma,
   title,
   subtitle,
   back,
-  backLabel = 'Voltar',
+  backLabel,
   width = 'narrow',
   rail,
   railFirst = false,
@@ -38,6 +42,7 @@ export function BookingShell({
   footer,
 }: {
   step: 1 | 2 | 3 | 4
+  idioma: Idioma
   title: string
   subtitle?: string
   /** Href do passo anterior. Ausente no primeiro. */
@@ -57,10 +62,12 @@ export function BookingShell({
   /** Barra fixa no rodapé — é onde mora a ação principal. */
   footer?: React.ReactNode
 }) {
+  const dic = dicionario(idioma)
+  const passos = dic.agendar.passos
   const shell = width === 'wide' ? 'max-w-5xl' : 'max-w-2xl'
   const hasRail = Boolean(rail) && width !== 'wide'
   const outer = hasRail ? 'max-w-[68rem]' : shell
-  const pct = (step / STEPS.length) * 100
+  const pct = (step / passos.length) * 100
 
   const body = (
     <>
@@ -71,7 +78,7 @@ export function BookingShell({
         >
           <EmTransito />
           <span aria-hidden>←</span>
-          {backLabel}
+          {backLabel ?? dic.comum.voltar}
         </Link>
       ) : null}
 
@@ -89,19 +96,39 @@ export function BookingShell({
           meio da marcação. É o valor por omissão da faixa. */}
       <FaixaDaMarca
         largura={outer}
+        idioma={idioma}
         fim={
           <span className="label-caps tnum block text-right text-(--on-ink-muted)">
-            <span className="text-(--on-ink)">{step}</span> de {STEPS.length}
-            <span className="hidden sm:inline"> · {STEPS[step - 1]}</span>
+            {/* O contador é partido em vez de interpolado porque só o número do
+                passo actual leva tinta cheia — o resto é o murmúrio. Partir a
+                frase deixa a ordem das palavras à língua; o realce não muda. */}
+            {pedacos(dic.agendar.contador).map((p, i) =>
+              'buraco' in p ? (
+                p.buraco === 'passo' ? (
+                  <span key={i} className="text-(--on-ink)">
+                    {step}
+                  </span>
+                ) : (
+                  <span key={i}>{passos.length}</span>
+                )
+              ) : (
+                <span key={i}>{p.texto}</span>
+              ),
+            )}
+            <span className="hidden sm:inline"> · {passos[step - 1]}</span>
           </span>
         }
         abaixo={
           <div
             role="progressbar"
             aria-valuemin={1}
-            aria-valuemax={STEPS.length}
+            aria-valuemax={passos.length}
             aria-valuenow={step}
-            aria-valuetext={`Passo ${step} de ${STEPS.length}: ${STEPS[step - 1]}`}
+            aria-valuetext={interpola(dic.agendar.progresso, {
+              passo: step,
+              total: passos.length,
+              nome: passos[step - 1] ?? '',
+            })}
             className="h-px w-full bg-(--border-on-ink)"
           >
             <div

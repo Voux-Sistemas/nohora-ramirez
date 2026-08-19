@@ -37,7 +37,33 @@ import type { FotoDaLoja } from '@/server/vitrine'
  * de graça o `Esc`, o foco preso lá dentro, o fundo inerte e a devolução do
  * foco à fotografia de onde se partiu.
  */
-export function Sala({ fotos, nome }: { fotos: readonly FotoDaLoja[]; nome: string }) {
+/**
+ * As frases da galeria, já com o nome da casa dentro.
+ *
+ * Chegam interpoladas da página em vez de o componente ir buscar o dicionário:
+ * isto corre no browser, e o que atravessa a fronteira são cinco strings em
+ * vez dos três dicionários inteiros. O `nome` continua a vir à parte porque
+ * `Photo` o usa para a marca de água, que não é texto de leitura.
+ */
+export type TextosDaSala = {
+  /** Rótulo da caixa de luz. */
+  galeria: string
+  /** Alternativa de quem não vê a fotografia, quando a foto não traz a sua. */
+  altInterior: string
+  fechar: string
+  fotoAnterior: string
+  fotoSeguinte: string
+}
+
+export function Sala({
+  fotos,
+  nome,
+  textos,
+}: {
+  fotos: readonly FotoDaLoja[]
+  nome: string
+  textos: TextosDaSala
+}) {
   const [aberta, setAberta] = useState<number | null>(null)
 
   if (fotos.length === 0) return null
@@ -50,6 +76,7 @@ export function Sala({ fotos, nome }: { fotos: readonly FotoDaLoja[]; nome: stri
             key={i}
             fotos={fileira}
             nome={nome}
+            textos={textos}
             indice={i}
             primeira={i === 0}
             deslocamento={i * 2}
@@ -60,7 +87,7 @@ export function Sala({ fotos, nome }: { fotos: readonly FotoDaLoja[]; nome: stri
 
       <CaixaDeLuz
         fotos={fotos}
-        nome={nome}
+        textos={textos}
         aberta={aberta}
         aoMudar={setAberta}
         aoFechar={() => setAberta(null)}
@@ -93,6 +120,7 @@ const PESOS: readonly [number, number][] = [
 function Fileira({
   fotos,
   nome,
+  textos,
   indice,
   primeira,
   deslocamento,
@@ -100,6 +128,7 @@ function Fileira({
 }: {
   fotos: FotoDaLoja[]
   nome: string
+  textos: TextosDaSala
   indice: number
   primeira: boolean
   /** Posição da primeira fotografia da fileira na galeria inteira. */
@@ -144,7 +173,7 @@ function Fileira({
           >
             <Photo
               src={foto.url}
-              alt={foto.alt ?? `Interior do salão ${nome}`}
+              alt={foto.alt ?? textos.altInterior}
               name={nome}
               interactive
               sizes={
@@ -166,13 +195,13 @@ function Fileira({
 
 function CaixaDeLuz({
   fotos,
-  nome,
+  textos,
   aberta,
   aoMudar,
   aoFechar,
 }: {
   fotos: readonly FotoDaLoja[]
-  nome: string
+  textos: TextosDaSala
   aberta: number | null
   aoMudar: (indice: number) => void
   aoFechar: () => void
@@ -202,7 +231,7 @@ function CaixaDeLuz({
   return (
     <dialog
       ref={caixa}
-      aria-label={`Fotografias do salão ${nome}`}
+      aria-label={textos.galeria}
       onClose={aoFechar}
       onClick={(evento) => {
         /* Só o próprio diálogo — que é o fundo. Um clique no conteúdo tem
@@ -229,14 +258,14 @@ function CaixaDeLuz({
               onClick={aoFechar}
               className="rounded-plate px-3 py-1.5 text-[0.875rem] text-(--on-ink-muted) transition-colors hover:text-(--on-ink)"
             >
-              Fechar
+              {textos.fechar}
             </button>
           </div>
 
           <div className="relative min-h-0 flex-1">
             <Image
               src={foto.url}
-              alt={foto.alt ?? `Interior do salão ${nome}`}
+              alt={foto.alt ?? textos.altInterior}
               fill
               sizes="100vw"
               className="object-contain"
@@ -245,7 +274,7 @@ function CaixaDeLuz({
 
           <div className="flex shrink-0 items-center gap-4 px-5 py-5 sm:px-8">
             {fotos.length > 1 ? (
-              <Seta rotulo="Fotografia anterior" sinal="‹" aoCarregar={() => andar(-1)} />
+              <Seta rotulo={textos.fotoAnterior} sinal="‹" aoCarregar={() => andar(-1)} />
             ) : null}
 
             {/* A legenda escrita à mão, finalmente visível — e aqui, onde há
@@ -256,7 +285,7 @@ function CaixaDeLuz({
             </p>
 
             {fotos.length > 1 ? (
-              <Seta rotulo="Fotografia seguinte" sinal="›" aoCarregar={() => andar(1)} />
+              <Seta rotulo={textos.fotoSeguinte} sinal="›" aoCarregar={() => andar(1)} />
             ) : null}
           </div>
         </div>

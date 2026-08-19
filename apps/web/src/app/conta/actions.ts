@@ -8,6 +8,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { type Dicionario, dicionario } from '@/i18n'
+import { lerIdioma } from '@/lib/idioma'
 import { cancelAppointment } from '@/server/scheduling/book'
 import { getAppointment } from '@/server/scheduling/queries'
 import { updateContaIdentidade } from '@/server/people/clients'
@@ -24,15 +26,16 @@ export async function cancelarMeuAgendamento(
   formData: FormData,
 ): Promise<CancelState> {
   const session = await requireClientSession()
+  const erros = dicionario(await lerIdioma()).conta.erros
   const id = String(formData.get('id') ?? '')
-  if (!id) return { error: 'Marcação não encontrada.' }
+  if (!id) return { error: erros.naoEncontrada }
 
   const appointment = await getAppointment(id)
   if (!appointment || appointment.clientId !== session.clientId) {
-    return { error: 'Marcação não encontrada.' }
+    return { error: erros.naoEncontrada }
   }
   if (!CANCELABLE.has(appointment.status)) {
-    return { error: 'Esta marcação já não pode ser cancelada.' }
+    return { error: erros.naoSePodeCancelar }
   }
 
   await cancelAppointment(id, 'cancelled_by_client', { reason: 'Cancelado pela cliente' })
@@ -45,18 +48,21 @@ export interface PerfilState {
   ok?: boolean
 }
 
-const perfilSchema = z.object({
-  nome: z.string().trim().min(2, 'Diga o seu nome completo.').max(120),
-  // Mesma razão de `agendar/.../confirmar`: campo opcional chega como string
-  // vazia, não ausente. Apagar o e-mail é uma escolha legítima da cliente, e
-  // recusar o formulário por causa disso seria trancá-la no que já lá estava.
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .max(180)
-    .refine((v) => v === '' || z.string().email().safeParse(v).success, 'E-mail inválido.'),
-})
+/** Fábrica, e não constante: as recusas são texto que a cliente lê. */
+function perfilSchema(erros: Dicionario['conta']['erros']) {
+  return z.object({
+    nome: z.string().trim().min(2, erros.nomeCompleto).max(120),
+    // Mesma razão de `agendar/.../confirmar`: campo opcional chega como string
+    // vazia, não ausente. Apagar o e-mail é uma escolha legítima da cliente, e
+    // recusar o formulário por causa disso seria trancá-la no que já lá estava.
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(180)
+      .refine((v) => v === '' || z.string().email().safeParse(v).success, erros.emailInvalido),
+  })
+}
 
 /**
  * A cliente a corrigir a própria ficha.
@@ -74,13 +80,14 @@ export async function atualizarPerfil(
   formData: FormData,
 ): Promise<PerfilState> {
   const session = await requireClientSession()
+  const erros = dicionario(await lerIdioma()).conta.erros
 
-  const parsed = perfilSchema.safeParse({
+  const parsed = perfilSchema(erros).safeParse({
     nome: formData.get('nome') ?? '',
     email: formData.get('email') ?? '',
   })
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Reveja os campos.' }
+    return { error: parsed.error.issues[0]?.message ?? erros.revejaOsCampos }
   }
 
   await updateContaIdentidade(session.userId, {

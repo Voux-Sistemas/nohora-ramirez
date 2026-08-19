@@ -11,7 +11,9 @@ import { IndiceDaCasa } from '@/components/vitrine/indice'
 import { Precario } from '@/components/vitrine/precario'
 import { RodapePublico } from '@/components/vitrine/rodape'
 import { Sala } from '@/components/vitrine/sala'
+import { dicionario, interpola, type Dicionario } from '@/i18n'
 import { formatPhone } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { frasePorta } from '@/server/scheduling/hoje'
 import { lojaPorSlug, rede, type Loja } from '@/server/vitrine'
 
@@ -46,16 +48,17 @@ export async function generateMetadata({
   params: Promise<{ unidade: string }>
 }): Promise<Metadata> {
   const { unidade } = await params
-  const loja = await lojaPorSlug(unidade)
+  const [loja, idioma] = await Promise.all([lojaPorSlug(unidade), lerIdioma()])
   if (!loja) return {}
 
+  const dic = dicionario(idioma)
   const morada = [loja.unidade.addressLine, loja.unidade.city].filter(Boolean).join(' · ')
 
   return {
     title: loja.unidade.name,
     description: morada || undefined,
     openGraph: {
-      title: `Nohora Ramirez · ${loja.unidade.name}`,
+      title: interpola(dic.meta.unidadeOg, { loja: loja.unidade.name }),
       description: morada || undefined,
       type: 'website',
       /* A capa da loja é a imagem da partilha. Sem capa, nenhuma imagem — a
@@ -68,9 +71,10 @@ export async function generateMetadata({
 
 export default async function LojaPage({ params }: { params: Promise<{ unidade: string }> }) {
   const { unidade } = await params
-  const [loja, marca] = await Promise.all([lojaPorSlug(unidade), rede()])
+  const [loja, marca, idioma] = await Promise.all([lojaPorSlug(unidade), rede(), lerIdioma()])
   if (!loja) notFound()
 
+  const dic = dicionario(idioma)
   const { unidade: u, fotos, hoje, precario } = loja
   const marcar = `/agendar/${u.slug}`
   const instagram = marca?.instagram ?? null
@@ -83,38 +87,53 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
   /* O índice só nomeia o que a página realmente tem. Uma casa sem ensaio
      fotográfico não ganha um separador "A casa" que salta para lado nenhum. */
   const seccoes = [
-    temEssencial(loja, instagram) ? { id: 'onde', rotulo: 'Onde nos encontra' } : null,
-    daSala.length > 0 ? { id: 'casa', rotulo: 'A casa' } : null,
-    precario.length > 0 ? { id: 'precario', rotulo: 'Preçário' } : null,
+    temEssencial(loja, instagram) ? { id: 'onde', rotulo: dic.loja.seccaoOnde } : null,
+    daSala.length > 0 ? { id: 'casa', rotulo: dic.loja.seccaoCasa } : null,
+    precario.length > 0 ? { id: 'precario', rotulo: dic.loja.seccaoPrecario } : null,
   ].filter((s) => s !== null)
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <CabecalhoPublico atual={u.slug} marcar={marcar} />
+      <CabecalhoPublico idioma={idioma} atual={u.slug} marcar={marcar} />
 
       <main className="flex-1">
         <Abertura
           unidade={u}
           capa={capa}
-          frase={frasePorta(hoje.estado)}
+          dic={dic}
+          frase={frasePorta(hoje.estado, dic.porta, dic.dias.naFrase)}
           aberta={hoje.estado.tipo === 'aberta'}
         />
 
         {/* Colada logo abaixo da abertura, e a única barra colada da página:
             ver `indice.tsx` para o porquê de o cabeçalho continuar a rolar. */}
-        <IndiceDaCasa seccoes={seccoes} marcar={marcar} />
+        <IndiceDaCasa
+          seccoes={seccoes}
+          marcar={marcar}
+          textos={{ nestaCasa: dic.loja.nestaCasa, marcar: dic.comum.marcar }}
+        />
 
-        <Essencial loja={loja} instagram={instagram} />
+        <Essencial loja={loja} instagram={instagram} dic={dic} />
 
         {daSala.length > 0 ? (
           <section
             id="casa"
             className="revela mx-auto w-full max-w-5xl scroll-mt-24 px-5 pt-16 sm:px-8 sm:pt-24"
           >
-            <h2 className="display display-lg">A casa</h2>
+            <h2 className="display display-lg">{dic.loja.seccaoCasa}</h2>
             <div className="rule-bronze mt-4 w-14" />
             <div className="mt-8 sm:mt-10">
-              <Sala fotos={daSala} nome={u.name} />
+              <Sala
+                fotos={daSala}
+                nome={u.name}
+                textos={{
+                  galeria: interpola(dic.loja.galeria, { loja: u.name }),
+                  altInterior: interpola(dic.loja.altInterior, { loja: u.name }),
+                  fechar: dic.comum.fechar,
+                  fotoAnterior: dic.loja.fotoAnterior,
+                  fotoSeguinte: dic.loja.fotoSeguinte,
+                }}
+              />
             </div>
           </section>
         ) : null}
@@ -142,23 +161,26 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
             className="revela mt-16 scroll-mt-24 border-y border-(--border-subtle) bg-(--surface-raised) py-16 sm:mt-24 sm:py-24"
           >
             <div className="mx-auto w-full max-w-5xl px-5 sm:px-8">
-              <h2 className="display display-lg">Preçário</h2>
+              <h2 className="display display-lg">{dic.loja.seccaoPrecario}</h2>
               <div className="rule-bronze mt-4 w-14" />
               {/* Sem parágrafo de abertura: a ressalva sobre cabelo comprido e
                   grande volume já está ao pé do bloco a que se aplica, que é
                   onde a dúvida aparece. Dizê-la duas vezes era a "muita coisa"
                   da queixa em ponto pequeno. */}
               <div className="mt-10 sm:mt-14">
-                <Precario grupos={precario} />
+                <Precario
+                  grupos={precario}
+                  textos={{ categorias: dic.loja.categoriasDoPrecario, desde: dic.comum.desde }}
+                />
               </div>
             </div>
           </section>
         ) : null}
 
-        <Fecho unidade={u} marcar={marcar} />
+        <Fecho unidade={u} marcar={marcar} dic={dic} />
       </main>
 
-      <RodapePublico atual={u.slug} />
+      <RodapePublico idioma={idioma} atual={u.slug} />
     </div>
   )
 }
@@ -178,11 +200,13 @@ export default async function LojaPage({ params }: { params: Promise<{ unidade: 
 function Abertura({
   unidade,
   capa,
+  dic,
   frase,
   aberta,
 }: {
   unidade: Loja['unidade']
   capa: string | null
+  dic: Dicionario
   frase: string | null
   aberta: boolean
 }) {
@@ -190,7 +214,7 @@ function Abertura({
     <section className="relative overflow-hidden">
       <Photo
         src={capa}
-        alt={`Salão Nohora Ramirez em ${unidade.name}`}
+        alt={interpola(dic.loja.altSalao, { loja: unidade.name })}
         name={unidade.name}
         priority
         paralaxe
@@ -260,9 +284,17 @@ function temEssencial(loja: Loja, instagram: string | null): boolean {
  * coluna de horário: a página não escreve "a consultar" sobre um campo vazio,
  * porque quem lê isso entende "fechado".
  */
-function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }) {
+function Essencial({
+  loja,
+  instagram,
+  dic,
+}: {
+  loja: Loja
+  instagram: string | null
+  dic: Dicionario
+}) {
   const { unidade: u, hoje, semana } = loja
-  const frase = frasePorta(hoje.estado)
+  const frase = frasePorta(hoje.estado, dic.porta, dic.dias.naFrase)
   const aberta = hoje.estado.tipo === 'aberta'
   const diaDeHoje = weekdayInZone(new Date(), u.timezone)
 
@@ -282,13 +314,13 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
       className="revela scroll-mt-24 border-y border-(--border-subtle) bg-(--surface-sunken)"
     >
       <div className="mx-auto w-full max-w-5xl px-5 py-14 sm:px-8 sm:py-20">
-        <h2 className="display display-lg">Onde nos encontra</h2>
+        <h2 className="display display-lg">{dic.loja.seccaoOnde}</h2>
         <div className="rule-bronze mt-4 w-14" />
 
         <div className="mt-10 grid gap-12 sm:mt-14 sm:grid-cols-12 sm:gap-14">
           {morada ? (
             <div className="sm:col-span-7">
-              <h3 className="label-caps text-muted">Morada</h3>
+              <h3 className="label-caps text-muted">{dic.loja.morada}</h3>
 
               {/* A rua em Bodoni. É a linha que a cliente copia para o mapa e a
                   que ela lê em voz alta ao motorista — merece o corpo que tem. */}
@@ -307,7 +339,7 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
                     rel="noreferrer"
                     className="text-[0.9375rem] text-(--accent-ink) underline decoration-(--accent)/40 underline-offset-4 transition-colors hover:decoration-(--accent)"
                   >
-                    Ver no mapa
+                    {dic.loja.verNoMapa}
                   </a>
                 ) : null}
                 {u.phone ? (
@@ -350,7 +382,7 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
 
           {semana.length > 0 ? (
             <div className="sm:col-span-5">
-              <h3 className="label-caps text-muted">Horário</h3>
+              <h3 className="label-caps text-muted">{dic.loja.horario}</h3>
 
               {/* O estado da porta é a pergunta que traz a pessoa a esta secção.
                   Estava numa linha de 15px entre outras duas; agora é a segunda
@@ -367,11 +399,18 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
                 </p>
               ) : null}
 
-              <Semana semana={semana} hoje={diaDeHoje} className="mt-7" />
+              <Semana
+                semana={semana}
+                hoje={diaDeHoje}
+                dias={dic.dias.longos}
+                gram={dic.gramatica}
+                encerrado={dic.porta.encerrado}
+                className="mt-7"
+              />
 
               {hoje.excecao ? (
                 <p className="text-muted mt-5 text-[0.875rem] italic">
-                  Hoje o horário é especial e já está considerado acima.
+                  {dic.loja.horarioEspecial}
                 </p>
               ) : null}
             </div>
@@ -390,26 +429,34 @@ function Essencial({ loja, instagram }: { loja: Loja; instagram: string | null }
  * ao lado do botão em vez de dentro dele: são duas maneiras diferentes de a
  * mesma pessoa marcar, e uma não é o plano B da outra.
  */
-function Fecho({ unidade, marcar }: { unidade: Loja['unidade']; marcar: string }) {
+function Fecho({
+  unidade,
+  marcar,
+  dic,
+}: {
+  unidade: Loja['unidade']
+  marcar: string
+  dic: Dicionario
+}) {
   return (
     <section className="mt-16 bg-(--surface-ink) text-(--on-ink) sm:mt-24">
       <div className="mx-auto w-full max-w-5xl px-5 py-16 text-center sm:px-8 sm:py-24">
         <Wordmark size="lg" className="text-(--on-ink)" />
 
         <p className="mx-auto mt-8 max-w-[38ch] text-[1.0625rem] leading-relaxed text-(--on-ink-muted)">
-          Escolha a profissional, o dia e a hora. A marcação fica confirmada no momento.
+          {dic.loja.fecho}
         </p>
 
         <div className="mt-9 flex flex-col items-center gap-4">
           <Link href={marcar as never} className={buttonVariants({ variant: 'on-ink', size: 'xl' })}>
-            Marcar em {unidade.name}
+            {interpola(dic.loja.marcarEm, { loja: unidade.name })}
           </Link>
           {unidade.phone ? (
             <a
               href={`tel:${unidade.phone}`}
               className="tnum text-[0.9375rem] text-(--on-ink-muted) transition-colors hover:text-(--on-ink)"
             >
-              ou ligue {formatPhone(unidade.phone)}
+              {interpola(dic.loja.ouLigue, { telefone: formatPhone(unidade.phone) })}
             </a>
           ) : null}
         </div>

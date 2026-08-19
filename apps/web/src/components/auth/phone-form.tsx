@@ -6,33 +6,36 @@ import { Button } from '@/components/ui/button'
 import { Erro } from '@/components/ui/erro'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { pedirCodigo, type PhoneState } from '@/app/conta/entrar/actions'
+import type { Dicionario } from '@/i18n'
 
-export function PhoneForm() {
+type Textos = Dicionario['conta']['entrar']
+
+export function PhoneForm({ textos }: { textos: Textos }) {
   const [state, action] = useActionState<PhoneState, FormData>(pedirCodigo, {})
 
   return (
     <form action={action} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
-        Telefone
+        {textos.telefone}
         <PhoneInput className="field" name="telefone" required />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Palavra-passe (só para login de teste)
+        {textos.palavraPasse}
         <input className="field" name="senha" type="password" autoComplete="off" />
       </label>
 
       <Erro>{state.error}</Erro>
 
-      <SubmitButton />
+      <SubmitButton textos={textos} />
     </form>
   )
 }
 
-function SubmitButton() {
+function SubmitButton({ textos }: { textos: Textos }) {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      {pending ? 'A enviar…' : 'Receber código'}
+      {pending ? textos.aEnviar : textos.receberCodigo}
     </Button>
   )
 }

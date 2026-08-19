@@ -67,10 +67,18 @@ export async function queimarCodigos(phone: string, proposito: Proposito): Promi
     .where(and(eq(authOtps.phone, phone), eq(authOtps.purpose, proposito), isNull(authOtps.consumedAt)))
 }
 
-export interface ResultadoCodigo {
-  ok: boolean
-  message?: string
-}
+/** Por que o código não passou. Ver `ResultadoCodigo` para o porquê da chave. */
+export type MotivoCodigo = 'expirado' | 'muitasTentativas' | 'incorreto'
+
+/**
+ * A recusa vem em dois formatos, e não é por indecisão.
+ *
+ * `message` é português fixo e serve as portas da EQUIPA — `/entrar`,
+ * recuperação de palavra-passe — que não se traduzem. `motivo` é a chave, e
+ * serve a porta da CLIENTE, que fala três línguas e vai buscar as palavras ao
+ * dicionário. É o mesmo par que `book.ts` já usa para os erros de marcação.
+ */
+export type ResultadoCodigo = { ok: true } | { ok: false; motivo: MotivoCodigo; message: string }
 
 /**
  * Confere e consome. Só devolve `ok` uma vez por código.
@@ -97,16 +105,18 @@ export async function consumirCodigo(
     .orderBy(desc(authOtps.createdAt))
     .limit(1)
 
-  if (!otp) return { ok: false, message: 'Código expirado ou inexistente. Peça um novo.' }
+  if (!otp) {
+    return { ok: false, motivo: 'expirado', message: 'Código expirado ou inexistente. Peça um novo.' }
+  }
 
   if (otp.attempts >= MAX_TENTATIVAS) {
     await db.update(authOtps).set({ consumedAt: new Date() }).where(eq(authOtps.id, otp.id))
-    return { ok: false, message: 'Muitas tentativas. Peça um novo código.' }
+    return { ok: false, motivo: 'muitasTentativas', message: 'Muitas tentativas. Peça um novo código.' }
   }
 
   if (!(await verifySecret(code, otp.codeHash))) {
     await db.update(authOtps).set({ attempts: otp.attempts + 1 }).where(eq(authOtps.id, otp.id))
-    return { ok: false, message: 'Código incorreto.' }
+    return { ok: false, motivo: 'incorreto', message: 'Código incorreto.' }
   }
 
   await db.update(authOtps).set({ consumedAt: new Date() }).where(eq(authOtps.id, otp.id))

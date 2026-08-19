@@ -5,7 +5,9 @@ import { Wreath } from '@/components/brand/mark'
 import { CabecalhoPublico } from '@/components/vitrine/cabecalho'
 import { PortaDaCasa } from '@/components/vitrine/porta-da-casa'
 import { RodapePublico } from '@/components/vitrine/rodape'
+import { dicionario, interpola } from '@/i18n'
 import { formatPhone } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { href } from '@/lib/utils'
 import { listUnits } from '@/server/scheduling/context'
 import { portaDasUnidades } from '@/server/scheduling/hoje'
@@ -38,15 +40,16 @@ export const dynamic = 'force-dynamic'
  */
 
 export async function generateMetadata(): Promise<Metadata> {
-  const unidades = await listUnits()
+  const [unidades, idioma] = await Promise.all([listUnits(), lerIdioma()])
+  const dic = dicionario(idioma)
   const cidades = [...new Set(unidades.map((u) => u.city).filter(Boolean))].join(' · ')
-  const descricao = cidades ? `Cabeleireiro e estética em ${cidades}.` : undefined
+  const descricao = cidades ? interpola(dic.meta.lojaDescricao, { cidades }) : undefined
 
   return {
-    title: 'As nossas casas',
+    title: dic.meta.lojaTitulo,
     description: descricao,
     openGraph: {
-      title: 'Nohora Ramirez · Beauty Studio',
+      title: dic.meta.lojaOg,
       description: descricao,
       type: 'website',
       /* A capa da primeira casa é a imagem da partilha. Sem capa, texto só — o
@@ -59,7 +62,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PainelDasCasas() {
-  const unidades = await listUnits()
+  const [unidades, idioma] = await Promise.all([listUnits(), lerIdioma()])
+  const dic = dicionario(idioma)
 
   /* Com uma casa só não há painel: escolher entre um é ler o nome dela duas
      vezes. `as never` porque o slug só existe em execução e `typedRoutes` quer
@@ -72,7 +76,7 @@ export default async function PainelDasCasas() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <CabecalhoPublico />
+      <CabecalhoPublico idioma={idioma} />
 
       <main className="flex-1">
         {/*
@@ -101,7 +105,7 @@ export default async function PainelDasCasas() {
           </div>
 
           <div className="relative mx-auto w-full max-w-6xl px-5 sm:px-8">
-            <h1 className="display display-xl">As nossas casas</h1>
+            <h1 className="display display-xl">{dic.loja.titulo}</h1>
             <div className="rule-bronze-on-ink mt-5 w-16" />
             {/*
               Uma linha, e curta. A queixa da reunião foi "muita coisa", e a
@@ -110,8 +114,8 @@ export default async function PainelDasCasas() {
               fotografias logo a seguir.
             */}
             <p className="mt-6 max-w-[36ch] text-[1.0625rem] leading-relaxed text-(--on-ink-muted)">
-              {cidades.length > 0 ? `${enumerar(cidades)}. ` : ''}A mesma equipa, a mesma mão, duas
-              salas.
+              {cidades.length > 0 ? `${enumerar(cidades, dic.gramatica.enumeracao)}. ` : ''}
+              {dic.loja.intro}
             </p>
           </div>
         </section>
@@ -128,6 +132,7 @@ export default async function PainelDasCasas() {
                 <PortaDaCasa
                   unidade={unidade}
                   hoje={portas.get(unidade.id)}
+                  dic={dic}
                   priority={indice === 0}
                   sizes={sizesPara(unidades.length)}
                 />
@@ -153,7 +158,7 @@ export default async function PainelDasCasas() {
                     href={href(`/agendar/${unidade.slug}`)}
                     className="text-[0.9375rem] text-(--accent-ink) underline decoration-(--accent)/40 underline-offset-4 transition-colors hover:decoration-(--accent)"
                   >
-                    Marcar em {unidade.name}
+                    {interpola(dic.loja.marcarEm, { loja: unidade.name })}
                   </Link>
                 </div>
               </li>
@@ -162,7 +167,7 @@ export default async function PainelDasCasas() {
         </section>
       </main>
 
-      <RodapePublico />
+      <RodapePublico idioma={idioma} />
     </div>
   )
 }
@@ -170,10 +175,16 @@ export default async function PainelDasCasas() {
 /*
   "Valongo e Maia", não "Valongo, Maia" — a frase é para se ler em voz alta, e
   uma lista separada por vírgula até ao fim é lista de formulário.
+
+  A conjunção vem do dicionário porque é a única parte disto que muda de língua:
+  a vírgula é igual nas três, o "e" é "and" e "y".
 */
-function enumerar(itens: readonly string[]): string {
+function enumerar(itens: readonly string[], conjuncao: string): string {
   if (itens.length <= 1) return itens[0] ?? ''
-  return `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`
+  return interpola(conjuncao, {
+    lista: itens.slice(0, -1).join(', '),
+    ultimo: itens[itens.length - 1]!,
+  })
 }
 
 /*

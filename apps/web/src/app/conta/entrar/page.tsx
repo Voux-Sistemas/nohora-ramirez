@@ -1,9 +1,13 @@
 import Link from 'next/link'
 import { PhoneForm } from '@/components/auth/phone-form'
 import { Porta } from '@/components/auth/porta'
+import { dicionario } from '@/i18n'
+import { lerIdioma } from '@/lib/idioma'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 
-export const metadata = { title: 'Entrar' }
+export async function generateMetadata() {
+  return { title: dicionario(await lerIdioma()).meta.entrar }
+}
 
 /*
   Sem isto o Next resolve a checagem no build e congela o resultado na página
@@ -13,23 +17,24 @@ export const metadata = { title: 'Entrar' }
 */
 export const dynamic = 'force-dynamic'
 
-export default function ContaEntrarPage() {
+export default async function ContaEntrarPage() {
+  const idioma = await lerIdioma()
+  const dic = dicionario(idioma)
+  const t = dic.conta.entrar
+
   /*
     Sem canal de envio, o formulário só levaria a uma espera por mensagem que
     nunca chega. Melhor dizer a verdade e apontar o caminho que funciona hoje.
   */
   if (!loginClienteDisponivel()) {
     return (
-      <Porta title="A minha conta" subtitle="A área da cliente ainda está em preparação.">
+      <Porta title={t.titulo} subtitle={t.indisponivelSubtitulo} idioma={idioma}>
         <div className="surface rounded-card p-5">
-          <p className="text-sm leading-relaxed">
-            Para ver, remarcar ou cancelar um horário, fale diretamente com o salão — a receção
-            resolve na hora.
-          </p>
+          <p className="text-sm leading-relaxed">{t.indisponivelTexto}</p>
           <p className="text-muted mt-4 text-sm leading-relaxed">
-            Para marcar um novo horário não precisa de conta:{' '}
+            {t.indisponivelSemConta}{' '}
             <Link className="underline underline-offset-4" href="/agendar">
-              agende por aqui
+              {t.indisponivelLink}
             </Link>
             .
           </p>
@@ -40,20 +45,21 @@ export default function ContaEntrarPage() {
 
   return (
     <Porta
-      title="A minha conta"
-      subtitle="Escreva o seu telefone e enviamos um código para o seu e-mail."
+      title={t.titulo}
+      subtitle={t.subtitulo}
+      idioma={idioma}
       footer={
         <>
-          Ainda não é nossa cliente?{' '}
+          {t.aindaCliente}{' '}
           <Link className="underline underline-offset-4 hover:text-(--text-strong)" href="/agendar">
-            Marque o primeiro horário
+            {t.marqueOPrimeiro}
           </Link>
           .
         </>
       }
     >
       <div className="surface rounded-card p-5">
-        <PhoneForm />
+        <PhoneForm textos={t} />
       </div>
     </Porta>
   )

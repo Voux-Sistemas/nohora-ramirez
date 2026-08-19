@@ -33,10 +33,13 @@ import { cn, href } from '@/lib/utils'
 export function IndiceDaCasa({
   seccoes,
   marcar,
+  textos,
 }: {
   seccoes: readonly { id: string; rotulo: string }[]
   /** Caminho da marcação desta casa. */
   marcar: string
+  /** Os rótulos das secções já vêm traduzidos dentro de `seccoes`. */
+  textos: { nestaCasa: string; marcar: string }
 }) {
   const activa = useSeccaoVisivel(seccoes)
 
@@ -44,7 +47,7 @@ export function IndiceDaCasa({
 
   return (
     <nav
-      aria-label="Nesta casa"
+      aria-label={textos.nestaCasa}
       className="sticky top-0 z-(--z-sticky) border-b border-(--border-on-ink) bg-(--surface-ink) text-(--on-ink) [--focus:var(--on-ink-accent)]"
     >
       <div className="mx-auto flex w-full max-w-5xl items-center gap-x-3 px-5 sm:px-8">
@@ -78,7 +81,7 @@ export function IndiceDaCasa({
           href={href(marcar)}
           className={cn(buttonVariants({ variant: 'on-ink', size: 'sm' }), 'my-2 shrink-0')}
         >
-          Marcar
+          {textos.marcar}
         </Link>
       </div>
     </nav>

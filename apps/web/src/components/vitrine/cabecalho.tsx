@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { Wordmark } from '@/components/brand/mark'
+import { SeletorIdioma } from '@/components/idioma/seletor-idioma'
 import { buttonVariants } from '@/components/ui/button'
+import { dicionario } from '@/i18n'
+import type { Idioma } from '@/i18n/tipos'
 import { cn, href } from '@/lib/utils'
 import { listUnits } from '@/server/scheduling/context'
 
@@ -20,17 +23,24 @@ import { listUnits } from '@/server/scheduling/context'
  *
  * O logótipo leva ao painel das duas, que é a casa da marca. Nunca a `/`, que
  * é o dia de trabalho da equipa e para a cliente seria um pedido de senha.
+ *
+ * A língua fica ao lado das casas e não no rodapé: quem chega em inglês precisa
+ * de a encontrar antes de ler a página, não depois de a ter lido toda.
  */
 export async function CabecalhoPublico({
+  idioma,
   atual,
   marcar = '/agendar',
 }: {
+  /** A língua em vigor. A montra é sempre da cliente, então não é opcional. */
+  idioma: Idioma
   /** Slug da casa que está aberta. Ausente no painel da rede. */
   atual?: string
   /** Onde carrega o botão — a marcação desta casa, ou a escolha de casa. */
   marcar?: string
 }) {
   const lojas = await listUnits()
+  const dic = dicionario(idioma)
 
   return (
     <header className="bg-(--surface-ink) text-(--on-ink) [--focus:var(--on-ink-accent)]">
@@ -44,46 +54,61 @@ export async function CabecalhoPublico({
           <Wordmark size="sm" align="left" />
         </Link>
 
-        {lojas.length > 1 ? (
-          <nav
-            aria-label="As nossas casas"
-            className="-mb-1 order-3 flex w-full items-stretch gap-1 overflow-x-auto sm:order-2 sm:ml-auto sm:w-auto"
-          >
-            {lojas.map((loja) => {
-              const aberta = loja.slug === atual
-              return (
-                <Link
-                  key={loja.id}
-                  href={href(`/loja/${loja.slug}`)}
-                  aria-current={aberta ? 'page' : undefined}
-                  className={cn(
-                    'rounded-plate relative flex min-h-10 shrink-0 items-center px-2 text-sm whitespace-nowrap transition-colors sm:min-h-11 sm:px-3',
-                    aberta
-                      ? 'text-(--on-ink)'
-                      : 'text-(--on-ink-muted) hover:text-(--on-ink)',
-                  )}
-                >
-                  {loja.name}
-                  {aberta ? (
-                    <span
-                      aria-hidden
-                      className="absolute inset-x-2 bottom-1 h-px bg-(--on-ink-accent)"
-                    />
-                  ) : null}
-                </Link>
-              )
-            })}
-          </nav>
-        ) : null}
+        {/*
+          No telemóvel as casas e a língua partilham a segunda fila: a nav rola
+          na largura que sobrar e o selector fica ancorado à direita. A partir de
+          `sm` o invólucro dissolve-se (`contents`) e os dois voltam a ser filhos
+          directos da fila única, cada um com a sua ordem.
+        */}
+        <div className="order-3 flex w-full min-w-0 items-center gap-3 sm:contents">
+          {lojas.length > 1 ? (
+            <nav
+              aria-label={dic.chrome.navCasas}
+              className="-mb-1 flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto sm:order-2 sm:ml-auto sm:flex-none"
+            >
+              {lojas.map((loja) => {
+                const aberta = loja.slug === atual
+                return (
+                  <Link
+                    key={loja.id}
+                    href={href(`/loja/${loja.slug}`)}
+                    aria-current={aberta ? 'page' : undefined}
+                    className={cn(
+                      'rounded-plate relative flex min-h-10 shrink-0 items-center px-2 text-sm whitespace-nowrap transition-colors sm:min-h-11 sm:px-3',
+                      aberta
+                        ? 'text-(--on-ink)'
+                        : 'text-(--on-ink-muted) hover:text-(--on-ink)',
+                    )}
+                  >
+                    {loja.name}
+                    {aberta ? (
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-2 bottom-1 h-px bg-(--on-ink-accent)"
+                      />
+                    ) : null}
+                  </Link>
+                )
+              })}
+            </nav>
+          ) : null}
+
+          {/* Encostado à direita. Quando há casas, a partir de `sm` é a nav que
+              já empurrou tudo — a margem automática sai para os dois ficarem
+              juntos em vez de repartirem o espaço vazio entre si. */}
+          <div className={cn('ml-auto shrink-0 sm:order-3', lojas.length > 1 && 'sm:ml-0')}>
+            <SeletorIdioma atual={idioma} rotulo={dic.chrome.idioma} />
+          </div>
+        </div>
 
         <Link
           href={href(marcar)}
           className={cn(
             buttonVariants({ variant: 'on-ink', size: 'sm' }),
-            'order-2 ml-auto shrink-0 sm:order-3 sm:ml-4',
+            'order-2 ml-auto shrink-0 sm:order-4 sm:ml-4',
           )}
         >
-          Marcar
+          {dic.comum.marcar}
         </Link>
       </div>
     </header>

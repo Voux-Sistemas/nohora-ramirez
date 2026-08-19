@@ -1,18 +1,21 @@
 import { isoDateInZone } from '@studio/core'
 import Link from 'next/link'
-import { STATUS_LABEL } from '@/components/agenda/appointment-panel'
 import { requireClientSession } from '@/server/auth/session'
 import { sair } from '@/server/auth/actions'
 import { PerfilForm } from '@/components/auth/perfil-form'
 import { FaixaDaMarca } from '@/components/brand/faixa'
 import { getContaIdentidade } from '@/server/people/clients'
 import { listClientAppointments } from '@/server/scheduling/queries'
-import { formatMoney, formatDateLong, formatTime } from '@/lib/format'
+import { type Dicionario, dicionario, interpola, localeDe } from '@/i18n'
+import { lerIdioma } from '@/lib/idioma'
+import { formatMoney, formatDateLongEm, formatTime } from '@/lib/format'
 import { buttonVariants } from '@/components/ui/button'
 import { cn, href } from '@/lib/utils'
 import { CancelButton } from '@/components/auth/cancel-button'
 
-export const metadata = { title: 'A minha conta' }
+export async function generateMetadata() {
+  return { title: dicionario(await lerIdioma()).meta.aMinhaConta }
+}
 
 const OPEN_STATUSES = new Set(['draft', 'scheduled', 'confirmed', 'checked_in', 'in_progress'])
 
@@ -34,10 +37,13 @@ type Marcacao = Awaited<ReturnType<typeof listClientAppointments>>[number]
  */
 export default async function ContaPage() {
   const session = await requireClientSession()
-  const [appointments, identidade] = await Promise.all([
+  const [appointments, identidade, idioma] = await Promise.all([
     listClientAppointments(session.clientId!, 50),
     getContaIdentidade(session.userId),
+    lerIdioma(),
   ])
+  const dic = dicionario(idioma)
+  const t = dic.conta
 
   const abertas = new Set(
     appointments
@@ -53,6 +59,7 @@ export default async function ContaPage() {
     <div className="flex min-h-dvh flex-col">
       <FaixaDaMarca
         largura="max-w-2xl"
+        idioma={idioma}
         fim={
           <form action={sair} className="flex justify-end">
             {/* Botão de texto, e não o `Button` do sistema: sobre tinta, os
@@ -62,14 +69,16 @@ export default async function ContaPage() {
               type="submit"
               className="label-caps cursor-pointer text-(--on-ink-muted) transition-colors hover:text-(--on-ink)"
             >
-              Sair
+              {dic.comum.sair}
             </button>
           </form>
         }
       />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 pt-10 pb-16 sm:px-8 sm:pt-14">
-        <h1 className="display display-md">Olá, {session.name.split(' ')[0]}</h1>
+        <h1 className="display display-md">
+          {interpola(t.ola, { nome: session.name.split(' ')[0] ?? session.name })}
+        </h1>
 
         {/*
           A marcação nova é a razão nº 2 para ela abrir isto — a nº 1 é ver o
@@ -81,28 +90,39 @@ export default async function ContaPage() {
           href={href('/agendar')}
           className={cn(buttonVariants({ size: 'lg' }), 'mt-6 w-full sm:w-auto')}
         >
-          Marcar novo horário
+          {t.marcarNovo}
         </Link>
 
-        <Secao titulo="Próximas marcações">
+        <Secao titulo={t.proximas}>
           {upcoming.length === 0 ? (
-            <Vazio>Não tem nenhum horário marcado neste momento.</Vazio>
+            <Vazio>{t.semProximas}</Vazio>
           ) : (
             <ul>
               {upcoming.map((a) => (
-                <LinhaDeMarcacao key={a.id} marcacao={a} acao={<CancelButton id={a.id} />} />
+                <LinhaDeMarcacao
+                  key={a.id}
+                  marcacao={a}
+                  estados={t.estados}
+                  locale={localeDe(idioma)}
+                  acao={<CancelButton id={a.id} textos={t} />}
+                />
               ))}
             </ul>
           )}
         </Secao>
 
-        <Secao titulo="Histórico">
+        <Secao titulo={t.historico}>
           {history.length === 0 ? (
-            <Vazio>Ainda não nos visitou. A primeira vez fica registada aqui.</Vazio>
+            <Vazio>{t.semHistorico}</Vazio>
           ) : (
             <ul>
               {history.map((a) => (
-                <LinhaDeMarcacao key={a.id} marcacao={a} />
+                <LinhaDeMarcacao
+                  key={a.id}
+                  marcacao={a}
+                  estados={t.estados}
+                  locale={localeDe(idioma)}
+                />
               ))}
             </ul>
           )}
@@ -115,12 +135,13 @@ export default async function ContaPage() {
             É a única secção com placa à volta, e é o que a distingue: acima
             lê-se, aqui escreve-se. */}
         {identidade ? (
-          <Secao titulo="Os meus dados">
+          <Secao titulo={t.osMeusDados}>
             <div className="plate p-5">
               <PerfilForm
                 nome={identidade.name}
                 telefone={identidade.phone}
                 email={identidade.email}
+                textos={t.perfil}
               />
             </div>
           </Secao>
@@ -147,14 +168,24 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
  * Uma linha de marcação. Era o mesmo bloco copiado nas próximas e no histórico,
  * com a única diferença de haver ou não botão de cancelar.
  */
-function LinhaDeMarcacao({ marcacao, acao }: { marcacao: Marcacao; acao?: React.ReactNode }) {
+function LinhaDeMarcacao({
+  marcacao,
+  estados,
+  locale,
+  acao,
+}: {
+  marcacao: Marcacao
+  estados: Dicionario['conta']['estados']
+  locale: string
+  acao?: React.ReactNode
+}) {
   const servicos = marcacao.items.map((item) => item.serviceName).join(', ')
 
   return (
     <li className="border-t border-(--border-subtle) py-4 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
         <span className="font-medium">
-          {formatDateLong(isoDateInZone(marcacao.start, marcacao.timezone))}
+          {formatDateLongEm(isoDateInZone(marcacao.start, marcacao.timezone), locale)}
         </span>
         <span className="text-muted tnum text-sm">
           {formatTime(marcacao.start, marcacao.timezone)} · {marcacao.unitName}
@@ -167,7 +198,7 @@ function LinhaDeMarcacao({ marcacao, acao }: { marcacao: Marcacao; acao?: React.
 
       <div className="mt-2.5 flex items-center justify-between gap-3">
         <span className="label-caps text-muted">
-          {STATUS_LABEL[marcacao.status] ?? marcacao.status}
+          {estados[marcacao.status] ?? marcacao.status}
         </span>
         {acao}
       </div>

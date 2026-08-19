@@ -6,6 +6,7 @@ import { BarraDeAcao, EspacoDaBarra } from '@/components/ui/barra-de-acao'
 import { Button } from '@/components/ui/button'
 import { ReguaDeEspera } from '@/components/ui/espera'
 import { Photo } from '@/components/ui/photo'
+import { interpola, type Dicionario } from '@/i18n'
 import { formatMoney, formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -34,12 +35,19 @@ export interface PickableService {
  * Nem todo item tem foto, e está certo: escova e retoque de raiz não fotografam
  * de um jeito que ajude a decidir. Nesses a placa desenhada assume, e a fileira
  * continua com o mesmo peso visual.
+ *
+ * As palavras entram por propriedade porque esta peça serve duas superfícies
+ * com regras diferentes: o funil da cliente, que fala três línguas, e o encaixe
+ * da equipa, que fala português e só português. Quem monta é que decide qual
+ * dicionário passa — o componente não lê cookie nenhum.
  */
 export function ServicePicker({
   nextHref,
   services,
   escolhidos,
-  ctaLabel = 'Ver horários',
+  textos,
+  comum,
+  ctaLabel,
 }: {
   /** Para onde ir com a escolha; os ids entram como `s=` nesta rota. */
   nextHref: string
@@ -50,6 +58,9 @@ export function ServicePicker({
    * encontrava o cardápio limpo e tinha de remarcar os outros três à mão.
    */
   escolhidos?: readonly string[]
+  textos: Dicionario['agendar']['servicos']
+  comum: Dicionario['comum']
+  /** Só quando o botão diz outra coisa que não "Ver horários". */
   ctaLabel?: string
 }) {
   const router = useRouter()
@@ -160,7 +171,7 @@ export function ServicePicker({
                           <span className="shrink-0 text-right text-sm font-medium">
                             {service.priceVaries ? (
                               <span className="text-muted block text-xs leading-tight font-normal">
-                                a partir de
+                                {comum.aPartirDe}
                               </span>
                             ) : null}
                             <span className="tnum">{formatMoney(service.price)}</span>
@@ -191,16 +202,16 @@ export function ServicePicker({
         <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1 text-sm">
             {chosen.length === 0 ? (
-              <span className="text-muted">Escolha um ou mais serviços</span>
+              <span className="text-muted">{textos.escolhaUm}</span>
             ) : (
               <>
                 <span className="tnum block truncate font-medium">
-                  {chosen.length} {chosen.length === 1 ? 'serviço' : 'serviços'} ·{' '}
-                  {totalVaries ? 'a partir de ' : ''}
+                  {chosen.length} {chosen.length === 1 ? comum.servico : comum.servicos} ·{' '}
+                  {totalVaries ? `${comum.aPartirDe} ` : ''}
                   {formatMoney(total)}
                 </span>
                 <span className="text-muted block text-xs">
-                  cerca de {formatDuration(duration)} no salão
+                  {interpola(comum.cercaDe, { duracao: formatDuration(duration) })}
                 </span>
               </>
             )}
@@ -209,7 +220,7 @@ export function ServicePicker({
               instantânea — procurar horários varre a agenda de toda a equipa. */}
           <ReguaDeEspera ativa={pending} />
           <Button size="lg" disabled={chosen.length === 0 || pending} onClick={advance}>
-            {pending ? 'A procurar…' : ctaLabel}
+            {pending ? textos.aProcurar : (ctaLabel ?? textos.verHorarios)}
           </Button>
         </div>
       </BarraDeAcao>

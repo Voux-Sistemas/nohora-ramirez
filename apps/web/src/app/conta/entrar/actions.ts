@@ -1,8 +1,10 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { dicionario } from '@/i18n'
 import { ehTeste } from '@/lib/ambiente'
-import { telefoneInvalidoErro, toE164 } from '@/lib/format'
+import { telefoneInvalidoErroEm, toE164 } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { loginClienteDisponivel, loginTestClient, requestOtp } from '@/server/auth/otp'
 import { RULES, hit } from '@/server/security/rate-limit'
 import { clientIp } from '@/server/security/request'
@@ -22,6 +24,10 @@ const TEST_ALIASES: Record<string, string> = {
 const TEST_PASSWORD = 'cliente123'
 
 export async function pedirCodigo(_state: PhoneState, formData: FormData): Promise<PhoneState> {
+  const idioma = await lerIdioma()
+  const dic = dicionario(idioma)
+  const erros = dic.conta.erros
+
   /*
     Responder "código enviado" sem ter por onde enviar é mentira: a cliente
     ficaria esperando uma mensagem que não sai. A porta só abre quando existe
@@ -29,7 +35,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
     própria tela e ninguém depende de mensagem nenhuma.
   */
   if (!loginClienteDisponivel()) {
-    return { error: 'A área da cliente ainda não está disponível. Fale com o salão para ver ou remarcar as suas marcações.' }
+    return { error: erros.areaIndisponivel }
   }
 
   /*
@@ -39,7 +45,7 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
   */
   const ip = await clientIp()
   if (!hit(`otp:${ip}`, RULES.codigoOtp).ok) {
-    return { error: 'Muitas tentativas. Espere alguns minutos e tente de novo.' }
+    return { error: erros.muitasTentativas }
   }
 
   const raw = String(formData.get('telefone') ?? '').trim().toLowerCase()
@@ -53,17 +59,17 @@ export async function pedirCodigo(_state: PhoneState, formData: FormData): Promi
 
   if (aliasPhone) {
     const senha = String(formData.get('senha') ?? '')
-    if (senha !== TEST_PASSWORD) return { error: 'Palavra-passe incorreta.' }
+    if (senha !== TEST_PASSWORD) return { error: erros.palavraPasseIncorreta }
     const result = await loginTestClient(aliasPhone)
-    if (!result.ok) return { error: result.message }
+    if (!result.ok) return { error: erros.codigo[result.motivo] }
     redirect('/conta' as never)
   }
 
   const phone = toE164(raw)
-  if (!phone) return { error: telefoneInvalidoErro() }
+  if (!phone) return { error: telefoneInvalidoErroEm(dic.comum.telefoneInvalido, dic.gramatica.ou) }
 
-  const result = await requestOtp(phone)
-  if (!result.ok) return { error: result.message }
+  const result = await requestOtp(phone, idioma)
+  if (!result.ok) return { error: erros.envioFalhou }
 
   const params = new URLSearchParams({ telefone: phone })
   if (result.destino) params.set('para', result.destino)

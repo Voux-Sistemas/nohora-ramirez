@@ -3,12 +3,17 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Monogram } from '@/components/brand/mark'
 import { buttonVariants } from '@/components/ui/button'
-import { formatMoney, formatDateLong, formatPhone, formatTime } from '@/lib/format'
+import { dicionario, interpola, localeDe, pedacos } from '@/i18n'
+import { formatMoney, formatDateLongEm, formatPhone, formatTime } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { loginClienteDisponivel } from '@/server/auth/otp'
 import { getAppointment } from '@/server/scheduling/queries'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Marcação confirmada' }
+
+export async function generateMetadata() {
+  return { title: dicionario(await lerIdioma()).meta.marcacaoConfirmada }
+}
 
 /**
  * O selo.
@@ -30,9 +35,11 @@ export default async function ProntoPage({
   searchParams: Promise<{ para?: string | string[] }>
 }) {
   const { id } = await params
-  const appointment = await getAppointment(id)
+  const [appointment, idioma] = await Promise.all([getAppointment(id), lerIdioma()])
   if (!appointment) notFound()
 
+  const dic = dicionario(idioma)
+  const t = dic.agendar.pronto
   const date = isoDateInZone(appointment.start, appointment.timezone)
   const { para } = await searchParams
   const nome = primeiroNome(para)
@@ -48,11 +55,11 @@ export default async function ProntoPage({
           />
 
           <h1 className="display display-lg mt-8">
-            {nome ? `Está marcado, ${nome}.` : 'Está marcado.'}
+            {nome ? interpola(t.tituloComNome, { nome }) : t.titulo}
           </h1>
 
           <p className="tnum mt-4 text-lg text-(--on-ink-muted)">
-            {formatDateLong(date)}
+            {formatDateLongEm(date, localeDe(idioma))}
             <span className="mx-2 text-(--on-ink-accent)">·</span>
             <span className="text-(--on-ink)">
               {formatTime(appointment.start, appointment.timezone)}
@@ -71,7 +78,9 @@ export default async function ProntoPage({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">{item.serviceName}</span>
-                  <span className="text-sm text-(--on-ink-muted)">com {item.staffName}</span>
+                  <span className="text-sm text-(--on-ink-muted)">
+                    {dic.comum.com} {item.staffName}
+                  </span>
                 </span>
                 <span className="tnum shrink-0 text-sm">{formatMoney(item.price)}</span>
               </li>
@@ -79,25 +88,32 @@ export default async function ProntoPage({
           </ul>
 
           <div className="mt-6 flex items-baseline justify-between border-t border-(--border-on-ink) pt-5">
-            <span className="font-medium">Total</span>
+            <span className="font-medium">{dic.comum.total}</span>
             <span className="tnum display text-[1.75rem] leading-none">
               {formatMoney(appointment.totalPrice)}
             </span>
           </div>
 
           {appointment.depositRequired > 0 ? (
+            /* Partida em pedaços, e não interpolada: o valor e o número levam
+               peso próprio no meio da frase, e a ordem das palavras à volta
+               deles muda de língua para língua. */
             <p className="mt-4 text-sm text-(--on-ink-muted)">
-              Sinal de{' '}
-              <span className="tnum font-medium text-(--on-ink)">
-                {formatMoney(appointment.depositRequired)}
-              </span>{' '}
-              — enviamos o link de pagamento para o WhatsApp{' '}
-              <span className="tnum">{formatPhone(appointment.clientPhone)}</span>.
+              {pedacos(t.sinal).map((pedaco, i) => {
+                if (!('buraco' in pedaco)) return <span key={i}>{pedaco.texto}</span>
+                return pedaco.buraco === 'valor' ? (
+                  <span key={i} className="tnum font-medium text-(--on-ink)">
+                    {formatMoney(appointment.depositRequired)}
+                  </span>
+                ) : (
+                  <span key={i} className="tnum">
+                    {formatPhone(appointment.clientPhone)}
+                  </span>
+                )
+              })}
             </p>
           ) : (
-            <p className="mt-4 text-sm text-(--on-ink-muted)">
-              Nada a pagar agora. O acerto é no salão, no dia.
-            </p>
+            <p className="mt-4 text-sm text-(--on-ink-muted)">{t.semSinal}</p>
           )}
         </div>
 
@@ -111,7 +127,7 @@ export default async function ProntoPage({
             href={`/agendar/${appointment.unitSlug}` as never}
             className={buttonVariants({ variant: 'on-ink-outline', size: 'xl' })}
           >
-            Marcar outro serviço
+            {t.marcarOutro}
           </Link>
           {/*
             A porta da conta dela só aparece quando existe por onde mandar o
@@ -122,7 +138,7 @@ export default async function ProntoPage({
             {loginClienteDisponivel() ? (
               <>
                 <Link href={'/conta' as never} className="transition-colors hover:text-(--on-ink)">
-                  As minhas marcações
+                  {t.asMinhasMarcacoes}
                 </Link>
                 <span aria-hidden className="text-(--on-ink-accent)">
                   ·
@@ -130,7 +146,7 @@ export default async function ProntoPage({
               </>
             ) : null}
             <Link href={'/' as never} className="transition-colors hover:text-(--on-ink)">
-              Voltar ao início
+              {t.voltarAoInicio}
             </Link>
           </div>
         </div>

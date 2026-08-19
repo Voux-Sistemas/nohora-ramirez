@@ -7,8 +7,15 @@
  *
  * Tudo que é hora recebe a timezone da unidade explicitamente: o servidor roda
  * em UTC e a recepção não pode ver 20:00 onde a cliente marcou 17:00.
+ *
+ * As datas por extenso têm duas versões: a sem sufixo, que usa o locale do país
+ * (é a da equipa, e a equipa fala português), e a `…Em(iso, locale)`, para a
+ * montra escrever a data na língua da leitora. São eixos diferentes — o país
+ * decide moeda e telefone, a língua decide palavras — e por isso a versão com
+ * locale explícito é acrescento, não substituição: nenhuma tela da gestão muda.
  */
 
+import { interpola } from '@/i18n/interpola'
 import { pais } from './pais'
 
 export function formatMoney(cents: number): string {
@@ -94,7 +101,12 @@ export function formatTime(instant: Date | string, timeZone: string): string {
 }
 
 export function formatDateLong(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
+  return formatDateLongEm(isoDate, pais().locale)
+}
+
+/** "sexta-feira, 22 de agosto" na língua pedida. */
+export function formatDateLongEm(isoDate: string, locale: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -104,7 +116,11 @@ export function formatDateLong(isoDate: string): string {
 
 /** "agosto" — para o painel dizer, por extenso, que mês está a ler. */
 export function formatMonthLong(isoDate: string): string {
-  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(pais().locale, {
+  return formatMonthLongEm(isoDate, pais().locale)
+}
+
+export function formatMonthLongEm(isoDate: string, locale: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString(locale, {
     month: 'long',
     timeZone: 'UTC',
   })
@@ -128,8 +144,12 @@ export function formatDateShort(isoDate: string): string {
  * português usa, e nos idiomas em que o ICU já abrevia isto não mexe em nada.
  */
 export function formatWeekdayShort(isoDate: string): string {
+  return formatWeekdayShortEm(isoDate, pais().locale)
+}
+
+export function formatWeekdayShortEm(isoDate: string, locale: string): string {
   const dia = new Date(`${isoDate}T12:00:00Z`)
-    .toLocaleDateString(pais().locale, { weekday: 'short', timeZone: 'UTC' })
+    .toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })
     .replace('.', '')
   return dia.length > 3 ? dia.slice(0, 3) : dia
 }
@@ -235,4 +255,25 @@ export function telefoneInvalidoErro(): string {
       ? `${digitosNacionais[0]} dígitos`
       : `${digitosNacionais.join(' ou ')} dígitos`
   return `Telefone inválido. Indique o ${rotulos.telemovel.toLowerCase()} com ${digitos}.`
+}
+
+/**
+ * A mesma recusa, nas palavras de quem está a ler.
+ *
+ * Os dois eixos encontram-se aqui e não se misturam: quantos dígitos tem um
+ * número é facto do país e sai de `pais()`; a frase à volta do número é língua
+ * e sai do dicionário. Por isso o molde entra por parâmetro em vez de a função
+ * ir buscar o dicionário — `format.ts` serve também os ecrãs da equipa, que
+ * não têm idioma nenhum para ler.
+ */
+export function telefoneInvalidoErroEm(molde: string, ou: string): string {
+  const { digitosNacionais } = pais()
+  const digitos =
+    digitosNacionais.length === 1
+      ? String(digitosNacionais[0])
+      : interpola(ou, {
+          a: digitosNacionais.slice(0, -1).join(', '),
+          b: String(digitosNacionais[digitosNacionais.length - 1]),
+        })
+  return interpola(molde, { digitos })
 }

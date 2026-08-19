@@ -1,3 +1,4 @@
+import { interpola, type Dicionario } from '@/i18n'
 import { cn } from '@/lib/utils'
 import type { DiaDaSemana } from '@/server/vitrine'
 
@@ -18,20 +19,29 @@ import type { DiaDaSemana } from '@/server/vitrine'
  * ocupa lugar fixo em todas as linhas, para que marcar o dia não desalinhe a
  * coluna dos nomes — a lista continua a ler-se como coluna, com uma linha
  * assinalada, e não como uma linha empurrada para fora das outras.
+ *
+ * Os nomes dos dias e as junções ("e", "a") entram por propriedade: a montra
+ * fala três línguas e o agrupamento é o mesmo nas três. O que muda é a
+ * palavra, não a regra — por isso `ORDEM` e `agrupar` ficam aqui e o
+ * dicionário só empresta o vocabulário.
  */
 
 const ORDEM = [1, 2, 3, 4, 5, 6, 0] as const
 
-const NOME = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'] as const
-
 export function Semana({
   semana,
   hoje,
+  dias,
+  gram,
+  encerrado,
   className,
 }: {
   semana: readonly DiaDaSemana[]
   /** Índice do dia de hoje no fuso da loja, para o destacar. */
   hoje?: number
+  dias: Dicionario['dias']['longos']
+  gram: Dicionario['gramatica']
+  encerrado: string
   className?: string
 }) {
   if (semana.length === 0) return null
@@ -57,7 +67,7 @@ export function Semana({
                   atual ? 'bg-(--accent)' : 'bg-transparent',
                 )}
               />
-              {rotulo(faixa.dias)}
+              {rotulo(faixa.dias, dias, gram)}
             </dt>
             <dd
               className={cn(
@@ -66,7 +76,7 @@ export function Semana({
               )}
             >
               {faixa.janelas.length === 0
-                ? 'Encerrado'
+                ? encerrado
                 : faixa.janelas.map((j) => `${j.abre}–${j.fecha}`).join(' · ')}
             </dd>
           </div>
@@ -106,9 +116,9 @@ const assinatura = (janelas: { abre: string; fecha: string }[]) =>
   quando são dois. Escrever "Segunda a terça" para dois dias soa a intervalo de
   formulário — ninguém fala assim.
 */
-function rotulo(dias: number[]): string {
-  const nomes = dias.map((d) => NOME[d]!)
+function rotulo(faixa: number[], dias: Dicionario['dias']['longos'], gram: Dicionario['gramatica']): string {
+  const nomes = faixa.map((d) => dias[d]!)
   if (nomes.length === 1) return nomes[0]!
-  if (nomes.length === 2) return `${nomes[0]} e ${nomes[1]}`
-  return `${nomes[0]} a ${nomes[nomes.length - 1]}`
+  const molde = nomes.length === 2 ? gram.par : gram.intervalo
+  return interpola(molde, { a: nomes[0]!, b: nomes[nomes.length - 1]! })
 }

@@ -39,13 +39,29 @@ import type { GrupoPrecario } from '@/server/vitrine'
  * cliente. Quem quer saber quanto demora chega a esse número na tela de marcação,
  * onde ele já vem com a pessoa e o horário reais.
  */
-export function Precario({ grupos }: { grupos: readonly GrupoPrecario[] }) {
+/**
+ * As duas únicas palavras deste ficheiro que não vêm da base de dados.
+ *
+ * Vêm de secções diferentes do dicionário — `comum.desde` e
+ * `loja.categoriasDoPrecario` — e por isso entram como objecto montado na
+ * página, e não como uma secção inteira. Os nomes dos serviços, as colunas e
+ * as notas continuam em português: são conteúdo da casa, não interface.
+ */
+export type TextosDoPrecario = { categorias: string; desde: string }
+
+export function Precario({
+  grupos,
+  textos,
+}: {
+  grupos: readonly GrupoPrecario[]
+  textos: TextosDoPrecario
+}) {
   const blocos = montarPrecario(grupos)
   if (blocos.length === 0) return null
 
   return (
     <>
-      <IndiceDosPrecos blocos={blocos} />
+      <IndiceDosPrecos blocos={blocos} textos={textos} />
 
       {/*
         Uma tabela comparada não cabe numa coluna de metade da página: a 640px
@@ -97,11 +113,17 @@ export function Precario({ grupos }: { grupos: readonly GrupoPrecario[] }) {
  * É uma lista de âncoras e nada mais: funciona sem JavaScript, e ao imprimir
  * fica a valer como sumário.
  */
-function IndiceDosPrecos({ blocos }: { blocos: readonly BlocoDoPrecario[] }) {
+function IndiceDosPrecos({
+  blocos,
+  textos,
+}: {
+  blocos: readonly BlocoDoPrecario[]
+  textos: TextosDoPrecario
+}) {
   if (blocos.length < 3) return null
 
   return (
-    <nav aria-label="Categorias do preçário" className="mb-12 sm:mb-16">
+    <nav aria-label={textos.categorias} className="mb-12 sm:mb-16">
       <ul className="flex flex-wrap gap-2.5">
         {blocos.map((bloco) => (
           <li key={bloco.id}>
@@ -113,7 +135,7 @@ function IndiceDosPrecos({ blocos }: { blocos: readonly BlocoDoPrecario[] }) {
                 {bloco.nome}
               </span>
               <span className="flex shrink-0 items-baseline gap-1">
-                <span className="label-caps text-muted">desde</span>
+                <span className="label-caps text-muted">{textos.desde}</span>
                 <span className="tnum text-[0.8125rem] whitespace-nowrap text-(--text-strong)">
                   <Preco cents={bloco.desde} />
                 </span>

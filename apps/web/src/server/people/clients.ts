@@ -13,6 +13,7 @@ import 'server-only'
 
 import { clientNotes, clientProfiles, staffProfiles, units, userRoles, users } from '@studio/db'
 import { and, asc, desc, eq, ilike, like, ne, sql } from 'drizzle-orm'
+import type { Idioma } from '@/i18n/tipos'
 import { db } from '@/lib/db'
 import { toE164 } from '@/lib/format'
 
@@ -103,6 +104,25 @@ export async function findOrCreateClient(input: {
       returning: false,
     }
   })
+}
+
+/**
+ * A língua em que a cliente marcou, guardada na ficha dela.
+ *
+ * É o que faz a confirmação de WhatsApp sair em inglês para quem marcou em
+ * inglês: o cookie é do browser de quem estava ao balcão da montra, e a
+ * mensagem parte dias depois, do telemóvel de outra pessoa.
+ *
+ * O merge acontece no Postgres (`||`) e não em JavaScript de propósito:
+ * `preferences` é jsonb partilhado, e ler-alterar-gravar daqui apagaria o que
+ * outra escrita pusesse lá entre as duas metades. Escrever uma chave sozinha
+ * não pisa as vizinhas.
+ */
+export async function guardarIdiomaDaCliente(clientId: string, idioma: Idioma): Promise<void> {
+  await db
+    .update(clientProfiles)
+    .set({ preferences: sql`${clientProfiles.preferences} || ${JSON.stringify({ idioma })}::jsonb` })
+    .where(eq(clientProfiles.id, clientId))
 }
 
 /** Vale para `db` e para a transação — a regra é a mesma nos dois. */

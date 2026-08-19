@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Erro } from '@/components/ui/erro'
 import { ReguaDeEspera } from '@/components/ui/espera'
 import { PhoneInput } from '@/components/ui/phone-input'
+import type { Dicionario } from '@/i18n'
 import { confirmarAgendamento, type ConfirmState } from '@/app/agendar/[unidade]/confirmar/actions'
 
 /**
@@ -27,11 +28,15 @@ export function ConfirmForm({
   servicos,
   inicio,
   profissional,
+  textos,
+  comum,
 }: {
   unidade: string
   servicos: string
   inicio: string
   profissional?: string
+  textos: Dicionario['agendar']['confirmar']
+  comum: Dicionario['comum']
 }) {
   const [state, action] = useActionState<ConfirmState, FormData>(confirmarAgendamento, {})
 
@@ -44,14 +49,14 @@ export function ConfirmForm({
 
       <div>
         <label htmlFor="nome" className="mb-2 block text-sm font-medium">
-          O seu nome
+          {textos.nome}
         </label>
         <input id="nome" name="nome" required autoComplete="name" className="field" />
       </div>
 
       <div>
         <label htmlFor="telefone" className="mb-2 block text-sm font-medium">
-          WhatsApp
+          {textos.whatsapp}
         </label>
         <PhoneInput
           id="telefone"
@@ -61,13 +66,13 @@ export function ConfirmForm({
           className="field tnum"
         />
         <p id="telefone-ajuda" className="text-muted mt-1.5 text-xs">
-          É por aqui que a confirmação e o lembrete chegam.
+          {textos.whatsappAjuda}
         </p>
       </div>
 
       <div>
         <label htmlFor="email" className="mb-2 block text-sm font-medium">
-          E-mail <span className="text-muted font-normal">(opcional)</span>
+          {textos.email} <span className="text-muted font-normal">{comum.opcional}</span>
         </label>
         <input
           id="email"
@@ -77,18 +82,18 @@ export function ConfirmForm({
           autoComplete="email"
           autoCapitalize="off"
           spellCheck={false}
-          placeholder="nome@exemplo.com"
+          placeholder={textos.emailExemplo}
           aria-describedby="email-ajuda"
           className="field"
         />
         <p id="email-ajuda" className="text-muted mt-1.5 text-xs">
-          Para poder acompanhar as suas marcações pelo site. Não enviamos publicidade.
+          {textos.emailAjuda}
         </p>
       </div>
 
       <div>
         <label htmlFor="observacao" className="mb-2 block text-sm font-medium">
-          Alguma observação? <span className="text-muted font-normal">(opcional)</span>
+          {textos.observacao} <span className="text-muted font-normal">{comum.opcional}</span>
         </label>
         <textarea
           id="observacao"
@@ -96,29 +101,27 @@ export function ConfirmForm({
           rows={3}
           maxLength={400}
           className="field resize-y"
-          placeholder="Alergia, preferência, se vai chegar em cima da hora…"
+          placeholder={textos.observacaoExemplo}
         />
       </div>
 
       <Erro>{state.error}</Erro>
 
-      <SubmitButton />
+      <SubmitButton aConfirmar={textos.aConfirmar} confirmar={textos.confirmar} />
 
-      <p className="text-muted text-center text-xs">
-        Ao confirmar, reserva o horário. Não é cobrado nada agora.
-      </p>
+      <p className="text-muted text-center text-xs">{textos.semCobranca}</p>
     </form>
   )
 }
 
-function SubmitButton() {
+function SubmitButton({ aConfirmar, confirmar }: { aConfirmar: string; confirmar: string }) {
   const { pending } = useFormStatus()
   return (
     <>
       {/* A espera mais longa do fluxo: aqui grava-se a marcação e sai o aviso. */}
       <ReguaDeEspera ativa={pending} />
       <Button type="submit" size="xl" className="w-full" disabled={pending}>
-        {pending ? 'A confirmar…' : 'Confirmar marcação'}
+        {pending ? aConfirmar : confirmar}
       </Button>
     </>
   )

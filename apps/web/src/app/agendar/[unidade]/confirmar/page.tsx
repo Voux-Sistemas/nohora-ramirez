@@ -1,4 +1,5 @@
 import { depositAmount, isoDateInZone } from '@studio/core'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
@@ -6,12 +7,17 @@ import { ConfirmForm } from '@/components/booking/confirm-form'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Photo } from '@/components/ui/photo'
-import { formatMoney, formatDateLong, formatDuration, formatTime } from '@/lib/format'
+import { dicionario, interpola, localeDe, pedacos } from '@/i18n'
+import { formatMoney, formatDateLongEm, formatDuration, formatTime } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { describeSlot, planAt } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext } from '@/server/scheduling/context'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Confirmar' }
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: dicionario(await lerIdioma()).meta.confirmar }
+}
 
 interface SearchParams {
   s?: string
@@ -38,8 +44,11 @@ export default async function ConfirmarPage({
   const { unidade } = await params
   const query = await searchParams
 
-  const unit = await getUnitBySlug(unidade)
+  const [unit, idioma] = await Promise.all([getUnitBySlug(unidade), lerIdioma()])
   if (!unit) notFound()
+
+  const dic = dicionario(idioma)
+  const t = dic.agendar.confirmar
 
   const serviceIds = (query.s ?? '').split(',').filter(Boolean)
   const start = query.t ? new Date(query.t) : null
@@ -58,13 +67,10 @@ export default async function ConfirmarPage({
 
   if (!plan) {
     return (
-      <BookingShell step={4} title="Este horário já não está livre" back={backToSlots}>
-        <p className="text-body measure">
-          Alguém marcou antes ou a agenda mudou nos últimos minutos. Os seus serviços continuam
-          escolhidos — é só escolher outro horário.
-        </p>
+      <BookingShell step={4} idioma={idioma} title={t.expiradoTitulo} back={backToSlots}>
+        <p className="text-body measure">{t.expiradoTexto}</p>
         <Link href={backToSlots as never} className="mt-7 inline-block">
-          <Button size="xl">Ver horários de novo</Button>
+          <Button size="xl">{t.expiradoBotao}</Button>
         </Link>
       </BookingShell>
     )
@@ -79,12 +85,13 @@ export default async function ConfirmarPage({
   return (
     <BookingShell
       step={4}
-      title="Confira se está tudo certo"
+      idioma={idioma}
+      title={t.titulo}
       // A data está em corpo grande dentro da placa; repetir aqui só gastava
       // uma linha. O subtítulo carrega o que ainda não apareceu nesta tela.
       subtitle={slot.items.map((item) => item.serviceName).join(' + ')}
       back={backToSlots}
-      backLabel="Mudar o horário"
+      backLabel={t.mudarHorario}
       railFirst
       rail={
         <article className="plate overflow-hidden">
@@ -126,7 +133,8 @@ export default async function ConfirmarPage({
               {formatTime(slot.end, unit.timezone)}
             </p>
             <p className="text-muted mt-2 text-sm">
-              {formatDateLong(date)} · {formatDuration(slot.totalDurationMin)} no salão
+              {formatDateLongEm(date, localeDe(idioma))} ·{' '}
+              {interpola(dic.comum.noSalao, { duracao: formatDuration(slot.totalDurationMin) })}
             </p>
 
             <div className="rule-bronze mt-5" aria-hidden />
@@ -144,7 +152,9 @@ export default async function ConfirmarPage({
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium">{item.serviceName}</span>
-                    <span className="text-muted block text-sm">com {item.staffName}</span>
+                    <span className="text-muted block text-sm">
+                      {dic.comum.com} {item.staffName}
+                    </span>
                   </span>
                   <span className="tnum shrink-0 text-sm">{formatMoney(item.price)}</span>
                 </li>
@@ -152,23 +162,31 @@ export default async function ConfirmarPage({
             </ul>
 
             <div className="mt-5 flex items-baseline justify-between border-t border-(--border-subtle) pt-4">
-              <span className="font-medium">Total</span>
+              <span className="font-medium">{dic.comum.total}</span>
               <span className="tnum display text-[1.75rem] leading-none">
                 {formatMoney(slot.totalPrice)}
               </span>
             </div>
 
             {deposit > 0 ? (
+              /* Partida em pedaços em vez de interpolada: o valor do sinal leva
+                 peso de texto forte, e a ordem das palavras à volta dele muda de
+                 língua para língua. */
               <p className="text-body mt-3 text-sm">
-                Este procedimento pede sinal de{' '}
-                <span className="tnum font-medium">{formatMoney(deposit)}</span>. A receção envia
-                o link de pagamento pelo WhatsApp.
+                {pedacos(t.sinal).map((p, i) =>
+                  'buraco' in p ? (
+                    <span key={i} className="tnum font-medium">
+                      {formatMoney(deposit)}
+                    </span>
+                  ) : (
+                    <span key={i}>{p.texto}</span>
+                  ),
+                )}
               </p>
             ) : null}
 
             <p className="text-muted mt-3 text-sm">
-              Cancelamento sem custo até {unit.settings.cancellationWindowHours}h antes. O restante
-              é pago no salão.
+              {interpola(t.cancelamento, { horas: unit.settings.cancellationWindowHours })}
             </p>
           </div>
         </article>
@@ -178,6 +196,8 @@ export default async function ConfirmarPage({
         unidade={unidade}
         servicos={serviceIds.join(',')}
         inicio={slot.start}
+        textos={t}
+        comum={dic.comum}
         {...(staffId ? { profissional: staffId } : {})}
       />
     </BookingShell>

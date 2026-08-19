@@ -1,4 +1,5 @@
 import { FaixaDaMarca } from '@/components/brand/faixa'
+import type { Idioma } from '@/i18n/tipos'
 
 /**
  * Casca das telas de porta: entrar, recuperar a palavra-passe, código de acesso
@@ -24,6 +25,7 @@ export function Porta({
   children,
   footer,
   home = '/loja',
+  idioma,
 }: {
   title: string
   subtitle?: React.ReactNode
@@ -32,10 +34,16 @@ export function Porta({
   footer?: React.ReactNode
   /** Para onde vai a marca. A montra por omissão — é a cara pública do salão. */
   home?: string
+  /**
+   * Só as portas da CLIENTE o passam. Esta casca serve também o login da
+   * equipa e a instalação, que não se traduzem — quem não passa idioma não
+   * mostra selector, e é assim que as duas portas se distinguem.
+   */
+  idioma?: Idioma
 }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <FaixaDaMarca largura="max-w-md" home={home} />
+      <FaixaDaMarca largura="max-w-md" home={home} {...(idioma ? { idioma } : {})} />
 
       {/*
         `pt-12` e não centrado: a tela de porta é curta por natureza, e uma tela

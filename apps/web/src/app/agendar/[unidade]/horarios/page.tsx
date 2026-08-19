@@ -1,4 +1,5 @@
 import { addDaysInZone, isoDateInZone, isoTimeInZone, priceRange } from '@studio/core'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { BookingShell } from '@/components/booking/shell'
@@ -6,21 +7,26 @@ import { UnitContextCard } from '@/components/booking/unit-context-card'
 import { Avatar } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
 import { EmTransito } from '@/components/ui/espera'
+import { dicionario, interpola, localeDe } from '@/i18n'
 import {
   formatMoney,
-  formatDateLong,
+  formatDateLongEm,
   formatDateShort,
   formatDuration,
   formatPhone,
   formatTime,
-  formatWeekdayShort,
+  formatWeekdayShortEm,
 } from '@/lib/format'
+import { lerIdioma } from '@/lib/idioma'
 import { cn } from '@/lib/utils'
 import { findSlots, type SlotOption } from '@/server/scheduling/availability'
 import { getUnitBySlug, loadBookingContext, staffForCart } from '@/server/scheduling/context'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Escolher horário' }
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: dicionario(await lerIdioma()).meta.escolherHorario }
+}
 
 /** Duas semanas de cada vez: além disso a agenda ainda muda muito. */
 const HORIZON_DAYS = 14
@@ -30,9 +36,9 @@ const HORIZON_DAYS = 14
  * cada um é o fim do turno (exclusivo): quem entra às 12:00 já é da tarde.
  */
 const PERIODOS = [
-  { id: 'manha', label: 'Manhã', ateMin: 12 * 60 },
-  { id: 'tarde', label: 'Tarde', ateMin: 18 * 60 },
-  { id: 'noite', label: 'Noite', ateMin: 24 * 60 },
+  { id: 'manha', ateMin: 12 * 60 },
+  { id: 'tarde', ateMin: 18 * 60 },
+  { id: 'noite', ateMin: 24 * 60 },
 ] as const
 
 function periodoDoHorario(startIso: string, timeZone: string): (typeof PERIODOS)[number] {
@@ -68,8 +74,12 @@ export default async function EscolherHorarioPage({
   const { unidade } = await params
   const query = await searchParams
 
-  const unit = await getUnitBySlug(unidade)
+  const [unit, idioma] = await Promise.all([getUnitBySlug(unidade), lerIdioma()])
   if (!unit) notFound()
+
+  const dic = dicionario(idioma)
+  const t = dic.agendar.horarios
+  const locale = localeDe(idioma)
 
   const serviceIds = (query.s ?? '').split(',').filter(Boolean)
   if (serviceIds.length === 0) redirect(`/agendar/${unidade}`)
@@ -170,24 +180,27 @@ export default async function EscolherHorarioPage({
   return (
     <BookingShell
       step={3}
-      title="Com quem, e quando?"
+      idioma={idioma}
+      title={t.titulo}
       subtitle={chosen.map((service) => service.name).join(' + ')}
       back={`/agendar/${unidade}?s=${serviceIds.join(',')}`}
-      backLabel="Mudar os serviços"
+      backLabel={t.mudarServicos}
       rail={
         <div className="flex flex-col gap-6">
           <UnitContextCard unit={unit} />
           <div className="plate p-5">
-            <p className="label-caps text-muted">Serviços escolhidos</p>
+            <p className="label-caps text-muted">{t.servicosEscolhidos}</p>
             <ul className="mt-3 space-y-2 text-sm">
               {chosen.map((service) => (
                 <li key={service.id}>{service.name}</li>
               ))}
             </ul>
             <p className="text-muted tnum mt-4 flex items-baseline justify-between border-t border-(--border-subtle) pt-3 text-sm">
-              <span>{formatDuration(totalDurationMin)} no salão</span>
+              <span>
+                {interpola(dic.comum.noSalao, { duracao: formatDuration(totalDurationMin) })}
+              </span>
               <span className="text-(--text-strong)">
-                {priceFloor.varies ? 'a partir de ' : ''}
+                {priceFloor.varies ? `${dic.comum.aPartirDe} ` : ''}
                 {formatMoney(priceFloor.min)}
               </span>
             </p>
@@ -203,11 +216,11 @@ export default async function EscolherHorarioPage({
       footer={
         <div className="flex items-center justify-between gap-4 text-sm">
           <span className="min-w-0 truncate">
-            {chosen.length} {chosen.length === 1 ? 'serviço' : 'serviços'} ·{' '}
+            {chosen.length} {chosen.length === 1 ? dic.comum.servico : dic.comum.servicos} ·{' '}
             {formatDuration(totalDurationMin)}
           </span>
           <span className="tnum shrink-0 font-medium">
-            {priceFloor.varies ? 'a partir de ' : ''}
+            {priceFloor.varies ? `${dic.comum.aPartirDe} ` : ''}
             {formatMoney(priceFloor.min)}
           </span>
         </div>
@@ -217,11 +230,11 @@ export default async function EscolherHorarioPage({
           bola cinzenta a dizer "Sem preferência" — um menu de escolha com zero
           escolhas. Sai da tela, e a mensagem de baixo explica o estado. */}
       <section aria-labelledby="profissional" className={cn(semEquipa && 'hidden')}>
-        <SectionHead id="profissional">Profissional</SectionHead>
+        <SectionHead id="profissional">{t.profissional}</SectionHead>
 
         <ul className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
           <li className="shrink-0">
-            <PersonOption href={withStaff(undefined)} active={!staffId} name="Sem preferência">
+            <PersonOption href={withStaff(undefined)} active={!staffId} name={t.semPreferencia}>
               <span
                 aria-hidden
                 className={cn(
@@ -249,7 +262,7 @@ export default async function EscolherHorarioPage({
       </section>
 
       <section aria-labelledby="dia" className={cn('mt-10', horizonEmpty && 'hidden')}>
-        <SectionHead id="dia">Dia</SectionHead>
+        <SectionHead id="dia">{t.dia}</SectionHead>
 
         {/*
           Grade, não fita rolável. As duas semanas cabem inteiras, então a fita
@@ -271,7 +284,7 @@ export default async function EscolherHorarioPage({
                     isSelected ? 'text-(--on-invert-muted)' : 'text-(--text-muted)',
                   )}
                 >
-                  {formatWeekdayShort(date)}
+                  {formatWeekdayShortEm(date, locale)}
                 </span>
                 <span className="tnum text-[0.9375rem] font-semibold">
                   {formatDateShort(date)}
@@ -284,7 +297,7 @@ export default async function EscolherHorarioPage({
                   )}
                 />
                 <span className="sr-only">
-                  {empty ? 'sem horários' : `${count} horários livres`}
+                  {empty ? t.semHorarios : interpola(t.horariosLivres, { n: count })}
                 </span>
               </>
             )
@@ -321,17 +334,17 @@ export default async function EscolherHorarioPage({
 
       <section aria-labelledby="horarios" className="mt-10">
         <SectionHead id="horarios">
-          {semEquipa ? 'Ainda sem horários' : agendaCheia ? 'Agenda cheia' : formatDateLong(selected)}
+          {semEquipa
+            ? t.aindaSemHorarios
+            : agendaCheia
+              ? t.agendaCheia
+              : formatDateLongEm(selected, locale)}
         </SectionHead>
 
         {horizonEmpty ? (
           <div className="rounded-plate border border-dashed border-(--border-strong) px-5 py-9 text-center">
             <p className="text-body measure mx-auto">
-              {semEquipa
-                ? 'Esta casa ainda não publicou horário para estes serviços. Não é que esteja cheia — é que a marcação online para eles ainda não abriu. A receção marca por telefone.'
-                : staffId
-                  ? 'Esta profissional não tem nenhum horário livre nas próximas duas semanas para esta combinação.'
-                  : 'Não há horário livre nas próximas duas semanas para esta combinação de serviços. É longa e poucas profissionais a executam.'}
+              {semEquipa ? t.semEquipa : staffId ? t.semVagaDaProfissional : t.semVagaNenhuma}
             </p>
 
             {/* Saídas de verdade, na ordem em que resolvem: soltar a
@@ -345,24 +358,24 @@ export default async function EscolherHorarioPage({
                   href={withStaff(undefined) as never}
                   className={buttonVariants({ variant: 'outline', size: 'md' })}
                 >
-                  Ver a agenda da equipa inteira
+                  {t.verEquipaInteira}
                 </Link>
               ) : (
                 <Link
                   href={`/agendar/${unidade}` as never}
                   className={buttonVariants({ variant: 'outline', size: 'md' })}
                 >
-                  Escolher menos serviços
+                  {t.escolherMenos}
                 </Link>
               )}
 
               <p className="text-muted text-sm">
                 <Link href={'/agendar' as never} className="underline underline-offset-4">
-                  Ver outra unidade
+                  {t.verOutraUnidade}
                 </Link>
                 {unit.phone ? (
                   <>
-                    {' · ou fale com a receção: '}
+                    {t.ouRececao}
                     <a
                       href={`tel:${unit.phone}`}
                       className="tnum whitespace-nowrap underline underline-offset-4"
@@ -377,17 +390,15 @@ export default async function EscolherHorarioPage({
         ) : daySlots.length === 0 ? (
           <div className="rounded-plate border border-dashed border-(--border-strong) px-5 py-8 text-center">
             <p className="text-body measure mx-auto">
-              Nenhum horário livre neste dia.
-              {staffId
-                ? ' Escolha outra data acima, ou tire a preferência de profissional para ver a agenda da equipa inteira.'
-                : ' Escolha uma das datas marcadas acima.'}
+              {t.diaVazio}
+              {staffId ? t.diaVazioComProfissional : t.diaVazioSemProfissional}
             </p>
             {staffId ? (
               <Link
                 href={withStaff(undefined) as never}
                 className="mt-4 inline-block text-sm font-medium text-(--accent-ink) underline underline-offset-4"
               >
-                Ver todos os profissionais
+                {t.verTodasAsProfissionais}
               </Link>
             ) : null}
           </div>
@@ -408,7 +419,7 @@ export default async function EscolherHorarioPage({
                 return (
                   <div key={periodo.id}>
                     <div className="mb-3 flex items-baseline gap-3">
-                      <h3 className="label-caps text-muted">{periodo.label}</h3>
+                      <h3 className="label-caps text-muted">{t[periodo.id]}</h3>
                       <span className="rule-bronze min-w-0 flex-1" aria-hidden />
                     </div>
 
@@ -427,7 +438,7 @@ export default async function EscolherHorarioPage({
                           ? null
                           : people.length === 1
                             ? firstName(people[0]!)
-                            : `${people.length} profissionais`
+                            : interpola(t.quantasProfissionais, { n: people.length })
 
                         return (
                           <li key={slot.start}>
@@ -457,9 +468,11 @@ export default async function EscolherHorarioPage({
             </div>
 
             <p className="text-muted tnum mt-6 border-t border-(--border-subtle) pt-4 text-sm">
-              {formatDuration(daySlots[0]!.totalDurationMin)} no salão ·{' '}
-              {formatMoney(daySlots[0]!.totalPrice)}
-              <span className="text-muted"> · pagamento no dia</span>
+              {interpola(dic.comum.noSalao, {
+                duracao: formatDuration(daySlots[0]!.totalDurationMin),
+              })}{' '}
+              · {formatMoney(daySlots[0]!.totalPrice)}
+              <span className="text-muted"> · {dic.comum.pagamentoNoDia}</span>
             </p>
           </>
         )}

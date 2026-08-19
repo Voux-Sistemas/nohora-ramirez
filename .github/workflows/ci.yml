@@ -1,26 +1,25 @@
 name: CI
 
-# Por enquanto só dispara na mão (aba Actions → Run workflow, ou `gh workflow run CI`).
+# Corre a cada envio, em qualquer branch.
 #
-# O gatilho automático está desligado de propósito. O GitHub não aloca máquina
-# para repositório privado de organização sem forma de pagamento cadastrada:
-# ele aceita o push, enfileira o job e nunca dá início. O job morre no
-# timeout-minutes com zero passos executados e manda e-mail de falha a cada
-# envio — ruído sobre um problema que não é do código.
+# Esteve desligado de 6 de agosto de 2026 até 19, e o motivo tinha nome: o
+# repositório era privado, e o GitHub não aloca máquina a repositório privado de
+# organização sem forma de pagamento cadastrada. Aceitava o push, enfileirava o
+# job e nunca lhe dava início — o job morria no `timeout-minutes` com zero passos
+# executados e mandava e-mail de falha a cada envio, sobre um problema que não
+# era do código. A execução 31120414697 é essa: 15 minutos, nada feito.
 #
-# Para religar: cadastrar cartão em Settings → Billing da organização (o plano
-# gratuito já inclui 2.000 min/mês e isto gasta ~4 min por execução) e trocar
-# este bloco por:
+# O repositório passou a público, e repositório público corre nos runners
+# padrão de graça, sem cartão e sem tecto de minutos. Provado a 19 de agosto:
+# execução 32299586750, um minuto e seis segundos, tudo verde.
 #
-#   on:
-#     push:
-#       branches: ['**']
-#     pull_request:
-#       branches: [main]
-#
-# Até lá, a verificação é feita na mão antes de cada envio: os mesmos três
-# passos abaixo, na mesma ordem.
+# O `workflow_dispatch` fica ao lado do gatilho automático — serve para
+# reexecutar à mão sem ter de inventar um commit.
 on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -44,9 +43,9 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -56,6 +55,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
 
       - name: Testes
         run: npm test

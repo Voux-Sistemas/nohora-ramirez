@@ -83,10 +83,15 @@ git push origin main
 git push origin main:producao     # isto vai para o ar
 ```
 
-Não há revisão automática a segurar o erro: o CI (`.github/workflows/ci.yml`)
-está em `workflow_dispatch` porque a organização ainda não tem forma de
-pagamento cadastrada, e o GitHub enfileira o job sem nunca lhe dar máquina. Até
-lá, **os quatro comandos correm-se à mão antes de empurrar**:
+O CI (`.github/workflows/ci.yml`) corre a cada envio, em qualquer branch:
+typecheck, lint, testes e build, em pouco mais de um minuto. Esteve desligado
+enquanto o repositório era privado — o GitHub não dá máquina a repositório
+privado de organização sem cartão cadastrado —, e voltou a 19 de agosto de 2026,
+quando o repositório passou a público.
+
+Ele avisa depois do envio, e isso não substitui correr os portões antes: um
+`producao` partido fica à vista das clientes enquanto o e-mail de falha não
+chega. **Antes de empurrar, à mão:**
 
 ```sh
 rm -rf apps/web/.next/types      # ver a armadilha nº 3

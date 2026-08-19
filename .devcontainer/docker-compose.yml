@@ -1,0 +1,29 @@
+# O contentor onde se programa, ao lado do Postgres que já estava no
+# `docker-compose.yml` da raiz — este ficheiro só acrescenta o `app`, não
+# repete o banco.
+#
+# Serve o GitHub Codespaces e o "Dev Containers" do VS Code, e a graça é a
+# mesma nos dois: quem chega não instala Node, nem Postgres, nem Docker
+# Desktop, nem escreve comando nenhum. Abre, espera, e o site está de pé.
+services:
+  app:
+    # A imagem oficial de Node do Dev Containers, presa à 22 por causa do
+    # `.nvmrc` — duas fontes de verdade para a mesma versão são uma a mais.
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+
+    volumes:
+      # Caminho fixo, e não o nome da pasta de quem clonou: a pasta local deste
+      # projecto chama-se "Salão de Beleza", com espaço e com til, e isso rebenta
+      # em montagens e em caminhos de shell muito antes de rebentar aqui.
+      - ..:/workspaces/estudio:cached
+
+    # O contentor não tem serviço nenhum para correr — quem corre lá dentro é
+    # o VS Code. Sem isto, ele arranca e morre.
+    command: sleep infinity
+
+    depends_on:
+      banco:
+        # `service_healthy` e não `service_started`: o healthcheck do banco é o
+        # que garante que a migração do postCreate não bate num Postgres que
+        # ainda está a arrancar.
+        condition: service_healthy

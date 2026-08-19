@@ -12,20 +12,22 @@ cliente, não a nossa.
 
 ## Como correr
 
-Precisa de **Node 22** (está em `.nvmrc`) e de **Docker**.
+**Sem instalar nada, e sem escrever comando nenhum:** neste repositório, botão verde
+**Code → Codespaces → Create codespace**. Node, Postgres, dependências, schema, travas
+e o estúdio de demonstração inteiro montam-se sozinhos, e o site abre num separador
+quando ficar de pé. A primeira vez leva alguns minutos; a partir daí é abrir.
+
+**Na sua máquina**, com **Node 22** (está em `.nvmrc`) e **Docker**:
 
 ```sh
-npm install
-docker compose up -d --wait   # Postgres 17 local, na porta 5432
-cp .env.example .env          # já vem apontado para esse banco
-npm run db:migrate            # schema + travas anti-overbooking
-npm run db:seed               # estúdio fictício completo, para ver telas
-npm run dev                   # http://localhost:3000
+npm run preparar   # .env, dependências, Postgres, schema e salão de demonstração
+npm run dev        # http://localhost:3000
 ```
 
-Copiar e correr, sem editar nada: a `DATABASE_URL` do `.env.example` é a do
-contentor do `docker-compose.yml`. Quem prefira um PostgreSQL 17 próprio troca
-essa linha e ignora o Docker.
+`npm run preparar` corre-se as vezes que forem precisas: não escreve por cima de um
+`.env` que já exista, e não semeia banco nenhum que não seja de casa — se a
+`DATABASE_URL` apontar para fora, ele pára e diz porquê. Quem prefira um PostgreSQL 17
+próprio troca essa linha do `.env` e ignora o Docker.
 
 O seed monta um estúdio de demonstração inteiro — catálogo, equipa, escalas e marcações. É
 esse ambiente que se mostra numa venda, e é sobre ele que se desenvolve. Não é preciso dado
@@ -36,6 +38,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 
 | Comando | O que faz |
 |---|---|
+| `npm run preparar` | do clone ao ambiente pronto — idempotente, e recusa-se a semear banco que não seja local |
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção dos três workspaces |
 | `npm test` | 204 testes — 148 da regra de negócio (disponibilidade, preço, comissão, fuso, janela do mês, CSV, assinatura S3) e 56 da aplicação (formatação, preçário, produção do mês, paridade das três línguas) |
@@ -54,6 +57,8 @@ ops/               o que corre em produção fora da aplicação: backup diário
 dados/             CSVs que definem o formato de importação do onboarding
 material/          o que a dona mandou de facto: fotografias das lojas, logo, preçário
 docs/              pesquisa, modelo de dados, arquitetura e o registo de decisões
+scripts/           o arranque de quem chega: do clone ao site, num comando
+.devcontainer/     o mesmo arranque, sem instalar nada — GitHub Codespaces e VS Code
 ```
 
 O motor de disponibilidade vive em `packages/core` de propósito (ADR-007): é a parte do

@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "preparar": "node scripts/preparar.mjs",
     "dev": "npm run dev --workspace=@studio/web",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

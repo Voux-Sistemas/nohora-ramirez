@@ -314,3 +314,45 @@ Cada profissional passa a ter, na sua própria marcação em `/agenda`, o botão
 - **A fila de `/avisos` cresceu.** A rotina de confirmação deixou de filtrar por marcações feitas pelo site: balcão, telefone e walk-in também precisam de ser confirmados, e escondê-los da fila era a dona não ver metade do que falta.
 - **O indicador é um ponto, não um sexto estado.** A escala de tinta da grelha está cheia e confirmação é um eixo diferente do estado — está em DESIGN §8.
 - **Quem enviou vive no `payload` jsonb, sem índice.** Serve para uma consulta pontual quando alguém perguntar; não serve para um relatório mensal de quem cumpriu o dever. Se essa pergunta se fizer a sério, é coluna e é migração.
+---
+
+## ADR-021 · Quem chega não monta ambiente nenhum
+**Data:** 2026-08-19 · **Status:** aceita
+
+O arranque passa a ser um comando — `npm run preparar` (`scripts/preparar.mjs`) — e, para
+quem abre o repositório no GitHub, nem isso: o `.devcontainer/` monta a máquina, o banco, o
+schema, o salão de demonstração e o servidor sozinho.
+
+**O que existia era uma sequência de seis comandos por uma ordem que não se adivinha**, e
+cada um falha de maneira diferente se o anterior não tiver corrido: a migração morre contra
+um Postgres que ainda está a arrancar, o seed morre sem `.env`, e o `next dev` arranca bem e
+só se parte na primeira consulta. Documentar a ordem resolve para quem lê o documento todo.
+Um script resolve para toda a gente.
+
+**O guarda-freio mudou de sítio, e é a parte que interessa.** «Nunca correr o seed contra o
+banco do salão» era uma linha num documento — e o seed começa por esvaziar todas as tabelas.
+Agora é código: o script lê o anfitrião da `DATABASE_URL` e, se não for `localhost`,
+`127.0.0.1` ou o contentor `banco`, pára antes de migrar ou semear e diz porquê. A trava de
+dentro do banco (`deployment_env`) continua onde estava; esta é anterior, e não precisa de
+ligação nenhuma para agir.
+
+**O Codespace é o mesmo script, com o ambiente por cima.** `.devcontainer/docker-compose.yml`
+acrescenta um contentor de trabalho ao lado do Postgres que já estava no compose da raiz —
+não duplica o banco. `depends_on: service_healthy` é o que garante que a migração não corre
+contra um Postgres a meio do arranque. O `.env` do contentor nasce do `.env.example` com o
+anfitrião trocado para `banco`, porque lá dentro `localhost` é o contentor de trabalho e não
+o do Postgres.
+
+**Consequências:**
+- **Prettier não entra na lista de extensões**, de propósito e com comentário no ficheiro: não
+  há configuração dele aqui e o padrão desfaz o estilo do código todo. O editor do contentor
+  arranca com `formatOnSave` desligado e o TypeScript do projecto, não o do editor.
+- **O caminho de montagem é fixo** (`/workspaces/estudio`) e não o nome da pasta de quem
+  clonou: a pasta local deste projecto chama-se «Salão de Beleza», e um espaço com um til no
+  caminho rebenta em sítios que não falam do assunto.
+- **A primeira conta continua a ser trabalho de quem chega.** O seed monta o salão, não quem
+  entra nele — `/comecar` com o código `instalar-local`. É desenho, não esquecimento: conta é
+  pessoa, e o seed não inventa pessoas.
+- **Sem prebuilds do Codespaces.** A primeira abertura leva minutos porque instala tudo.
+  Ligar prebuilds é configuração do repositório no GitHub, não código, e paga-se em minutos de
+  Actions — decisão de quem gere a conta.

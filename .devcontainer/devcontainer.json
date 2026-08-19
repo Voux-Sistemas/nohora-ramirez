@@ -1,0 +1,52 @@
+// Abrir o repositório e ter o sistema a correr, sem escrever um comando.
+//
+// No GitHub: botão verde "Code" → separador "Codespaces" → "Create codespace".
+// No VS Code de casa, com Docker: "Reopen in Container".
+//
+// A partir daí é tudo automático — Node, Postgres, dependências, schema, o
+// salão de demonstração inteiro e o servidor — e a primeira vez leva uns
+// minutos. O que acontece está em `preparar.sh`, por ordem.
+{
+  "name": "NOHORA RAMIREZ — Beauty Studio",
+
+  // Os dois ficheiros, por esta ordem: o da raiz traz o Postgres (o mesmo que
+  // se usa sem contentor nenhum), o daqui acrescenta o contentor de trabalho.
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspaces/estudio",
+
+  // Corre uma vez, quando o contentor nasce.
+  "postCreateCommand": "bash .devcontainer/preparar.sh",
+
+  // E isto de cada vez que alguém se liga: o servidor sobe sozinho e o VS Code
+  // abre o separador do site quando a porta 3000 responder.
+  "postAttachCommand": { "o site": "npm run dev" },
+
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "O site", "onAutoForward": "openBrowser" },
+    "5432": { "label": "Postgres", "onAutoForward": "silent" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss"
+        // Prettier NÃO entra, de propósito: não há configuração dele neste
+        // repositório e o padrão desfaz o estilo do código todo num commit
+        // ilegível. A formatação aqui é do ESLint. Ver CONTRIBUIR.md, armadilha 4.
+      ],
+      "settings": {
+        "editor.formatOnSave": false,
+        // O TypeScript do projecto, e não o que vier com o editor: as versões
+        // divergem e os erros deixam de bater com os do `npm run typecheck`.
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "eslint.workingDirectories": [{ "mode": "auto" }],
+        "search.exclude": { "**/node_modules": true, "**/.next": true }
+      }
+    }
+  },
+
+  "remoteUser": "node"
+}

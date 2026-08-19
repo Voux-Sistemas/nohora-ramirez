@@ -6,7 +6,22 @@ descobrir por acidente.
 
 ---
 
-## Do zero até ver o site (cinco minutos)
+## Do zero até ver o site
+
+### Sem instalar nada, e sem escrever nada
+
+No GitHub: botão verde **Code** → separador **Codespaces** → **Create codespace**.
+
+É só isso. O `.devcontainer/` que está no repositório trata do resto — levanta o
+Postgres, cria o `.env`, instala as dependências, migra o schema com as travas,
+semeia o salão de demonstração inteiro e arranca o servidor. Quando a porta 3000
+responder, o VS Code abre o site num separador. A primeira vez leva uns minutos,
+porque monta a máquina toda; a partir daí é abrir e continuar de onde se ficou.
+
+O mesmo `.devcontainer/` serve o VS Code de casa: com o Docker Desktop aberto,
+**Reopen in Container**, e acontece exactamente a mesma coisa.
+
+### Na sua própria máquina
 
 Precisa de **Node 22** (está em `.nvmrc`; com `nvm`, basta `nvm use`) e do
 **Docker**.
@@ -15,14 +30,14 @@ Precisa de **Node 22** (está em `.nvmrc`; com `nvm`, basta `nvm use`) e do
 git clone https://github.com/Voux-Sistemas/nohora-ramirez.git
 cd nohora-ramirez
 
-npm install
-docker compose up -d --wait     # Postgres 17 local, na porta 5432
-cp .env.example .env            # já vem apontado para esse banco, não mexer
-
-npm run db:migrate              # schema + travas anti-overbooking
-npm run db:seed                 # estúdio fictício inteiro
-npm run dev                     # http://localhost:3000
+npm run preparar     # .env, dependências, Postgres, schema, salão fictício
+npm run dev          # http://localhost:3000
 ```
+
+O `npm run preparar` (`scripts/preparar.mjs`) é o mesmo que o Codespace corre, e
+faz os seis passos por ordem, explicando cada um. Correr outra vez não estraga
+nada: o `.env` que já existe fica como está, o contentor que já está de pé
+continua de pé, e a migração salta o que já aplicou.
 
 O `.env.example` e o `docker-compose.yml` estão combinados de propósito: a
 `DATABASE_URL` que vem no ficheiro é a do contentor. Copiar e correr, sem editar
@@ -90,7 +105,11 @@ verdadeiro come o resto e a montra responde 500 às clientes. Já aconteceu, a
 esvaziar todas as tabelas. Há uma trava dentro do próprio banco
 (`deployment_env`, em `packages/db/sql/02_ambiente.sql`) e ela **rebenta** quando
 a marca é `producao` — mas só *avisa* quando a marca não existe de todo. Uma
-marca em falta não é protecção.
+marca em falta não é protecção. Há uma segunda trava, essa antes de qualquer
+ligação: o `npm run preparar` lê o anfitrião da `DATABASE_URL` e recusa-se a
+migrar ou semear tudo o que não seja `localhost`, `127.0.0.1` ou o contentor
+`banco`. Chamar o `db:seed` à mão contorna-a — e é por isso que continua a ser a
+armadilha número dois.
 
 **3. `apps/web/.next/types` em cache parte o `tsc` sem dizer porquê.** Os tipos
 de rota do Next ficam velhos e o typecheck acusa erros em ficheiros que estão

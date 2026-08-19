@@ -52,7 +52,9 @@ apps/
         ├── app/                rotas (ver o mapa abaixo)
         ├── components/         admin, agenda, auth, booking, brand, clientes,
         │                       clients, notifications, operate, tema, ui, vitrine
-        ├── lib/                pais, formatação, tema, ambiente, cliente de banco
+        ├── i18n/               os três dicionários e o tipo que os obriga a bater
+        ├── lib/                pais, idioma, formatação, tema, produção do mês,
+        │                       ambiente, cliente de banco
         └── server/             admin, auth, finance, notifications, people,
                                 scheduling, security, storage
 packages/
@@ -99,6 +101,28 @@ a primeira conta de todas nasce em `/comecar` (ver `ops/README.md`).
 **As três rotas de API** são `/api/imagens/[...key]` (serve a fotografia a partir do bucket, e é
 a nossa rota que decide o `Content-Type`), `/api/saude` e `/api/dev/smoke`. Não há webhook
 nenhum, porque não há nada do lado de fora a chamar-nos.
+
+### O país e a língua são dois eixos, e não se cruzam
+
+`pais()` (`lib/pais.ts`) diz onde o salão opera: moeda, fuso, formato de telemóvel, métodos de
+pagamento. É uma constante do negócio — o mesmo salão não fatura em dois países. `lerIdioma()`
+(`lib/idioma.ts`) diz em que língua alguém está a **ler**, e isso muda de visita para visita. Um
+eixo é da casa, o outro é de quem chega; misturá-los daria "preço em libras porque a página está
+em inglês", que é exactamente o erro que se quer impossível.
+
+A língua vive num cookie (`idioma`), como o tema, e não no endereço. Sem prefixo de URL e sem
+middleware, por três razões que se somam: o funil de marcação carrega o estado em `searchParams`
+(`s`, `d`, `p`, `t`) e duplicar isso num segmento de caminho multiplicaria as rotas por três;
+`typedRoutes` obrigaria a declarar cada uma à mão; e as páginas da superfície da cliente já são
+todas `force-dynamic`, portanto ler um cookie não estraga cache nenhuma — não há cache a
+estragar. O preço está declarado: uma URL por página, o Google indexa português, e sem
+`hreflang` — pôr alternates a apontar para o mesmo endereço seria mentir ao motor de busca.
+
+O texto vem de `i18n/{pt,en,es}.ts`, e o que garante que as três não divergem é o tipo:
+`Dicionario = typeof pt`, portanto uma chave nova em português não compila até existir nas
+outras duas. O que o tipo não apanha — valor vazio, `{placeholder}` que existe numa língua e não
+na outra — apanha-o `i18n/dicionario.test.ts`. Traduz-se a montra, o funil, a conta e o e-mail
+do código; a gestão fica em português, e é decisão, não pendência.
 
 ---
 
@@ -226,6 +250,13 @@ pela API da Meta, portanto não tem tarifa por mensagem nem verificação de emp
 quem carrega em "enviar" é uma pessoa. São cinco rotinas: confirmação, lembrete da véspera,
 lembrete de hoje, pedido de avaliação e resgate.
 
+**A confirmação também sai da agenda.** O botão está na marcação de cada profissional — o
+dever é dela, não da receção — e escreve a mesma linha de `notification_logs` que a fila de
+`/avisos` consulta, portanto confirmar num sítio tira da fila do outro sem código a coordenar os
+dois. A mensagem sai na língua em que a cliente marcou (`client_profiles.preferences.idioma`),
+e enviar **não** muda o estado da marcação: mensagem enviada e cliente confirmada são factos
+diferentes, e o dia em que se confundirem é o dia em que a agenda passa a mentir.
+
 **Não existe agendador**, e é o ponto de projeto que importa: nada acorda às três da manhã para
 gerar os avisos de amanhã. A fila é uma consulta — "quem atende amanhã e ainda não tem registo
 de lembrete" —, portanto está sempre certa no instante em que a receção abre o ecrã, sem
@@ -275,9 +306,9 @@ preço, comissão e comanda mudam sem deixar rasto de quem mudou.
 | Tipo | Onde | O que |
 |---|---|---|
 | Unitário | `packages/core` | Motor de disponibilidade (35 casos: buffers, viragem do dia, feriado, fuso, escolha de profissional), resolução de preço, fuso horário, leitura de CSV, rate limit, assinatura S3 |
-| Unitário | `apps/web` | Formatação — dinheiro, data, duração, telefone, e o que muda com o país |
+| Unitário | `apps/web` | Formatação (dinheiro, data, duração, telefone, e o que muda com o país), fusão de grupos do preçário, produção do mês por profissional e por serviço, paridade dos três dicionários |
 
-São 127 no total, e correm em pouco mais de um segundo com `npm test`.
+São 204 no total, e correm em pouco mais de um segundo com `npm test`.
 
 O que **não** existe: teste de integração contra banco real (incluindo o caso que mais
 interessaria — dois pedidos simultâneos no mesmo horário, um a passar e outro a receber o erro

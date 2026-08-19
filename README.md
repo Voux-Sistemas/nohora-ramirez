@@ -38,7 +38,7 @@ Sem conta nenhuma no banco, o sistema não deixa entrar ninguém. A primeira con
 |---|---|
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | build de produção dos três workspaces |
-| `npm test` | 178 testes — 148 da regra de negócio (disponibilidade, preço, comissão, fuso, janela do mês, CSV, assinatura S3) e 30 da aplicação |
+| `npm test` | 204 testes — 148 da regra de negócio (disponibilidade, preço, comissão, fuso, janela do mês, CSV, assinatura S3) e 56 da aplicação (formatação, preçário, produção do mês, paridade das três línguas) |
 | `npm run typecheck` | `tsc --noEmit` nos três workspaces |
 | `npm run db:migrate` | aplica migrations **e** as travas de exclusão |
 | `npm run db:seed` | popula o estúdio de demonstração |

@@ -20,6 +20,8 @@ gerente ou como profissional, e a cena de balcão continua a existir sem login p
 - **Cliente do salão** (cena: telemóvel, à noite, fora do horário comercial). Marca sozinha,
   escolhe unidade + serviço + profissional favorita, quer ver preço e duração antes de
   confirmar, quer mandar foto de referência. Não quer ligar. Meta de produto: agendar em < 60s.
+  Lê em português, inglês ou espanhol — escolhe na barra da montra, e a escolha segue-a até à
+  mensagem de confirmação que lhe chega dias depois.
 - **Profissional** (telemóvel, entre atendimentos). Agenda do dia e ficha do cliente antes de
   começar. Só a própria coluna: o que ela abre entre dois atendimentos tem de caber num ecrã.
   A comissão dela existe e é calculada, mas quem a lê é a dona — o extrato por pessoa é o
@@ -27,8 +29,8 @@ gerente ou como profissional, e a cena de balcão continua a existir sem login p
 - **Gerente de unidade** (desktop, e tablet em pé no balcão com a cliente à espera em frente).
   Ocupação, faturação, escala, stock da unidade — e o ecrã de agenda, onde precisa de
   velocidade acima de tudo.
-- **Dona / rede** (desktop). Painel consolidado das unidades, comissão da rede, catálogo
-  e regras padronizados.
+- **Dona / rede** (desktop). Painel consolidado das unidades, produção de cada profissional,
+  comissão da rede, catálogo e regras padronizados.
 
 A profissional vê **só a própria agenda** — sem as colunas das colegas. Também decisão do
 dono do produto.
@@ -85,8 +87,9 @@ variáveis por profissional e por unidade.
 
 ## Capabilities and Constraints
 
-Construído e a funcionar: agendamento do cliente (unidade → serviço → horário → confirmar),
-agenda da receção com encaixe e remarcação, comanda, caixa, clientes com importação CSV,
+Construído e a funcionar: agendamento do cliente (unidade → serviço → horário → confirmar) em
+português, inglês e espanhol, agenda da receção com encaixe e remarcação, confirmação por
+WhatsApp a partir da agenda de cada profissional, comanda, caixa, clientes com importação CSV,
 comissões, registos de admin (unidades, serviços, equipa), login por OTP para
 cliente e por palavra-passe para a equipa.
 
@@ -101,6 +104,14 @@ Restrições e factos que o design não pode contrariar:
 - Sinal antecipado existe como percentagem (pontos-base) ou valor fixo.
 - Estados do agendamento: agendado → confirmado → check-in → em atendimento → concluído /
   cancelado / no-show.
+- **Enviar a confirmação não confirma a marcação.** Quem carrega no botão manda a mensagem;
+  quem confirma é a cliente, do outro lado. São dois factos, e o sistema guarda-os separados: o
+  envio numa linha de `notification_logs`, a confirmação no estado da marcação.
+- **A cliente escolhe a língua; a equipa não.** Português, inglês e espanhol cobrem a montra, o
+  funil de marcação, a conta e o e-mail do código de acesso. Duas limitações são declaradas, não
+  esquecidas: a escolha vive num cookie e não no endereço, portanto há **uma URL por página** e o
+  Google indexa este site em português; e o conteúdo que vem do banco — nomes de serviço,
+  categorias, descrições, textos alternativos, bios — fica em português nas três línguas.
 
 Sobre imagem, no estado em que está hoje:
 

@@ -364,6 +364,13 @@ não JavaScript.
 palavras de prosa numa página que o cliente já chamou cansativa. Na grade vê-se a
 sala; a legenda aparece a quem pediu para ver aquela fotografia.
 
+**A língua troca-se onde se lê, e diz o próprio nome.** O seletor mora no cabeçalho e no
+rodapé da montra — PT / EN / ES em texto, nunca bandeiras: bandeira é país, e há mais
+espanhol fora de Espanha do que dentro. Não aparece em ecrã nenhum da equipa, porque a oficina
+não se traduz. Por dentro é o gémeo do seletor de tema: grava o cookie e mais nada. A diferença
+é uma linha — o tema é só CSS e resolve-se no browser, a língua é texto que veio do servidor,
+portanto o seletor chama `router.refresh()` e deixa o servidor voltar a escrever a página.
+
 ## 11. O que este sistema recusa
 
 Regras de rejeição, não de estilo. Se estiver prestes a escrever uma delas,

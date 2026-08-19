@@ -281,3 +281,36 @@ As tabelas `commission_rules` e `commission_entries`, o enum `commission_status`
 - **Só percentagem entra.** O `09-comissoes.csv` descreve um modelo mais rico — valor fixo por aplicação, dedução do custo do produto, regra por categoria — que nunca teve coluna onde pousar. Continua a não ter. Quem preencher a coluna `valor_fixo` está a responder a uma pergunta que o sistema não faz.
 - **O ecrã é da dona, e só dela.** `/admin/comissoes` é `requireRede`, como as unidades e o catálogo: mexer numa percentagem muda o que a rede inteira paga. A profissional não vê o extrato dela — é o passo seguinte, e ainda não foi pedido.
 - **O painel da dona ganha a coluna de volta, noutro sítio.** O apuramento por pessoa vive em `/`, junto da faturação de cada uma, e não numa tela à parte que ninguém abre por si. Foi essa a queixa original.
+---
+
+## ADR-019 · A língua é da leitora; o país é da casa
+**Data:** 2026-08-19 · **Status:** aceita
+
+A superfície da cliente — montra, funil de marcação, conta e o e-mail do código de acesso — passa a existir em português, inglês e espanhol. A gestão não. A escolha vive num cookie (`idioma`), lida no servidor por `lib/idioma.ts`, e o texto vem de três dicionários em `apps/web/src/i18n/` amarrados pelo mesmo tipo.
+
+**O eixo é novo, e não é o `pais()`.** `pais()` diz onde o salão fatura: moeda, fuso, formato de telemóvel, métodos de pagamento. É constante — o mesmo salão não opera em dois países. A língua muda de visita para visita, e de pessoa para pessoa dentro da mesma visita. Enfiar as duas coisas na mesma constante daria "preço em libras porque a página está em inglês", que é o erro que se quer impossível de escrever.
+
+**Sem prefixo de URL e sem middleware**, por três razões que se somam: o funil carrega o estado em `searchParams` (`s`, `d`, `p`, `t`) e duplicá-lo num segmento de caminho multiplicava as rotas por três; `typedRoutes` obrigaria a declarar cada uma à mão; e as páginas da superfície da cliente já são todas `force-dynamic`, portanto ler um cookie não estraga cache nenhuma. Contra: uma URL por página.
+
+**Consequências:**
+- **O Google indexa este site em português, e mais nada.** Sem `hreflang` — `alternates` a apontar para o mesmo endereço em três línguas seria mentir ao motor de busca, e quem partilha um link partilha-o em português. Limitação declarada no PRODUCT, não esquecimento.
+- **O conteúdo que está no banco fica em português.** Nome de serviço, categoria, descrição, texto alternativo, bio. Traduzi-los é coluna por língua em cada campo mais um segundo ecrã de edição para a dona, e isso paga-se quando houver cliente a tropeçar, não antes. Está no ROADMAP.
+- **A paridade é do compilador, não da disciplina.** `Dicionario = typeof pt`: uma chave nova em português não compila até existir em inglês e espanhol. O que o tipo não vê — valor vazio, `{placeholder}` a mais numa língua — vê-o `i18n/dicionario.test.ts`.
+- **A língua da marcação sobrevive à visita.** Fica em `client_profiles.preferences.idioma`, e é nela que sai a confirmação de WhatsApp dias depois, do telemóvel de outra pessoa.
+- **A equipa fica em português, de propósito.** Traduzir a oficina era triplicar texto que ninguém pediu, e cada ecrã de gestão que nascesse depois teria de nascer três vezes.
+
+---
+
+## ADR-020 · A confirmação é dever de quem atende
+**Data:** 2026-08-19 · **Status:** aceita
+
+Cada profissional passa a ter, na sua própria marcação em `/agenda`, o botão que abre o WhatsApp da cliente com a confirmação escrita. A dona vê na grelha um ponto em quem já foi avisada. `/avisos` continua a ser da gestão — não se abre ao profissional.
+
+**O dever mudou de sítio porque o trabalho já estava lá.** Confirmar era tarefa da receção, numa fila só, para as marcações todas da loja. Quem sabe se aquela cliente vem é quem a vai atender, e é ela que já tem a agenda aberta entre dois atendimentos. Dar-lhe `/avisos` inteiro seria dar-lhe a fila das colegas; o botão na marcação dela dá-lhe exactamente o seu pedaço, com o mesmo gate de permissão que já a deixa carregar em "cheguei, comecei, terminei".
+
+**Consequências:**
+- **Enviar não confirma.** O botão diz "Enviar confirmação", nunca "Confirmar" — há um botão de estado a dois centímetros dele. Mensagem enviada é uma linha em `notification_logs`; cliente confirmada é o estado da marcação. Confundi-los é a agenda passar a mentir sobre quem respondeu.
+- **Os dois ecrãs partilham o anti-duplicado.** É a mesma linha de registo que a fila de `/avisos` consulta, portanto confirmar na agenda tira da fila e vice-versa, sem código a coordenar os dois.
+- **A fila de `/avisos` cresceu.** A rotina de confirmação deixou de filtrar por marcações feitas pelo site: balcão, telefone e walk-in também precisam de ser confirmados, e escondê-los da fila era a dona não ver metade do que falta.
+- **O indicador é um ponto, não um sexto estado.** A escala de tinta da grelha está cheia e confirmação é um eixo diferente do estado — está em DESIGN §8.
+- **Quem enviou vive no `payload` jsonb, sem índice.** Serve para uma consulta pontual quando alguém perguntar; não serve para um relatório mensal de quem cumpriu o dever. Se essa pergunta se fizer a sério, é coluna e é migração.

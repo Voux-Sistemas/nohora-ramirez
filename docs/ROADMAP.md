@@ -17,6 +17,12 @@ confirmar → pronto, sem conta nenhuma pelo meio. Vê o preço e a duração an
 escolha de profissional vem antes da escolha do dia porque é assim que a decisão acontece. Cada
 loja tem ainda a sua montra em `/loja/[unidade]`, com galeria de fotografias.
 
+**E marca em três línguas.** Português, inglês e espanhol na parte que é da cliente — montra,
+funil, conta e o e-mail do código de acesso. Escolhe-se na barra, fica num cookie, e o servidor
+entrega o HTML já na língua certa, sem flash e sem segunda URL. A gestão não se traduz: quem
+trabalha aqui trabalha em português, e triplicar o texto da oficina era trabalho que ninguém
+pediu.
+
 **O motor de disponibilidade.** Vive em `packages/core`, reserva recurso físico junto com
 pessoa, respeita escala, ausência, feriado, buffers e as regras de antecedência de cada loja, e
 sabe distribuir entre profissionais quando a cliente não tem preferência. É a parte mais testada
@@ -39,10 +45,16 @@ notas internas, cadastro à mão em `/clientes/novo` e importação de carteira 
 
 **Os avisos.** `/avisos/[unidade]` é a fila de quem falta contactar hoje, com o texto pronto e o
 link que abre a conversa no WhatsApp do salão. Cinco rotinas: confirmação, lembrete da véspera,
-lembrete de hoje, pedido de avaliação e resgate.
+lembrete de hoje, pedido de avaliação e resgate. A confirmação também parte da agenda: cada
+profissional tem o botão na sua própria marcação, e a dona vê na grelha um ponto em quem já foi
+avisada. É a mesma linha de registo nos dois sítios, portanto confirmar num lado tira da fila do
+outro.
 
-**A área da dona.** `/` com painel de faturação e marcações por loja e comparativo de mês; e
-`/admin` com o registo de unidades, serviços, comissões e equipa — incluindo horário de
+**A área da dona.** `/` é o painel: a faturação do mês contra o mês passado, a forma do mês dia
+a dia, a equipa ordenada por líquido — com o split por loja de quem atende em mais do que uma e
+o que está por pagar de comissão —, os cinco serviços que mais saem e o resumo por loja. As
+setas ao lado do mês andam para trás. E `/admin` com o registo de unidades, serviços, comissões
+e equipa — incluindo horário de
 funcionamento, feriados, escalas, matriz de habilidades, exceções de preço e galeria de
 fotografias por loja.
 
@@ -139,10 +151,27 @@ entrou. O wizard do ADR-008, ponto 3, está por construir.
 
 ### Testes: falta o que só banco real prova
 
-135 testes, quase todos de função pura. Não há teste de integração contra banco, e o caso que
+204 testes, quase todos de função pura. Não há teste de integração contra banco, e o caso que
 mais interessaria é justamente esse: dois pedidos simultâneos no mesmo horário, um a passar e o
 outro a receber o erro tratado. A trava está provada por construção e conferida no deploy, mas
 não por um teste que a tente furar. Também não há E2E nem teste de carga.
+
+### A ocupação não está no painel
+
+O painel diz quanto se faturou e quem o fez; não diz quanto da agenda ficou por vender. Para
+isso é preciso cruzar a escala de cada profissional com as exceções do dia — férias, feriado,
+folga trocada — e pôr as horas ocupadas contra as horas que havia, por loja e por pessoa. As
+peças existem dentro do motor de disponibilidade; o que falta é a soma do mês, e ela não é
+barata. Fica como candidata: é o número que responde se vale a pena contratar mais uma mão, e a
+decisão de o construir é da dona.
+
+### O que está no banco não se traduz
+
+A montra fala três línguas, mas só as palavras que estão no código. Nome de serviço, categoria,
+descrição da loja, texto alternativo de fotografia e bio de profissional saem do banco em
+português e ficam em português nas três. Traduzi-los quer dizer uma coluna por língua em cada
+campo e um segundo ecrã de edição para a dona — trabalho que só se paga quando houver cliente
+estrangeira a tropeçar em "Escova com prancha". Limitação declarada, com a do SEO, no PRODUCT.
 
 ### Pequenas dívidas conhecidas
 

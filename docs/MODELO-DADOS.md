@@ -133,7 +133,8 @@ rede toda, e é assim que o motor a lê.
 
 **`client_profiles`** — `user_id` (único), `birthdate`, `document`, `how_found_us`,
 `preferred_unit_id`, `preferred_staff_id`, `tags` (text[]), `preferences` (jsonb: bebida,
-alergia, observação de atendimento), `no_show_count`, `requires_deposit`, `first_visit_at`,
+alergia, observação de atendimento, e **`idioma`** — a língua em que ela marcou, que é a língua
+em que as mensagens lhe saem), `no_show_count`, `requires_deposit`, `first_visit_at`,
 `last_visit_at`.
 
 **`client_notes`** — observação interna, nunca visível à cliente. `client_id`, `author_id`,
@@ -264,6 +265,11 @@ Esta é usada, e de uma forma que vale explicar: **não existe agendador de avis
 ecrã `/avisos` é uma consulta — "quem atende amanhã e ainda não tem registo de lembrete" —, e o
 que impede o aviso duplicado é a própria linha em `notification_logs`. Enviar é gravar; gravar é
 sair da fila. Sem worker e sem estado a dessincronizar.
+
+É também por aqui que se sabe se a confirmação já foi mandada: a agenda lê o `sent_at` mais
+recente da linha `confirmacao` daquela marcação, e é isso que acende o ponto na grelha da dona.
+Quem enviou fica no `payload`, que é jsonb e não tem índice — serve para uma consulta pontual,
+não para um relatório de quem cumpriu o dever.
 
 ### Plataforma — `schema/platform.ts`
 

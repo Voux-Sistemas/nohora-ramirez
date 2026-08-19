@@ -53,6 +53,12 @@ vem no `.env.example`. A partir daí o login da equipa é **telemóvel + senha**
 nunca e-mail, e a porta do `/comecar` fecha-se sozinha — a segunda conta cria-se
 por dentro, em `/admin/equipe`.
 
+**A cliente entra por código, e fora de produção o código sai no terminal.** Não
+há `RESEND_API_KEY` no `.env.example` e não é preciso: quando o canal de e-mail
+está desligado e o `AMBIENTE` é `teste`, o `/conta/entrar` imprime o código na
+consola do `npm run dev` (`[otp] código para …`). Em produção essa porta fecha-se
+— um código de acesso escrito no log é uma credencial viva à espera de ser lida.
+
 Recomeçar do zero quando o banco ficar torto:
 
 ```sh

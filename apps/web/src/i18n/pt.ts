@@ -80,6 +80,8 @@ export const pt = {
     asCasas: 'As casas',
     marcacao: 'Marcação',
     marcarOnline: 'Marcar online',
+
+    verAsCasas: 'Ver as casas',
     asSuasMarcacoes: 'As suas marcações',
     areaDaEquipa: 'Área da equipa',
     instagram: 'Instagram',
@@ -93,6 +95,8 @@ export const pt = {
     marcarEm: 'Marcar em {loja}',
     verACasa: 'Ver a casa',
     altSalao: 'Salão Nohora Ramirez em {loja}',
+
+    altAbertura: 'Interior do salão Nohora Ramirez',
     altInterior: 'Interior do salão {loja}',
     galeria: 'Fotografias do salão {loja}',
     fotoAnterior: 'Fotografia anterior',

@@ -94,6 +94,16 @@ export interface Rede {
   nome: string
   /** Sem `@` e sem URL — só o identificador. Nulo quando não foi declarado. */
   instagram: string | null
+  /**
+   * A fotografia da parede da abertura em `/loja`. Vive ao lado do Instagram e
+   * pela mesma razão: é uma da rede inteira, não de uma casa — e `units` não
+   * tem onde a guardar sem eleger arbitrariamente uma das duas lojas.
+   *
+   * Nula é um estado desenhado, não uma falta: sem ela a abertura mostra a
+   * coroa em água-forte, que é o que sempre teve. Um salão que acaba de entrar
+   * no sistema não fica com um buraco à espera de ficheiro.
+   */
+  montraFoto: string | null
 }
 
 export async function rede(): Promise<Rede | null> {
@@ -107,7 +117,10 @@ export async function rede(): Promise<Rede | null> {
   const instagram =
     typeof bruto === 'string' && bruto.trim() ? bruto.trim().replace(/^@+/, '') : null
 
-  return { nome: org.nome, instagram }
+  const foto = org.settings?.montraFoto
+  const montraFoto = typeof foto === 'string' && foto.trim() ? foto.trim() : null
+
+  return { nome: org.nome, instagram, montraFoto }
 }
 
 async function fotosDaLoja(unitId: string): Promise<FotoDaLoja[]> {

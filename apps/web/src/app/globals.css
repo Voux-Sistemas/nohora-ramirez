@@ -583,6 +583,42 @@
     border-color: var(--focus);
   }
 
+  /*
+    Metal escovado sobre tinta.
+
+    A tinta chapada de beira a beira lê-se como um rectângulo preto — de longe,
+    uma caixa, e não uma parede. Isto dá-lhe matéria: duas tramas de risco fino
+    na mesma diagonal, uma clara e uma de bronze, ambas a 2–3% de opacidade,
+    com máscara a esvaziá-las para o canto oposto ao clarão do fundo. É o
+    material que dá nome ao bronze da casa.
+
+    São gradientes, não imagem: não há ficheiro a descarregar e escala para
+    qualquer densidade de ecrã sem ficar mole — que foi a razão por que a
+    abertura da montra recusou fotografia em sangria (ver DESIGN.md, secção 9).
+
+    A máscara precisa do prefixo: sem `-webkit-mask-image` o Safari ignora-a e a
+    trama passa a cobrir a faixa toda, com o dobro do contraste que se quer.
+  */
+  .trama-escovada {
+    background-image:
+      repeating-linear-gradient(
+        97deg,
+        oklch(1 0 0 / 0.022) 0px,
+        oklch(1 0 0 / 0.022) 1px,
+        transparent 1px,
+        transparent 4px
+      ),
+      repeating-linear-gradient(
+        97deg,
+        color-mix(in oklab, var(--on-ink-accent) 3%, transparent) 0px,
+        color-mix(in oklab, var(--on-ink-accent) 3%, transparent) 1px,
+        transparent 1px,
+        transparent 17px
+      );
+    -webkit-mask-image: radial-gradient(120% 90% at 12% 8%, #000 0%, #000 42%, transparent 88%);
+    mask-image: radial-gradient(120% 90% at 12% 8%, #000 0%, #000 42%, transparent 88%);
+  }
+
   /* Véu sobre fotografia. Duas paradas com curva, não linear: linear deixa a
      banda cinza no meio que denuncia gradiente de gerador. */
   .scrim-photo {

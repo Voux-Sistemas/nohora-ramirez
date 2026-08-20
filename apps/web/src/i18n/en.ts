@@ -58,6 +58,8 @@ export const en: Dicionario = {
     asCasas: 'The salons',
     marcacao: 'Booking',
     marcarOnline: 'Book online',
+
+    verAsCasas: 'See the salons',
     asSuasMarcacoes: 'Your bookings',
     areaDaEquipa: 'Team area',
     instagram: 'Instagram',
@@ -71,6 +73,8 @@ export const en: Dicionario = {
     marcarEm: 'Book at {loja}',
     verACasa: 'See the salon',
     altSalao: 'Nohora Ramirez salon in {loja}',
+
+    altAbertura: 'Inside the Nohora Ramirez salon',
     altInterior: 'Inside the {loja} salon',
     galeria: 'Photographs of the {loja} salon',
     fotoAnterior: 'Previous photograph',
